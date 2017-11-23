@@ -104,9 +104,8 @@ class BotManager:
             self.interlocked_exchange_fn(ctypes.byref(player_input_lock), ctypes.c_long(REFRESH_NOT_IN_PROGRESS))
 
             if self.save_data and game_tick_packet.gameInfo.bRoundActive and old_time is not 0 and not old_time == current_time:
-                print('saving game data')
-                self.game_file.writelines('in: ' + str(game_tick_packet))
-                self.game_file.writelines('out: ' + str(controller_input))
+                self.game_file.writelines(str(game_tick_packet) + '\n')
+                self.game_file.writelines(str(controller_input) + '\n')
 
             old_time = current_time
 
