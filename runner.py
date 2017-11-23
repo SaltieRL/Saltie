@@ -8,7 +8,8 @@ import multiprocessing as mp
 import msvcrt
 import rlbot_exception
 import time
-
+import os
+import random
 PARTICPANT_CONFIGURATION_HEADER = 'Participant Configuration'
 PARTICPANT_BOT_KEY_PREFIX = 'participant_is_bot_'
 PARTICPANT_RLBOT_KEY_PREFIX = 'participant_is_rlbot_controlled_'
@@ -143,7 +144,8 @@ if __name__ == '__main__':
 
     # Wait 100 milliseconds then check for an error code
     time.sleep(0.1)
-    game_data_shared_memory = mmap.mmap(-1, ctypes.sizeof(gd.GameTickPacketWithLock), OUTPUT_SHARED_MEMORY_TAG)
+    game_data_shared_memory = mmap.mmap(-1, ctypes.sizeof(gd.GameTickPacketWithLock),
+                                        bot_manager.OUTPUT_SHARED_MEMORY_TAG)
     bot_output = gd.GameTickPacketWithLock.from_buffer(game_data_shared_memory)
     if not bot_output.iLastError == 0:
         # Terminate all process and then raise an exception
