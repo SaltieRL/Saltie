@@ -26,16 +26,6 @@ class BotManager:
         self.index = index
         self.save_data = savedata
         self.module_name = modulename
-        self.game_name = gamename
-        if sys.maxsize > 2**32:
-            # 64 bit
-            self.interlocked_exchange_dll = ctypes.CDLL('InterlockedWrapper', use_last_error=True)
-            self.interlocked_exchange_fn = self.interlocked_exchange_dll.InterlockedExchangeWrapper
-        else:
-            # Assume 32 bit
-            self.interlocked_exchange_dll = windll.kernel32
-            self.interlocked_exchange_fn = self.interlocked_exchange_dll.InterlockedExchange
-
 
 
     def run(self):
@@ -82,16 +72,13 @@ class BotManager:
             ctypes.memmove(ctypes.addressof(lock), game_data_shared_memory.read(ctypes.sizeof(lock)), ctypes.sizeof(lock)) # dll uses InterlockedExchange so this read will return the correct value!
 
             if lock.value != REFRESH_IN_PROGRESS:
+                game_data_shared_memory.seek(4, os.SEEK_CUR) # Move 4 bytes past error code
                 ctypes.memmove(ctypes.addressof(game_tick_packet), game_data_shared_memory.read(ctypes.sizeof(gd.GameTickPacket)),ctypes.sizeof(gd.GameTickPacket))  # copy shared memory into struct
 
             # Call agent
             controller_input = agent.get_output_vector(game_tick_packet)
 
-            # Lock, Write, Unlock
-            self.interlocked_exchange_fn(ctypes.byref(player_input_lock), ctypes.c_long(REFRESH_IN_PROGRESS))
-
-            current_time = game_tick_packet.gameInfo.GameTimeRemaining
-
+            # Write all player inputs
             player_input.fThrottle = controller_input[0]
             player_input.fSteer = controller_input[1]
             player_input.fPitch = controller_input[2]
@@ -101,14 +88,6 @@ class BotManager:
             player_input.bBoost = controller_input[6]
             player_input.bHandbrake = controller_input[7]
 
-            self.interlocked_exchange_fn(ctypes.byref(player_input_lock), ctypes.c_long(REFRESH_NOT_IN_PROGRESS))
-
-            if self.save_data and game_tick_packet.gameInfo.bRoundActive and old_time is not 0 and not old_time == current_time:
-                self.game_file.writelines(str(game_tick_packet) + '\n')
-                self.game_file.writelines(str(controller_input) + '\n')
-
-            old_time = current_time
-
             # Ratelimit here
             after = datetime.now()
             # print('Latency of ' + self.name + ': ' + str(after - before))
@@ -116,10 +95,6 @@ class BotManager:
             r.acquire(after-before)
 
         # If terminated, send callback
-        if self.save_data:
-            print('game data saved')
-            self.game_file.close()
-
         self.callbackEvent.set()
 
 
