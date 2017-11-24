@@ -11,11 +11,10 @@ class Agent:
         self.timeseries = []
         self.batch_size = 2
         self.time_steps = 5
-        self.lstm = tf.contrib.rnn.BasicLSTMCell(256)
 
-        self.hidden_state = self.current_state = tf.zeros([self.batch_size, self.lstm.state_size])
-        self.state = self.hidden_state, self.current_state
-        self.session = tf.Session()
+        # self.hidden_state = self.current_state = tf.zeros([self.batch_size, self.lstm.state_size])
+        # self.state = self.hidden_state, self.current_state
+        # self.session = tf.Session()
 
         # Value	Value Description
         # fThrottle	-1.0 backwards, 1.0 forwards, 0.0 not moving.
@@ -35,7 +34,7 @@ class Agent:
         boost = [True, False]
         handbrake = [True, False]
         option_list = [throttle, steer, pitch, yaw, roll, jump, boost, handbrake]
-        options = list(itertools.product(*a))
+        options = list(itertools.product(*option_list))
         print (len(options))
         # x = tf.placeholder(tf.float32, [None, 10])
         # W = tf.Variable(tf.zeros([10, num_outputs]))
@@ -67,7 +66,7 @@ class Agent:
         # bBoost	True means boost is held.
         # bHandbrake	True means handbrake is held.
 
-        output, self.state = self.lstm(self.timeseries[0], self.state)
+        # output, self.state = self.lstm(self.timeseries[0], self.state)
 
-        return [1.0, -1.0, 0.0, 0.0, 0.0, 0, 0, 0]
+        return [1.0, (np.random.rand() - 0.5) * 2, 0.0, 0.0, 0.0, 0, 0, 0]
 

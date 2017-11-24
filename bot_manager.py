@@ -7,6 +7,7 @@ import importlib
 import mmap
 import rate_limiter
 import sys
+import os
 
 OUTPUT_SHARED_MEMORY_TAG = 'Local\\RLBotOutput'
 INPUT_SHARED_MEMORY_TAG = 'Local\\RLBotInput'
@@ -26,6 +27,7 @@ class BotManager:
         self.index = index
         self.save_data = savedata
         self.module_name = modulename
+        self.game_name = gamename
 
 
     def run(self):
