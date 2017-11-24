@@ -89,6 +89,10 @@ class BotManager:
             player_input.bJump = controller_input[5]
             player_input.bBoost = controller_input[6]
             player_input.bHandbrake = controller_input[7]
+            
+            if self.save_data and game_tick_packet.gameInfo.bRoundActive and old_time is not 0 and not old_time == current_time:
+                self.game_file.writelines(str(self.create_input_array(game_tick_packet)) + '\n')
+                self.game_file.writelines(str(controller_input) + '\n')
 
             # Ratelimit here
             after = datetime.now()
@@ -99,5 +103,16 @@ class BotManager:
         # If terminated, send callback
         self.callbackEvent.set()
 
-
-
+    def create_input_array(self, gameTickPacket):
+        return [
+            gameTickPacket.gameball.Location.X,
+            gameTickPacket.gameball.Location.Y,
+            gameTickPacket.gamecars[self.index].Location.X,
+            gameTickPacket.gamecars[self.index].Location.Y,
+            float(gameTickPacket.gamecars[self.index].Rotation.Pitch),
+            float(gameTickPacket.gamecars[self.index].Rotation.Yaw),
+            gameTickPacket.gamecars[enemy_index].Location.X,
+            gameTickPacket.gamecars[enemy_index].Location.Y,
+            float(gameTickPacket.gamecars[enemy_index].Rotation.Pitch),
+            float(gameTickPacket.gamecars[enemy_index].Rotation.Yaw),
+         ]
