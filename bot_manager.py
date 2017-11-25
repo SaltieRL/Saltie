@@ -4,10 +4,12 @@ from ctypes import *
 from datetime import datetime
 import game_data_struct as gd
 import importlib
+import input_formatter
 import mmap
 import rate_limiter
 import sys
 import os
+
 
 OUTPUT_SHARED_MEMORY_TAG = 'Local\\RLBotOutput'
 INPUT_SHARED_MEMORY_TAG = 'Local\\RLBotInput'
@@ -28,6 +30,7 @@ class BotManager:
         self.save_data = savedata
         self.module_name = modulename
         self.game_name = gamename
+        self.input_converter = input_formatter.InputFormatter(team, index)
 
 
     def run(self):
@@ -93,7 +96,7 @@ class BotManager:
             current_time = game_tick_packet.gameInfo.GameTimeRemaining
             
             if self.save_data and game_tick_packet.gameInfo.bRoundActive and old_time is not 0 and not old_time == current_time:
-                self.game_file.writelines(str(self.create_input_array(game_tick_packet)) + '\n')
+                self.game_file.writelines(str(self.input_converter.create_input_array(game_tick_packet)) + '\n')
                 self.game_file.writelines(str(controller_input) + '\n')
                 
             old_time = current_time
@@ -107,16 +110,3 @@ class BotManager:
         # If terminated, send callback
         self.callbackEvent.set()
 
-    def create_input_array(self, gameTickPacket):
-        return [
-            gameTickPacket.gameball.Location.X,
-            gameTickPacket.gameball.Location.Y,
-            gameTickPacket.gamecars[self.index].Location.X,
-            gameTickPacket.gamecars[self.index].Location.Y,
-            float(gameTickPacket.gamecars[self.index].Rotation.Pitch),
-            float(gameTickPacket.gamecars[self.index].Rotation.Yaw),
-            gameTickPacket.gamecars[enemy_index].Location.X,
-            gameTickPacket.gamecars[enemy_index].Location.Y,
-            float(gameTickPacket.gamecars[enemy_index].Rotation.Pitch),
-            float(gameTickPacket.gamecars[enemy_index].Rotation.Yaw),
-         ]
