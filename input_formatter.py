@@ -9,12 +9,17 @@ class InputFormatter:
         teamMembers = []
         enemies = []
         player_car = self.returnEmtpyPlayerArray()
+        ownTeamScore = 0
+        enemyTeamScore = 0
         for index in range(gameTickPacket.numCars):
             if index == self.index:
+                ownTeamScore += self.get_player_goals(gameTickPacket, index)
                 player_car = self.get_car_info(gameTickPacket, index)
             elif gameTickPacket.gamecars[index].Team == self.team:
+                ownTeamScore += self.get_player_goals(gameTickPacket, index)
                 teamMembers.append(self.get_car_info(gameTickPacket, index))
             else:
+                enemyTeamScore += self.get_player_goals(gameTickPacket, index)
                 enemies.append(self.get_car_info(gameTickPacket, index))
         while len(teamMembers) < 2:
             teamMembers.append(self.returnEmtpyPlayerArray())
@@ -25,11 +30,18 @@ class InputFormatter:
         game_info = self.get_game_info(gameTickPacket)
         boost_info = self.get_boost_info(gameTickPacket)
         score_info = self.get_score_info(gameTickPacket.gamecars[self.index].Score)
+        total_score = [ownTeamScore, enemyTeamScore]
 
-        return np.array(game_info + score_info + player_car + ball_data + self.flattenArrays(teamMembers) + self.flattenArrays(enemies) + boost_info, dtype=np.float32)
+        return np.array(game_info + total_score + score_info + player_car + ball_data + self.flattenArrays(teamMembers) + self.flattenArrays(enemies) + boost_info, dtype=np.float32)
 
     def returnEmtpyPlayerArray(self):
         return [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+
+    def get_player_goals(self, gameTickPacket, index):
+        return gameTickPacket.gamecars[index].Score.Goals
+
+    def get_own_goals(self, gameTickPacket, index):
+        return gameTickPacket.gamecars[index].Score.Goals
 
     def get_car_info(self, gameTickPacket, index):
         player_x = gameTickPacket.gamecars[index].Location.X
