@@ -48,25 +48,32 @@ def convert_numpy_array(numpy_array):
 
 def read_data(file, processPair):
     while True:
-        chunk = file.read(4)
-        if chunk == '':
+        try:
+            chunk = file.read(4)
+            if chunk == '':
+                break
+            input_array = get_array(file, chunk)
+            chunk = file.read(4)
+            if chunk == '':
+                break
+            output_array = get_array(file, chunk)
+            processPair(input_array, output_array)
+        except EOFError:
+            print('reached end of file')
             break
-        input_array = get_array(file, chunk)
-        chunk = file.read(4)
-        if chunk == '':
-            break
-        output_array = get_array(file, chunk)
-        processPair(input_array, output_array)
+
 
 def get_array(file, chunk):
     startingByte = struct.unpack('i', chunk)[0]
     numpyBytes = file.read(startingByte)
     fakeFile = io.BytesIO(numpyBytes)
-    result = np.load(fakeFile)
+    try:
+        result = np.load(fakeFile)
+    except OSError:
+        raise EOFError
     return result[result.files[0]]
 
 def default_process_pair(input_array, output_array):
-    print(input_array)
     print(output_array)
 
 if __name__ == '__main__':
