@@ -39,7 +39,7 @@ class NNAtbaTrainer:
         self.label_batch = []
 
     def process_pair(self, input_array, output_array, pair_number):
-        if pair_number % self.batch_size == 0:
+        if len(self.input_batch) == self.batch_size:
             self.batch_process()
             self.input_batch = []
             self.label_batch = []
@@ -49,25 +49,37 @@ class NNAtbaTrainer:
                 input_array = np.append(input_array, [0])
                 input_array = np.append(input_array, [0])
             self.input_batch.append(input_array)
-            self.label_batch.append(option_handler.find_matching_option(self.options, output_array)[1])
+
+            index = option_handler.find_matching_option(self.options, output_array)[1]
+            array = np.zeros(self.num_actions)
+            array[index] = 1
+            self.label_batch.append(array)
 
     def batch_process(self):
-        for i in range(len(self.input_batch)):
-            one_input = self.input_batch[i]
-            one_label = self.label_batch[i]
+     #   for i in range(len(self.input_batch)):
+     #       one_input = self.input_batch[i]
+     #       one_label = self.label_batch[i]
 
-            one_input = one_input.reshape(1, len(one_input))
-            one_label = np.array([one_label])
-            one_label = one_label.reshape(1,)
+     #       one_input = one_input.reshape(1, len(one_input))
+     #       one_label = np.array([one_label])
+     #       one_label = one_label.reshape(1,)
+        self.input_batch = np.array(self.input_batch)
+        self.input_batch = self.input_batch.reshape(len(self.input_batch), self.state_dim)
 
-            _, c = self.sess.run([self.optimizer, self.loss], feed_dict={self.input: one_input, self.label: one_label})
-            # Display logs per step
-            if self.epoch % self.display_step == 0 and i == 0:
-                print("File:", '%04d' % self.file_number, "Epoch:", '%04d' % (self.epoch+1), "cost= " + str(c))
+        self.label_batch = np.array(self.label_batch)
+        self.label_batch = self.label_batch.reshape(len(self.label_batch), self.num_actions)
+
+        _, c = self.sess.run([self.optimizer, self.loss], feed_dict={self.input: self.input_batch, self.label: self.label_batch})
+        # Display logs per step
+        if self.epoch % self.display_step == 0:
+            print("File:", '%04d' % self.file_number, "Epoch:", '%04d' % (self.epoch+1), "cost= " + str(c))
         self.epoch += 1
 
     def end_file(self):
         self.batch_process()
+        if self.file_number % 3 == 0:
+            saver = tf.train.Saver()
+            saver.save(self.sess, "../models/data/trained_variables_drop" + str(self.file_number) + ".ckpt")
         pass
 
     def end_everything(self):
