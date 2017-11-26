@@ -1,3 +1,4 @@
+import numpy as np
 class InputFormatter:
 
     def __init__(self, team, index):
@@ -23,8 +24,9 @@ class InputFormatter:
         ball_data = self.get_ball_info(gameTickPacket)
         game_info = self.get_game_info(gameTickPacket)
         boost_info = self.get_boost_info(gameTickPacket)
+        score_info = self.get_score_info(gameTickPacket.gamecars[self.index].Score)
 
-        return player_car + ball_data + self.flattenArrays(teamMembers) + self.flattenArrays(enemies) + game_info + boost_info
+        return np.asarray(game_info + score_info + player_car + ball_data + self.flattenArrays(teamMembers) + self.flattenArrays(enemies) + boost_info)
 
     def returnEmtpyPlayerArray(self):
         return [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
@@ -89,6 +91,17 @@ class InputFormatter:
             game_inputs.append(gameTickPacket.gameBoosts[i].bActive)
             game_inputs.append(gameTickPacket.gameBoosts[i].Timer)
         return game_inputs
+
+    def get_score_info(self, Score):
+        score = Score.Score
+        goals = Score.Goals
+        own_goals = Score.OwnGoals
+        assists = Score.Assists
+        saves = Score.Saves
+        shots = Score.Shots
+        demolitions = Score.Demolitions
+
+        return [score, goals, own_goals, assists, saves, shots, demolitions]
 
     def flattenArrays(self, arrayOfArray):
         return [item for sublist in arrayOfArray for item in sublist]
