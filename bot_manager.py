@@ -1,13 +1,16 @@
 import bot_input_struct as bi
+import binary_converter as compressor
 import ctypes
 from ctypes import *
 from datetime import datetime
 import game_data_struct as gd
 import importlib
+import input_formatter
 import mmap
 import rate_limiter
 import sys
 import os
+
 
 OUTPUT_SHARED_MEMORY_TAG = 'Local\\RLBotOutput'
 INPUT_SHARED_MEMORY_TAG = 'Local\\RLBotInput'
@@ -28,6 +31,7 @@ class BotManager:
         self.save_data = savedata
         self.module_name = modulename
         self.game_name = gamename
+        self.input_converter = input_formatter.InputFormatter(team, index)
 
 
     def run(self):
@@ -90,6 +94,14 @@ class BotManager:
             player_input.bBoost = controller_input[6]
             player_input.bHandbrake = controller_input[7]
 
+            current_time = game_tick_packet.gameInfo.GameTimeRemaining
+            
+            if self.save_data and game_tick_packet.gameInfo.bRoundActive and old_time is not 0 and not old_time == current_time:
+                self.game_file.writelines(str(self.input_converter.create_input_array(game_tick_packet)) + '\n')
+                self.game_file.writelines(str(controller_input) + '\n')
+                
+            old_time = current_time
+
             # Ratelimit here
             after = datetime.now()
             # print('Latency of ' + self.name + ': ' + str(after - before))
@@ -98,6 +110,3 @@ class BotManager:
 
         # If terminated, send callback
         self.callbackEvent.set()
-
-
-
