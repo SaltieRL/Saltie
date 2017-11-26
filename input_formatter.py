@@ -22,8 +22,9 @@ class InputFormatter:
 
         ball_data = self.get_ball_info(gameTickPacket)
         game_info = self.get_game_info(gameTickPacket)
+        boost_info = self.get_boost_info(gameTickPacket)
 
-        return player_car + ball_data + self.flattenArrays(teamMembers) + self.flattenArrays(enemies) + game_info
+        return player_car + ball_data + self.flattenArrays(teamMembers) + self.flattenArrays(enemies) + game_info + boost_info
 
     def returnEmtpyPlayerArray(self):
         return [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
@@ -81,6 +82,13 @@ class InputFormatter:
         return [ball_x, ball_y, ball_z, ball_pitch, ball_yaw, ball_roll, ball_speed_x, ball_speed_y,
                     ball_speed_z, ball_angular_speed_x, ball_angular_speed_y, ball_angular_speed_z,
                     ball_acceleration_x, ball_acceleration_y, ball_acceleration_z]
+
+    def get_boost_info(self, gameTickPacket):
+        game_inputs = []
+        for i in range(gameTickPacket.numBoosts - 1):
+            game_inputs.append(gameTickPacket.gameBoosts[i].bActive)
+            game_inputs.append(gameTickPacket.gameBoosts[i].Timer)
+        return game_inputs
 
     def flattenArrays(self, arrayOfArray):
         return [item for sublist in arrayOfArray for item in sublist]

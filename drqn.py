@@ -63,7 +63,7 @@ class Agent:
         self.total_cost = 0
         self.total_reward = 0
         with tf.device('/cpu:0'):
-            self.build_functions()
+            #self.build_functions()
             self.new_episode()
 
     def build_model(self):
@@ -137,7 +137,7 @@ class Agent:
 
     def get_output_vector(self, game_tick_packet):
         gameTickPacket = game_tick_packet
-        if gameTickPacket.gameInfo.bRoundActive:  # game is currently running
+        """if gameTickPacket.gameInfo.bRoundActive:  # game is currently running
             game_inputs = self.input.create_input_array(game_tick_packet)
 
             for i in range(gameTickPacket.numBoosts - 1):
@@ -145,17 +145,18 @@ class Agent:
                 game_inputs.append(gameTickPacket.gameBoosts[i].Timer)
             print('State size', len(game_inputs))
             with tf.device('/cpu:0'):
-                self.states[-1].append(game_inputs)
-                values = self.value_fn([np.array(game_inputs).reshape((1, -1))])
-                if np.random.random() < self.epsilon:
-                    action = np.random.randint(self.number_of_actions)
-                else:
-                    action = np.array(values).argmax()
-                self.actions[-1].append(action)
-                print(ball_x, ball_y)
-                reward = 0.1
-                self.total_cost += self.observe(reward)
-                self.total_reward += reward
-            return self.options[action]
+          #      self.states[-1].append(game_inputs)
+          #      values = self.value_fn([np.array(game_inputs).reshape((1, -1))])
+          #      if np.random.random() < self.epsilon:
+          #          action = np.random.randint(self.number_of_actions)
+          #      else:
+          #          action = np.array(values).argmax()
+          #      self.actions[-1].append(action)
+          #      print(ball_x, ball_y)
+          #      reward = 0.1
+          #      self.total_cost += self.observe(reward)
+          #      self.total_reward += reward
+          @  return self.options[action]
+          """
 
         return random.choice(self.options)
