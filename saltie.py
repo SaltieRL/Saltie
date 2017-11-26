@@ -1,13 +1,13 @@
 # Defined as a generic bot, can use multiple models
 import itertools
-import random
-from collections import deque
-
 import numpy as np
+import random
 import tensorflow as tf
+from collections import deque
+from modelHelpers import optionHandler
 
 from actorcritic import PolicyGradientActorCritic
-from input_formatter import InputFormatter
+from conversions.input_formatter import InputFormatter
 
 
 class Agent:
@@ -25,17 +25,8 @@ class Agent:
         self.sess = tf.Session(config=config)
         optimizer = tf.train.AdamOptimizer(learning_rate=1e-4)
         writer = tf.summary.FileWriter('tmp/{}-experiment'.format(random.randint(0, 1000000)))
-        throttle = np.arange(-1, 1, 1)
-        steer = np.arange(-1, 1, 1)
-        pitch = np.arange(-1, 1, 1)
-        yaw = np.arange(-1, 1, 1)
-        roll = np.arange(-1, 1, 1)
-        jump = [True, False]
-        boost = [True, False]
-        handbrake = [True, False]
-        option_list = [throttle, steer, pitch, yaw, roll, jump, boost, handbrake]
-        self.options = list(itertools.product(*option_list))
-        self.state_dim = 193
+        self.options = optionHandler.createOptions()
+        self.state_dim = 195
         self.num_actions = len(self.options)
         print ('num_actions', self.num_actions)
         self.pg_reinforce = PolicyGradientActorCritic(self.sess,

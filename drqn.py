@@ -1,13 +1,13 @@
 import os
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"   # see issue #152
 os.environ["CUDA_VISIBLE_DEVICES"] = "" # required since Rocket League uses GPU
-import input_formatter
+from conversions import input_formatter
 import itertools
 import random
 
 import numpy as np
 from keras import backend as K
-from keras.layers import Dense, Flatten, Input
+from keras.layers import Dense, Input
 from keras.models import Model
 from keras.optimizers import RMSprop
 import tensorflow as tf
