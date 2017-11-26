@@ -2,12 +2,10 @@
 import numpy as np
 import random
 import tensorflow as tf
-from collections import deque
 
 from conversions.input_formatter import InputFormatter
 from modelHelpers import option_handler
 from modelHelpers import reward_manager
-from models.actorcritic import PolicyGradientActorCritic
 from models import actor_critic_wrapper
 
 
@@ -50,7 +48,9 @@ class Agent:
         self.model.store_rollout(state, self.previous_action, reward)
 
         action = self.model.sample_action(np.array(state).reshape((1, -1)))
-        if random.random() < 0.05:
+        if action is None:
+            print("invalid action no type returned")
+        if random.random() < 0.05 or action is None:
             action = random.randint(0, self.num_actions)
             if action == 256:
                 print('f_in rand int', action)

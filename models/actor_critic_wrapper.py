@@ -1,4 +1,5 @@
-from actorcritic import PolicyGradientActorCritic
+from models.actorcritic import PolicyGradientActorCritic
+import tensorflow as tf
 
 class ActorCriticModel:
 
@@ -55,4 +56,4 @@ class ActorCriticModel:
 
 
     def sample_action(self, states):
-        self.pg_reinforce.sampleAction(states)
+        return self.pg_reinforce.sampleAction(states)
