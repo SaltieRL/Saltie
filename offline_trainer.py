@@ -16,6 +16,10 @@ def get_input_function():
 
 if __name__ == '__main__':
     files = get_all_files()
+    print('training on files')
+    print(files)
     input_function = get_input_function()
     for file in files:
-        binary_converter.read_data(open(file, 'r+b'), input_function)
+        with open(file, 'r+b') as f:
+            print('running file ' + file)
+            binary_converter.read_data(f, input_function)

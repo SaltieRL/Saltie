@@ -64,7 +64,10 @@ def read_data(file, processPair):
 
 
 def get_array(file, chunk):
-    startingByte = struct.unpack('i', chunk)[0]
+    try:
+        startingByte = struct.unpack('i', chunk)[0]
+    except struct.error:
+        raise EOFError
     numpyBytes = file.read(startingByte)
     fakeFile = io.BytesIO(numpyBytes)
     try:
@@ -74,7 +77,8 @@ def get_array(file, chunk):
     return result[result.files[0]]
 
 def default_process_pair(input_array, output_array):
-    print(output_array)
+    one = 1+1
+    #print(output_array)
 
 if __name__ == '__main__':
     file = open('training\\1511676262748-30\\SaltieRl(2).txt', 'r+b')
