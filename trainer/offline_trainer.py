@@ -1,6 +1,6 @@
 import os
 from conversions import binary_converter
-
+from trainer import nnatba_trainer
 
 def get_all_files():
     dir_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
@@ -12,17 +12,19 @@ def get_all_files():
     return files
 
 
-def get_input_function():
+def get_trainer_class():
     #fill your input function here!
-    return binary_converter.default_process_pair
+    return nnatba_trainer.NNAtbaTrainer
 
 
 if __name__ == '__main__':
     files = get_all_files()
     print('training on files')
     print(files)
-    input_function = get_input_function()
+    trainerClass = get_trainer_class()()
     for file in files:
         with open(file, 'r+b') as f:
+            trainerClass.start_new_file()
             print('running file ' + file)
-            binary_converter.read_data(f, input_function)
+            binary_converter.read_data(f, trainerClass.process_pair)
+            trainerClass.end_file()
