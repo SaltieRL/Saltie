@@ -9,6 +9,7 @@ class InputFormatter:
     def __init__(self, team, index):
         self.team = team
         self.index = index
+        self.total_score = [0, 0]
 
     def create_input_array(self, gameTickPacket):
         """
@@ -18,14 +19,22 @@ class InputFormatter:
         """
         team_members = []
         enemies = []
+        ownTeamScore = 0
+        enemyTeamScore = 0
         player_car = self.return_emtpy_player_array()
         for index in range(gameTickPacket.numCars):
             if index == self.index:
+                ownTeamScore += self.get_player_goals(gameTickPacket, index)
+                enemyTeamScore += self.get_own_goals(gameTickPacket, index)
                 player_car = self.get_car_info(gameTickPacket, index)
             elif gameTickPacket.gamecars[index].Team == self.team:
+                ownTeamScore += self.get_player_goals(gameTickPacket, index)
+                enemyTeamScore += self.get_own_goals(gameTickPacket, index)
                 team_members.append(self.get_car_info(gameTickPacket, index))
             else:
                 enemies.append(self.get_car_info(gameTickPacket, index))
+                enemyTeamScore += self.get_player_goals(gameTickPacket, index)
+                ownTeamScore += self.get_own_goals(gameTickPacket, index)
         while len(team_members) < 2:
             team_members.append(self.return_emtpy_player_array())
         while len(enemies) < 3:
@@ -35,8 +44,16 @@ class InputFormatter:
         game_info = self.get_game_info(gameTickPacket)
         boost_info = self.get_boost_info(gameTickPacket)
         score_info = self.get_score_info(gameTickPacket.gamecars[self.index].Score)
+        total_score = [ownTeamScore, enemyTeamScore]
+        self.total_score = total_score
 
         return np.array(game_info + score_info + player_car + ball_data + self.flattenArrays(team_members) + self.flattenArrays(enemies) + boost_info, dtype=np.float32)
+
+    def get_player_goals(self, gameTickPacket, index):
+        return gameTickPacket.gamecars[index].Score.Goals
+
+    def get_own_goals(self, gameTickPacket, index):
+        return gameTickPacket.gamecars[index].Score.OwnGoals
 
     def return_emtpy_player_array(self):
         """

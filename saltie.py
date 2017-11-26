@@ -1,13 +1,12 @@
 # Defined as a generic bot, can use multiple models
-import itertools
 import numpy as np
 import random
 import tensorflow as tf
 from collections import deque
-from modelHelpers import optionHandler
 
-from actorcritic import PolicyGradientActorCritic
 from conversions.input_formatter import InputFormatter
+from modelHelpers import option_handler
+from models.actorcritic import PolicyGradientActorCritic
 
 
 class Agent:
@@ -25,7 +24,7 @@ class Agent:
         self.sess = tf.Session(config=config)
         optimizer = tf.train.AdamOptimizer(learning_rate=1e-4)
         writer = tf.summary.FileWriter('tmp/{}-experiment'.format(random.randint(0, 1000000)))
-        self.options = optionHandler.createOptions()
+        self.options = option_handler.createOptions()
         self.state_dim = 195
         self.num_actions = len(self.options)
         print ('num_actions', self.num_actions)
