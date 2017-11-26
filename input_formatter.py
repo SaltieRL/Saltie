@@ -8,27 +8,27 @@ class InputFormatter:
         teamMembers = []
         enemies = []
         player_car = self.returnEmtpyPlayerArray()
-        for i in range(len(gameTickPacket.gamecars)):
-            if i == self.index:
-                player_car = self.getCarArray(gameTickPacket, i)
-            if gameTickPacket.gamecars[i].team == self.team:
-                teamMembers.push(getCarArray(gameTickPacket, i))
+        for index in range(len(gameTickPacket.gamecars)):
+            if index == self.index:
+                player_car = self.get_car_info(gameTickPacket, index)
+            if gameTickPacket.gamecars[index].Team == self.team:
+                teamMembers.append(self.get_car_info(gameTickPacket, index))
             else:
-                enemies.push(self.getCarArray(gameTickPacket, i))
+                enemies.append(self.get_car_info(gameTickPacket, index))
         while len(teamMembers) < 2:
-            teamMembers.push(self.returnEmtpyPlayerArray())
+            teamMembers.append(self.returnEmtpyPlayerArray())
         while len(enemies) < 3:
-            enemies.push(self.returnEmtpyPlayerArray()) 
+            enemies.append(self.returnEmtpyPlayerArray()) 
 
-        ball_data = self.get_ball_info()
-        game_info = self.get_game_info()
+        ball_data = self.get_ball_info(gameTickPacket)
+        game_info = self.get_game_info(gameTickPacket)
 
         return player_car + ball_data + self.flattenArrays(teamMembers) + self.flattenArrays(enemies) + game_info
 
-    def returnEmtpyPlayerArray():
+    def returnEmtpyPlayerArray(self):
         return [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
 
-    def getCarArray(self, gameTickPacket, index):
+    def get_car_info(self, gameTickPacket, index):
         player_x = gameTickPacket.gamecars[index].Location.X
         player_y = gameTickPacket.gamecars[index].Location.Y
         player_z = gameTickPacket.gamecars[index].Location.Z
@@ -83,5 +83,5 @@ class InputFormatter:
                     ball_acceleration_x, ball_acceleration_y, ball_acceleration_z]
 
     def flattenArrays(self, arrayOfArray):
-        return [item for sublist in l for item in arrayOfArray]
+        return [item for sublist in arrayOfArray for item in sublist]
         

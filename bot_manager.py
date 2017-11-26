@@ -1,4 +1,5 @@
 import bot_input_struct as bi
+import binary_converter as compressor
 import ctypes
 from ctypes import *
 from datetime import datetime
