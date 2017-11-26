@@ -5,6 +5,7 @@ import tensorflow as tf
 class NNAtba:
 
     num_hidden_1 = 10 # 1st layer num features
+    labels = None
 
     def create_weights(self):
         self.weights = {
@@ -38,7 +39,7 @@ class NNAtba:
         self.num_actions = num_actions
         self.state_dim = state_dim
         self.input = tf.placeholder(tf.float32, shape=(1, self.state_dim))
-        self.model = self.create_model()
+        self.model = self.create_model(self.input)
 
         self.saver = tf.train.Saver()
 
@@ -48,16 +49,29 @@ class NNAtba:
         init = tf.global_variables_initializer()
         session.run(init)
 
-    def create_model(self):
+    def create_training_model_copy(self, batch_size):
+        self.labels = tf.placeholder(tf.int64, shape=(1))
+        self.input = tf.placeholder(tf.float32, shape=(1, self.state_dim))
+
+        self.create_model(self.input)
+
+        cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(
+            labels=self.labels, logits=self.logits, name='xentropy')
+        loss = tf.reduce_mean(cross_entropy, name='xentropy_mean')
+
+        return loss, self.input, self.labels
+
+
+    def create_model(self, input):
         self.create_weights()
-        hidden_layers = self.encoder(self.input)
+        self.logits = hidden_layers = self.encoder(input)
         result = tf.argmax(hidden_layers, 1)
         return result
 
     def store_rollout(self, state, last_action, reward):
-        #this is where you apply the rewrad an punioshment
-
+        #I only care about the current state and action
         pass
+
 
     def sample_action(self, states):
         return self.sess.run(self.model, feed_dict={self.input: states})[0]

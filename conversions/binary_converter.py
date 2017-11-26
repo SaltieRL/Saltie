@@ -66,8 +66,7 @@ def get_array(file, chunk):
 
 
 def default_process_pair(input_array, output_array, pair_number):
-    one = 1+1
-    #print(output_array)
+    pass
 
 
 if __name__ == '__main__':
