@@ -92,7 +92,7 @@ class BotManager:
             player_input.bJump = controller_input[5]
             player_input.bBoost = controller_input[6]
             player_input.bHandbrake = controller_input[7]
-            
+
             current_time = game_tick_packet.gameInfo.GameTimeRemaining
             
             if self.save_data and game_tick_packet.gameInfo.bRoundActive and old_time is not 0 and not old_time == current_time:
@@ -109,4 +109,3 @@ class BotManager:
 
         # If terminated, send callback
         self.callbackEvent.set()
-
