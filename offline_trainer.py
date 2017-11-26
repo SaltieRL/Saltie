@@ -1,5 +1,7 @@
 import os
-import binary_converter
+
+from conversions import binary_converter
+
 
 def get_all_files():
     dir_path = os.path.dirname(os.path.realpath(__file__))
@@ -12,6 +14,8 @@ def get_all_files():
 
 def get_input_function():
     #fill your input function here!
+    import saltie
+    bot = saltie.Agent('saltie', 0, 0)
     return binary_converter.default_process_pair
 
 if __name__ == '__main__':

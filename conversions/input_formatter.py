@@ -1,5 +1,8 @@
 import numpy as np
 class InputFormatter:
+    """
+    This is a class that takes in a gameTickPacket and will return an array of that value
+    """
 
     def __init__(self, team, index):
         self.team = team

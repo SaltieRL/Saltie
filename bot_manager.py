@@ -1,18 +1,16 @@
-import bot_input_struct as bi
-import binary_converter as compressor
 import ctypes
-from ctypes import *
-from datetime import datetime
-import game_data_struct as gd
 import importlib
-import input_formatter
 import mmap
 import numpy as np
-import rate_limiter
-import struct
-import sys
 import os
+import struct
+from ctypes import *
+from datetime import datetime
 
+import bot_input_struct as bi
+import game_data_struct as gd
+import rate_limiter
+from conversions import input_formatter, binary_converter as compressor
 
 OUTPUT_SHARED_MEMORY_TAG = 'Local\\RLBotOutput'
 INPUT_SHARED_MEMORY_TAG = 'Local\\RLBotInput'

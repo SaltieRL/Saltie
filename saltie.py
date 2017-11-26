@@ -1,13 +1,12 @@
 # Defined as a generic bot, can use multiple models
 import itertools
+import numpy as np
 import random
+import tensorflow as tf
 from collections import deque
 
-import numpy as np
-import tensorflow as tf
-
 from actorcritic import PolicyGradientActorCritic
-from input_formatter import InputFormatter
+from conversions.input_formatter import InputFormatter
 
 
 class Agent:
