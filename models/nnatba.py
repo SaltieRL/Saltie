@@ -2,11 +2,9 @@ import tensorflow as tf
 
 
 
-class EmptyModelExample:
+class NNAtba:
 
     num_hidden_1 = 10 # 1st layer num features
-
-
 
     def create_weights(self):
         self.weights = {
@@ -20,7 +18,7 @@ class EmptyModelExample:
 
     def encoder(self, input):
         # Encoder Hidden layer with sigmoid activation #1
-        layer_1 = tf.nn.sigmoid(tf.add(tf.matmul(tf.reshape(x, [1, self.state_dim]), self.weights['h1']), self.biases['b1']))
+        layer_1 = tf.nn.sigmoid(tf.add(tf.matmul(tf.reshape(input, [1, self.state_dim]), self.weights['h1']), self.biases['b1']))
         # Encoder Hidden layer with sigmoid activation #2
         layer_2 = tf.nn.sigmoid(tf.add(tf.matmul(layer_1, self.weights['out']), self.biases['out']))
         return layer_2
@@ -30,18 +28,22 @@ class EmptyModelExample:
     You can copy this to implement your own model
     """
     def __init__(self, session,
-                 num_actions,
                  state_dim,
+                 num_actions,
                  summary_writer=None,
                  summary_every=100):
 
-        self.saver = tf.train.Saver()
-        self.saver.restore(session, "./trained_variables.ckpt")
+
         self.sess = session
         self.num_actions = num_actions
         self.state_dim = state_dim
-        self.input = tf.placeholder(tf.float32, shape=(1, 32))
+        self.input = tf.placeholder(tf.float32, shape=(1, self.state_dim))
         self.model = self.create_model()
+
+        self.saver = tf.train.Saver()
+
+        #file does not exist too lazy to add check
+        #self.saver.restore(session, "./trained_variables.ckpt")
 
         init = tf.global_variables_initializer()
         session.run(init)
@@ -58,5 +60,5 @@ class EmptyModelExample:
         pass
 
     def sample_action(self, states):
-        return self.sess.run(self.model, feed_dict={self.input: states})
+        return self.sess.run(self.model, feed_dict={self.input: states})[0]
 

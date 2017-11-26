@@ -4,8 +4,8 @@ class EmptyModelExample:
     You can copy this to implement your own model
     """
     def __init__(self, session,
-                 num_actions,
                  state_dim,
+                 num_actions,
                  summary_writer=None,
                  summary_every=100):
         print('i do nothing!')

@@ -6,9 +6,9 @@ class ActorCriticModel:
     def __init__(self, session,
                  state_dim,
                  num_actions,
-                 optimizer=tf.train.AdamOptimizer(learning_rate=1e-4),
                  summary_writer=None,
-                 summary_every=100):
+                 summary_every=100,
+                 optimizer=tf.train.AdamOptimizer(learning_rate=1e-4)):
 
         self.session = session
         self.num_actions = num_actions
