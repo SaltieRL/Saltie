@@ -16,8 +16,8 @@ class RewardManager:
         self.input_converter = input_formatter
 
     def update_from_packet(self, packet):
-        self.previous_score = packet.gamecars[self.index].Score
-        self.previous_game_score = self.input_converter.score_info
+        self.previous_score = packet.gamecars[self.index].Score.Score
+        self.previous_game_score = self.input_converter.total_score
         self.previous_ball_location = packet.gameball.Location
         self.previous_car_location = packet.gamecars[self.index].Location
 
@@ -25,14 +25,14 @@ class RewardManager:
         """
         :return: change in my team goals - change in enemy team goals should always be 1, 0, -1
         """
-        return (self.input_converter.score_info[0] - self.previous_game_score[0]) - \
-               (self.input_converter.score_info[0] - self.previous_game_score[0])
+        return (self.input_converter.total_score[0] - self.previous_game_score[0]) - \
+               (self.input_converter.total_score[1] - self.previous_game_score[1])
 
     def calculate_score_reward(self, packet):
         """
         :return: change in score.  More score = more reward
         """
-        return (packet.gamecars[self.index].Score - self.previous_score) / 100.0
+        return (packet.gamecars[self.index].Score.Score - self.previous_score) / 100.0
 
     def get_distance(self, location1, location2):
         return sqrt((location1.X - location2.X)**2 +
@@ -62,12 +62,4 @@ class RewardManager:
         """
 
     def get_reward(self, packet):
-        reward = 0
-        score = packet.gamecars[self.index].Score.Score
-        diff = score - self.previous_score
-        self.previous_score = score
-        reward += diff / 100.0 # max per frame is 100, from a goal, normalizes it
-        enemy_index = 1 if self.index == 0 else 1
-        if (self.previous_enemy_goals - packet.gamecars[enemy_index].Score.Goals) or (self.previous_owngoals - packet.gamecars[self.index].Score.OwnGoals):
-            reward -= 1.0
-        return reward
+        return (self.calculate_goal_reward() + self.calculate_score_reward(packet)) / 2
