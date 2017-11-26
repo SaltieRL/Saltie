@@ -1,13 +1,13 @@
 # Defined as a generic bot, can use multiple models
-import itertools
 import numpy as np
 import random
 import tensorflow as tf
 from collections import deque
-from modelHelpers import optionHandler
 
-from actorcritic import PolicyGradientActorCritic
 from conversions.input_formatter import InputFormatter
+from modelHelpers import option_handler
+from modelHelpers import reward_manager
+from models.actorcritic import PolicyGradientActorCritic
 
 
 class Agent:
@@ -19,13 +19,14 @@ class Agent:
     def __init__(self, name, team, index):
         self.index = index
         self.inp = InputFormatter(team, index)
+        self.reward_manager = reward_manager.RewardManager(name, team, index, self.inp)
         config = tf.ConfigProto(
             device_count={'GPU': 0}
         )
         self.sess = tf.Session(config=config)
         optimizer = tf.train.AdamOptimizer(learning_rate=1e-4)
         writer = tf.summary.FileWriter('tmp/{}-experiment'.format(random.randint(0, 1000000)))
-        self.options = optionHandler.createOptions()
+        self.options = option_handler.createOptions()
         self.state_dim = 195
         self.num_actions = len(self.options)
         print ('num_actions', self.num_actions)
@@ -38,7 +39,6 @@ class Agent:
                                                       summary_writer=writer)
 
         no_reward_since = 0
-
         episode_history = deque(maxlen=100)
 
     def actor_network(self, states):
@@ -70,14 +70,8 @@ class Agent:
         return v
 
     def get_reward(self, packet):
-        reward = 0
-        score = packet.gamecars[self.index].Score.Score
-        diff = score - self.previous_score
-        self.previous_score = score
-        reward += diff / 100.0 # max per frame is 100, from a goal, normalizes it
-        enemy_index = 1 if self.index == 0 else 1
-        if (self.previous_enemy_goals - packet.gamecars[enemy_index].Score.Goals) or (self.previous_owngoals - packet.gamecars[self.index].Score.OwnGoals):
-            reward -= 1.0
+        reward = self.reward_manager.get_reward(packet)
+        self.reward_manager.update_from_packet(packet)
         return reward
 
     def get_output_vector(self, game_tick_packet):
@@ -86,6 +80,7 @@ class Agent:
             print ('wrong input size', self.index, len(state))
             return self.options[0] # do not return anything
         reward = self.get_reward(game_tick_packet)
+
         self.pg_reinforce.store_rollout(state, self.previous_action, reward)
 
         action = self.pg_reinforce.sampleAction(np.array(state).reshape((1, -1)))

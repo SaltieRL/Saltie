@@ -63,7 +63,7 @@ class BotManager:
         agent = agent_module.Agent(self.name, self.team, self.index)
 
         if self.save_data:
-            filename = self.game_name + '\\' + self.name + '.txt'
+            filename = self.game_name + '\\' + self.name + '.bin'
             print('creating file ' + filename)
             self.game_file = open(filename.replace(" ", ""), 'wb')
         old_time = 0
