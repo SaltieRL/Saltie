@@ -119,7 +119,6 @@ class BotManager:
     def write_array_to_file(self, array):
         bytes = compressor.convert_numpy_array(array)
         size_of_bytes = len(bytes.getvalue())
-        print(bytes.getbuffer().nbytes)
         self.game_file.write(struct.pack('i', size_of_bytes))
         self.game_file.write(bytes.getvalue())
 

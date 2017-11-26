@@ -87,7 +87,7 @@ class InputFormatter:
 
     def get_boost_info(self, gameTickPacket):
         game_inputs = []
-        for i in range(gameTickPacket.numBoosts - 1):
+        for i in range(gameTickPacket.numBoosts):
             game_inputs.append(gameTickPacket.gameBoosts[i].bActive)
             game_inputs.append(gameTickPacket.gameBoosts[i].Timer)
         return game_inputs
