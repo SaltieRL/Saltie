@@ -13,8 +13,11 @@ from input_formatter import InputFormatter
 class Agent:
     previous_reward = 0
     previous_action = 0
-
+    previous_score = 0
+    previous_enemy_goals = 0
+    previous_owngoals = 0
     def __init__(self, name, team, index):
+        self.index = index
         self.inp = InputFormatter(team, index)
         config = tf.ConfigProto(
             device_count={'GPU': 0}
@@ -32,8 +35,9 @@ class Agent:
         handbrake = [True, False]
         option_list = [throttle, steer, pitch, yaw, roll, jump, boost, handbrake]
         self.options = list(itertools.product(*option_list))
-        self.state_dim = 220
+        self.state_dim = 271
         self.num_actions = len(self.options)
+        print ('num_actions', self.num_actions)
         self.pg_reinforce = PolicyGradientActorCritic(self.sess,
                                                       optimizer,
                                                       self.actor_network,
@@ -75,17 +79,31 @@ class Agent:
         return v
 
     def get_reward(self, packet):
-        return 2 * (random.random() - 0.5)  # TODO: implement proper reward
+        reward = 0
+        score = packet.gamecars[self.index].Score.Score
+        diff = score - self.previous_score
+        self.previous_score = score
+        reward += diff / 100.0 # max per frame is 100, from a goal, normalizes it
+        enemy_index = 1 if self.index == 0 else 1
+        if (self.previous_enemy_goals - packet.gamecars[enemy_index].Score.Goals) or (self.previous_owngoals - packet.gamecars[self.index].Score.OwnGoals):
+            reward -= 1.0
+        return reward
 
     def get_output_vector(self, game_tick_packet):
         state = self.inp.create_input_array(game_tick_packet)
         if self.state_dim != len(state):
+            print ('wrong input size', self.index, len(state))
             return self.options[0] # do not return anything
         reward = self.get_reward(game_tick_packet)
         self.pg_reinforce.store_rollout(state, self.previous_action, reward)
 
         action = self.pg_reinforce.sampleAction(np.array(state).reshape((1, -1)))
-        if random.random() < 0.1:
-            action = random.randint(0, len(self.options))
+        if random.random() < 0.05:
+            action = random.randint(0, self.num_actions)
+            if action == 256:
+                print('f_in rand int', action)
         self.previous_action = action
+        if action >= self.num_actions or action < 0:
+            print (action, len(self.options))
+            return self.options[0]
         return self.options[action]
