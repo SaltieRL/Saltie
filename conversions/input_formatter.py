@@ -1,4 +1,6 @@
 import numpy as np
+
+
 class InputFormatter:
     """
     This is a class that takes in a gameTickPacket and will return an array of that value
@@ -9,29 +11,37 @@ class InputFormatter:
         self.index = index
 
     def create_input_array(self, gameTickPacket):
-        teamMembers = []
+        """
+
+        :param gameTickPacket: A game packet for a single point in time
+        :return: A massive array representing that packet
+        """
+        team_members = []
         enemies = []
-        player_car = self.returnEmtpyPlayerArray()
+        player_car = self.return_emtpy_player_array()
         for index in range(gameTickPacket.numCars):
             if index == self.index:
                 player_car = self.get_car_info(gameTickPacket, index)
             elif gameTickPacket.gamecars[index].Team == self.team:
-                teamMembers.append(self.get_car_info(gameTickPacket, index))
+                team_members.append(self.get_car_info(gameTickPacket, index))
             else:
                 enemies.append(self.get_car_info(gameTickPacket, index))
-        while len(teamMembers) < 2:
-            teamMembers.append(self.returnEmtpyPlayerArray())
+        while len(team_members) < 2:
+            team_members.append(self.return_emtpy_player_array())
         while len(enemies) < 3:
-            enemies.append(self.returnEmtpyPlayerArray())
+            enemies.append(self.return_emtpy_player_array())
 
         ball_data = self.get_ball_info(gameTickPacket)
         game_info = self.get_game_info(gameTickPacket)
         boost_info = self.get_boost_info(gameTickPacket)
         score_info = self.get_score_info(gameTickPacket.gamecars[self.index].Score)
 
-        return np.array(game_info + score_info + player_car + ball_data + self.flattenArrays(teamMembers) + self.flattenArrays(enemies) + boost_info, dtype=np.float32)
+        return np.array(game_info + score_info + player_car + ball_data + self.flattenArrays(team_members) + self.flattenArrays(enemies) + boost_info, dtype=np.float32)
 
-    def returnEmtpyPlayerArray(self):
+    def return_emtpy_player_array(self):
+        """
+        :return: An array representing a car with no data
+        """
         return [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
 
     def get_car_info(self, gameTickPacket, index):
@@ -53,9 +63,9 @@ class InputFormatter:
         player_team = gameTickPacket.gamecars[index].Team
         player_boost = gameTickPacket.gamecars[index].Boost
         return [player_x, player_y, player_z, player_pitch, player_yaw, player_roll,
-                     player_speed_x, player_speed_y, player_speed_z, player_angular_speed_x,
-                     player_angular_speed_y, player_angular_speed_z, player_demolished, player_jumped,
-                     player_double_jumped, player_team, player_boost]
+                player_speed_x, player_speed_y, player_speed_z, player_angular_speed_x,
+                player_angular_speed_y, player_angular_speed_z, player_demolished, player_jumped,
+                player_double_jumped, player_team, player_boost]
 
     def get_game_info(self, gameTickPacket):
         game_ball_hit = gameTickPacket.gameInfo.bBallHasBeenHit
@@ -85,8 +95,8 @@ class InputFormatter:
         ball_acceleration_y = gameTickPacket.gameball.Acceleration.Y
         ball_acceleration_z = gameTickPacket.gameball.Acceleration.Z
         return [ball_x, ball_y, ball_z, ball_pitch, ball_yaw, ball_roll, ball_speed_x, ball_speed_y,
-                    ball_speed_z, ball_angular_speed_x, ball_angular_speed_y, ball_angular_speed_z,
-                    ball_acceleration_x, ball_acceleration_y, ball_acceleration_z]
+                ball_speed_z, ball_angular_speed_x, ball_angular_speed_y, ball_angular_speed_z,
+                ball_acceleration_x, ball_acceleration_y, ball_acceleration_z]
 
     def get_boost_info(self, gameTickPacket):
         game_inputs = []
@@ -107,5 +117,10 @@ class InputFormatter:
         return [score, goals, own_goals, assists, saves, shots, demolitions]
 
     def flattenArrays(self, arrayOfArray):
+        """
+        Takes an array of arrays and flattens it into a single array
+        :param arrayOfArray: A list that also contains a list
+        :return: A single flattened array
+        """
         return [item for sublist in arrayOfArray for item in sublist]
 
