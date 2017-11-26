@@ -67,7 +67,7 @@ class BotManager:
             print('creating file ' + filename)
             self.game_file = open(filename.replace(" ", ""), 'w')
         old_time = 0
-        current_time = 0
+        current_time = -10
 
         # Run until main process tells to stop
         while not self.terminateEvent.is_set():
@@ -94,10 +94,11 @@ class BotManager:
             player_input.bBoost = controller_input[6]
             player_input.bHandbrake = controller_input[7]
 
-            current_time = game_tick_packet.gameInfo.GameTimeRemaining
+            current_time = game_tick_packet.gameInfo.TimeSeconds
             
-            if self.save_data and game_tick_packet.gameInfo.bRoundActive and old_time is not 0 and not old_time == current_time:
-                self.game_file.writelines(str(self.input_converter.create_input_array(game_tick_packet)) + '\n')
+            if self.save_data and game_tick_packet.gameInfo.bRoundActive and not old_time == current_time and not current_time == -10:
+                numpyArray = self.input_converter.create_input_array(game_tick_packet)
+                self.game_file.writelines(str(numpyArray) + '\n')
                 self.game_file.writelines(str(controller_input) + '\n')
                 
             old_time = current_time
