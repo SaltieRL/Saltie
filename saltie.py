@@ -7,6 +7,7 @@ from conversions.input_formatter import InputFormatter
 from modelHelpers import option_handler
 from modelHelpers import reward_manager
 from models import actor_critic_wrapper
+from models import nnatba
 
 
 class Agent:
@@ -28,10 +29,13 @@ class Agent:
         self.state_dim = 195
         self.num_actions = len(self.options)
         print('num_actions', self.num_actions)
-        self.model = actor_critic_wrapper.ActorCriticModel(self.sess,
-                                                           self.state_dim,
-                                                           self.num_actions,
-                                                           summary_writer=writer)
+        self.model = self.get_model_class()(self.sess,
+                                            self.state_dim,
+                                            self.num_actions,
+                                            summary_writer=writer)
+
+    def get_model_class(self):
+        return actor_critic_wrapper.ActorCriticModel
 
     def get_reward(self, packet):
         reward = self.reward_manager.get_reward(packet)

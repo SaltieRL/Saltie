@@ -1,4 +1,4 @@
-class EmptyModelExample(object):
+class EmptyModelExample:
     """"
     This will be the example model framework with the needed functions but none of the code inside them
     You can copy this to implement your own model
