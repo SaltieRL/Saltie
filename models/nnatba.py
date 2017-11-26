@@ -1,4 +1,5 @@
 import tensorflow as tf
+import os
 
 
 
@@ -44,7 +45,10 @@ class NNAtba:
         self.saver = tf.train.Saver()
 
         #file does not exist too lazy to add check
-        #self.saver.restore(session, "./data/trained_variables.ckpt")
+
+        dir_path = os.path.dirname(os.path.realpath(__file__))
+        print(dir_path)
+        self.saver.restore(session, dir_path + "\\data\\trained_variables_drop.ckpt")
 
         init = tf.global_variables_initializer()
         session.run(init)

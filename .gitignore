@@ -1,6 +1,6 @@
 #### TEMP IGNORE TILL FILE IS FINALIZED
 training/
-
+models/data
 
 #tensorflow
 tmp/

@@ -35,7 +35,7 @@ class Agent:
                                             summary_writer=writer)
 
     def get_model_class(self):
-        return actor_critic_wrapper.ActorCriticModel
+        return nnatba.NNAtba
 
     def get_reward(self, packet):
         reward = self.reward_manager.get_reward(packet)
@@ -52,6 +52,7 @@ class Agent:
         self.model.store_rollout(state, self.previous_action, reward)
 
         action = self.model.sample_action(np.array(state).reshape((1, -1)))
+        print('selected action ' + str(action))
         if action is None:
             print("invalid action no type returned")
         if random.random() < 0.05 or action is None:
