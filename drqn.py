@@ -1,6 +1,7 @@
 import os
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"   # see issue #152
 os.environ["CUDA_VISIBLE_DEVICES"] = "" # required since Rocket League uses GPU
+import input_formatter
 import itertools
 import random
 
@@ -13,6 +14,7 @@ import tensorflow as tf
 
 class Agent:
     def __init__(self, name, team, index):
+        self.input = input_formatter.InputFormatter(team, index)
         self.name = name
         self.team = team  # 0 towards positive goal, 1 towards negative goal.
         self.index = index
@@ -136,78 +138,7 @@ class Agent:
     def get_output_vector(self, game_tick_packet):
         gameTickPacket = game_tick_packet
         if gameTickPacket.gameInfo.bRoundActive:  # game is currently running
-            player_x = gameTickPacket.gamecars[self.index].Location.X
-            player_y = gameTickPacket.gamecars[self.index].Location.Y
-            player_z = gameTickPacket.gamecars[self.index].Location.Z
-            player_pitch = float(gameTickPacket.gamecars[self.index].Rotation.Pitch)
-            player_yaw = float(gameTickPacket.gamecars[self.index].Rotation.Yaw)
-            player_roll = float(gameTickPacket.gamecars[self.index].Rotation.Roll)
-            player_speed_x = gameTickPacket.gamecars[self.index].Velocity.X
-            player_speed_y = gameTickPacket.gamecars[self.index].Velocity.Y
-            player_speed_z = gameTickPacket.gamecars[self.index].Velocity.Z
-            player_angular_speed_x = gameTickPacket.gamecars[self.index].AngularVelocity.X
-            player_angular_speed_y = gameTickPacket.gamecars[self.index].AngularVelocity.Y
-            player_angular_speed_z = gameTickPacket.gamecars[self.index].AngularVelocity.Z
-            player_demolished = gameTickPacket.gamecars[self.index].bDemolished
-            player_jumped = gameTickPacket.gamecars[self.index].bJumped
-            player_double_jumped = gameTickPacket.gamecars[self.index].bDoubleJumped
-            player_team = gameTickPacket.gamecars[self.index].Team
-            player_boost = gameTickPacket.gamecars[self.index].Boost
-
-            enemy_x = gameTickPacket.gamecars[self.enemy_index].Location.X
-            enemy_y = gameTickPacket.gamecars[self.enemy_index].Location.Y
-            enemy_z = gameTickPacket.gamecars[self.enemy_index].Location.Z
-            enemy_pitch = float(gameTickPacket.gamecars[self.enemy_index].Rotation.Pitch)
-            enemy_yaw = float(gameTickPacket.gamecars[self.enemy_index].Rotation.Yaw)
-            enemy_roll = float(gameTickPacket.gamecars[self.enemy_index].Rotation.Roll)
-            enemy_speed_x = gameTickPacket.gamecars[self.enemy_index].Velocity.X
-            enemy_speed_y = gameTickPacket.gamecars[self.enemy_index].Velocity.Y
-            enemy_speed_z = gameTickPacket.gamecars[self.enemy_index].Velocity.Z
-            enemy_angular_speed_x = gameTickPacket.gamecars[self.enemy_index].AngularVelocity.X
-            enemy_angular_speed_y = gameTickPacket.gamecars[self.enemy_index].AngularVelocity.Y
-            enemy_angular_speed_z = gameTickPacket.gamecars[self.enemy_index].AngularVelocity.Z
-            enemy_demolished = gameTickPacket.gamecars[self.enemy_index].bDemolished
-            enemy_jumped = gameTickPacket.gamecars[self.enemy_index].bJumped
-            enemy_double_jumped = gameTickPacket.gamecars[self.enemy_index].bDoubleJumped
-            enemy_team = gameTickPacket.gamecars[self.enemy_index].Team
-            enemy_boost = gameTickPacket.gamecars[self.enemy_index].Boost
-
-            ball_x = gameTickPacket.gameball.Location.X
-            ball_y = gameTickPacket.gameball.Location.Y
-            ball_z = gameTickPacket.gameball.Location.Z
-            ball_pitch = float(gameTickPacket.gameball.Rotation.Pitch)
-            ball_yaw = float(gameTickPacket.gameball.Rotation.Yaw)
-            ball_roll = float(gameTickPacket.gameball.Rotation.Roll)
-            ball_speed_x = gameTickPacket.gameball.Velocity.X
-            ball_speed_y = gameTickPacket.gameball.Velocity.Y
-            ball_speed_z = gameTickPacket.gameball.Velocity.Z
-            ball_angular_speed_x = gameTickPacket.gameball.AngularVelocity.X
-            ball_angular_speed_y = gameTickPacket.gameball.AngularVelocity.Y
-            ball_angular_speed_z = gameTickPacket.gameball.AngularVelocity.Z
-            ball_acceleration_x = gameTickPacket.gameball.Acceleration.X
-            ball_acceleration_y = gameTickPacket.gameball.Acceleration.Y
-            ball_acceleration_z = gameTickPacket.gameball.Acceleration.Z
-
-            # no need for any of these but ball has been hit (kickoff indicator)
-            game_timeseconds = gameTickPacket.gameInfo.TimeSeconds
-            game_timeremaining = gameTickPacket.gameInfo.GameTimeRemaining
-            game_overtime = gameTickPacket.gameInfo.bOverTime
-            game_active = gameTickPacket.gameInfo.bRoundActive
-            game_ball_hit = gameTickPacket.gameInfo.bBallHasBeenHit
-            game_ended = gameTickPacket.gameInfo.bMatchEnded
-
-            game_inputs = [player_x, player_y, player_z, player_pitch, player_yaw, player_roll,
-                           player_speed_x, player_speed_y, player_speed_z, player_angular_speed_x,
-                           player_angular_speed_y, player_angular_speed_z, player_demolished, player_jumped,
-                           player_double_jumped, player_team, player_boost,
-                           enemy_x, enemy_y, enemy_z, enemy_pitch, enemy_yaw, enemy_roll,
-                           enemy_speed_x, enemy_speed_y, enemy_speed_z, enemy_angular_speed_x,
-                           enemy_angular_speed_y, enemy_angular_speed_z, enemy_demolished, enemy_jumped,
-                           enemy_double_jumped, enemy_team, enemy_boost,
-                           ball_x, ball_y, ball_z, ball_pitch, ball_yaw, ball_roll, ball_speed_x, ball_speed_y,
-                           ball_speed_z, ball_angular_speed_x, ball_angular_speed_y, ball_angular_speed_z,
-                           ball_acceleration_x, ball_acceleration_y, ball_acceleration_z,
-                           game_ball_hit]
+            game_inputs = self.input.create_input_array(game_tick_packet)
 
             for i in range(gameTickPacket.numBoosts - 1):
                 game_inputs.append(gameTickPacket.gameBoosts[i].bActive)
