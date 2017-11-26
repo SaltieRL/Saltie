@@ -9,6 +9,7 @@ import input_formatter
 import mmap
 import numpy as np
 import rate_limiter
+import struct
 import sys
 import os
 
@@ -99,7 +100,7 @@ class BotManager:
 
             if self.save_data and game_tick_packet.gameInfo.bRoundActive and not old_time == current_time and not current_time == -10:
                 np_input = self.input_converter.create_input_array(game_tick_packet)
-                np_output = np.array(controller_input)
+                np_output = np.array(controller_input, dtype=np.float32)
                 self.write_array_to_file(np_input)
                 self.write_array_to_file(np_output)
 
@@ -116,9 +117,12 @@ class BotManager:
         print("something ended closing file")
         self.callbackEvent.set()
 
-
     def write_array_to_file(self, array):
         bytes = compressor.convert_numpy_array(array)
         size_of_bytes = len(bytes.getvalue())
-        print(size_of_bytes)
+        print(bytes.getbuffer().nbytes)
+        self.game_file.write(struct.pack('i', size_of_bytes))
         self.game_file.write(bytes.getvalue())
+
+if __name__ == '__main__':
+    open('training/')

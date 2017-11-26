@@ -19,14 +19,14 @@ class InputFormatter:
         while len(teamMembers) < 2:
             teamMembers.append(self.returnEmtpyPlayerArray())
         while len(enemies) < 3:
-            enemies.append(self.returnEmtpyPlayerArray()) 
+            enemies.append(self.returnEmtpyPlayerArray())
 
         ball_data = self.get_ball_info(gameTickPacket)
         game_info = self.get_game_info(gameTickPacket)
         boost_info = self.get_boost_info(gameTickPacket)
         score_info = self.get_score_info(gameTickPacket.gamecars[self.index].Score)
 
-        return np.array(game_info + score_info + player_car + ball_data + self.flattenArrays(teamMembers) + self.flattenArrays(enemies) + boost_info)
+        return np.array(game_info + score_info + player_car + ball_data + self.flattenArrays(teamMembers) + self.flattenArrays(enemies) + boost_info, dtype=np.float32)
 
     def returnEmtpyPlayerArray(self):
         return [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
@@ -56,7 +56,7 @@ class InputFormatter:
 
     def get_game_info(self, gameTickPacket):
         game_ball_hit = gameTickPacket.gameInfo.bBallHasBeenHit
-        
+
         # no need for any of these but ball has been hit (kickoff indicator)
         # game_timeseconds = gameTickPacket.gameInfo.TimeSeconds
         # game_timeremaining = gameTickPacket.gameInfo.GameTimeRemaining
@@ -105,4 +105,4 @@ class InputFormatter:
 
     def flattenArrays(self, arrayOfArray):
         return [item for sublist in arrayOfArray for item in sublist]
-        
+
