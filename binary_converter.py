@@ -1,4 +1,7 @@
 import struct
+import io
+import numpy as np
+import shutil
 
 """
 Converts the floats you give it into a binary line
@@ -36,3 +39,8 @@ def read_data(buffer, numbers_per_line, number_of_lines):
                                        buffer,
                                        line * numbers_per_line * 4))
     return data
+
+def convert_numpy_array(numpy_array):
+    compressed_array = io.BytesIO()    # np.savez_compressed() requires a file-like object to write to
+    np.savez_compressed(compressed_array, numpy_array)
+    return compressed_array
