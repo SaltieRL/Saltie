@@ -109,7 +109,6 @@ class BotManager:
             # Ratelimit here
             after = datetime.now()
             #print('Latency of ' + self.name + ': ' + str(after - before))
-            #print('Latency of ' + self.name + ': ' + str(after - before))
 
             r.acquire(after-before)
 

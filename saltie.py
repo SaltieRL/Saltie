@@ -35,7 +35,7 @@ class Agent:
         handbrake = [True, False]
         option_list = [throttle, steer, pitch, yaw, roll, jump, boost, handbrake]
         self.options = list(itertools.product(*option_list))
-        self.state_dim = 271
+        self.state_dim = 193
         self.num_actions = len(self.options)
         print ('num_actions', self.num_actions)
         self.pg_reinforce = PolicyGradientActorCritic(self.sess,
