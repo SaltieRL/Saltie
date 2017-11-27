@@ -22,9 +22,12 @@ if __name__ == '__main__':
     print('training on files')
     print(files)
     trainerClass = get_trainer_class()()
+    counter = 0
     for file in files:
+        counter += 1
         with open(file, 'r+b') as f:
             trainerClass.start_new_file()
-            print('running file ' + file)
+            print('running file ' + file + 'file ' + str(counter) + '/' + str(len(files)))
             binary_converter.read_data(f, trainerClass.process_pair)
             trainerClass.end_file()
+    trainerClass.end_everything()

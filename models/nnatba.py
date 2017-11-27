@@ -1,4 +1,5 @@
 import tensorflow as tf
+import os
 
 
 
@@ -19,7 +20,7 @@ class NNAtba:
 
     def encoder(self, input):
         # Encoder Hidden layer with sigmoid activation #1
-        layer_1 = tf.nn.sigmoid(tf.add(tf.matmul(tf.reshape(input, [1, self.state_dim]), self.weights['h1']), self.biases['b1']))
+        layer_1 = tf.nn.sigmoid(tf.add(tf.matmul(input, self.weights['h1']), self.biases['b1']))
         # Encoder Hidden layer with sigmoid activation #2
         layer_2 = tf.nn.sigmoid(tf.add(tf.matmul(layer_1, self.weights['out']), self.biases['out']))
         return layer_2
@@ -44,18 +45,23 @@ class NNAtba:
         self.saver = tf.train.Saver()
 
         #file does not exist too lazy to add check
-        #self.saver.restore(session, "./trained_variables.ckpt")
+
+        model_file = self.get_model_path("trained_variables_drop.ckpt")
+        print(model_file)
+        if os.path.isfile(model_file):
+            print('loading existing model')
+            self.saver.restore(session, model_file)
 
         init = tf.global_variables_initializer()
         session.run(init)
 
     def create_training_model_copy(self, batch_size):
-        self.labels = tf.placeholder(tf.int64, shape=(1))
-        self.input = tf.placeholder(tf.float32, shape=(1, self.state_dim))
+        self.labels = tf.placeholder(tf.int64, shape=(None, self.num_actions))
+        self.input = tf.placeholder(tf.float32, shape=(None, self.state_dim))
 
         self.create_model(self.input)
 
-        cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(
+        cross_entropy = tf.nn.softmax_cross_entropy_with_logits(
             labels=self.labels, logits=self.logits, name='xentropy')
         loss = tf.reduce_mean(cross_entropy, name='xentropy_mean')
 
@@ -75,4 +81,9 @@ class NNAtba:
 
     def sample_action(self, states):
         return self.sess.run(self.model, feed_dict={self.input: states})[0]
+
+
+    def get_model_path(self, filename):
+        dir_path = os.path.dirname(os.path.realpath(__file__))
+        return dir_path + "\\data\\" + filename
 

@@ -55,12 +55,14 @@ def get_array(file, chunk):
     try:
         starting_byte = struct.unpack('i', chunk)[0]
     except struct.error:
+        print('struct error')
         raise EOFError
     numpy_bytes = file.read(starting_byte)
     fake_file = io.BytesIO(numpy_bytes)
     try:
         result = np.load(fake_file)
     except OSError:
+        print('numpy parse error')
         raise EOFError
     return result[result.files[0]]
 
