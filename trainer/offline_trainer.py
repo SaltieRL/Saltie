@@ -1,6 +1,6 @@
 import os
 from conversions import binary_converter
-from trainer import nnatba_trainer
+from trainer import copy_trainer
 import time
 
 def get_all_files():
@@ -18,7 +18,7 @@ def get_all_files():
 
 def get_trainer_class():
     #fill your input function here!
-    return nnatba_trainer.NNAtbaTrainer
+    return copy_trainer.NNAtbaTrainer
 
 
 if __name__ == '__main__':

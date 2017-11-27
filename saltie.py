@@ -33,9 +33,10 @@ class Agent:
                                             self.state_dim,
                                             self.num_actions,
                                             summary_writer=writer)
+        self.model.initialize_model()
 
     def get_model_class(self):
-        return actor_critic_wrapper.ActorCriticModel
+        return nnatba.NNAtba
 
     def get_reward(self, packet):
         reward = self.reward_manager.get_reward(packet)
@@ -54,7 +55,7 @@ class Agent:
         action = self.model.sample_action(np.array(state).reshape((1, -1)))
         if action is None:
             print("invalid action no type returned")
-        if random.random() < 0.05 or action is None:
+        if random.random() < 0.00005 or action is None:
             action = random.randint(0, self.num_actions)
             if action == 256:
                 print('f_in rand int', action)
@@ -62,4 +63,5 @@ class Agent:
         if action >= self.num_actions or action < 0:
             print (action, len(self.options))
             return self.options[0]
+        print(action, self.options[action])
         return self.options[action]

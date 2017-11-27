@@ -11,21 +11,21 @@ class NNAtba:
 
     def create_weights(self):
         self.weights = {
-            'h1': tf.Variable(tf.random_normal([self.state_dim, self.num_hidden_1])),
-            'h2': tf.Variable(tf.random_normal([self.num_hidden_1, self.num_hidden_2])),
-            'out': tf.Variable(tf.random_normal([self.num_hidden_2, self.num_actions])),
+            'h1': tf.Variable(tf.random_normal([self.state_dim, self.num_hidden_1]), name='wh1'),
+            'h2': tf.Variable(tf.random_normal([self.num_hidden_1, self.num_hidden_2]), name='wh2'),
+            'out': tf.Variable(tf.random_normal([self.num_hidden_2, self.num_actions]), name='wout'),
         }
         self.biases = {
-            'b1': tf.Variable(tf.random_normal([self.num_hidden_1])),
-            'b2': tf.Variable(tf.random_normal([self.num_hidden_2])),
-            'out': tf.Variable(tf.random_normal([self.num_actions])),
+            'b1': tf.Variable(tf.random_normal([self.num_hidden_1]), name='bh1'),
+            'b2': tf.Variable(tf.random_normal([self.num_hidden_2]), name='bh2'),
+            'out': tf.Variable(tf.random_normal([self.num_actions]), name='bout'),
         }
 
     def encoder(self, input):
         # Encoder Hidden layer with sigmoid activation #1
-        layer_1 = tf.nn.sigmoid(tf.add(tf.matmul(input, self.weights['h1']), self.biases['b1']))
+        layer_1 = tf.nn.relu6(tf.add(tf.matmul(input, self.weights['h1']), self.biases['b1']))
 
-        layer_2 = tf.nn.sigmoid(tf.add(tf.matmul(layer_1, self.weights['h2']), self.biases['b2']))
+        layer_2 = tf.nn.relu6(tf.add(tf.matmul(layer_1, self.weights['h2']), self.biases['b2']))
         # Encoder Hidden layer with sigmoid activation #3
         layer_3 = tf.nn.sigmoid(tf.add(tf.matmul(layer_2, self.weights['out']), self.biases['out']))
         return layer_3
@@ -37,10 +37,12 @@ class NNAtba:
     def __init__(self, session,
                  state_dim,
                  num_actions,
+                 is_training=False,
+                 optimizer=tf.train.GradientDescentOptimizer(learning_rate=0.1),
                  summary_writer=None,
                  summary_every=100):
 
-
+        self.optimizer = optimizer
         self.sess = session
         self.num_actions = num_actions
         self.state_dim = state_dim
@@ -49,6 +51,10 @@ class NNAtba:
 
         self.saver = tf.train.Saver()
 
+    def initialize_model(self):
+        init = tf.global_variables_initializer()
+        self.sess.run(init)
+
         #file does not exist too lazy to add check
 
         model_file = self.get_model_path("trained_variables_drop.ckpt")
@@ -56,14 +62,11 @@ class NNAtba:
         if os.path.isfile(model_file + '.meta'):
             print('loading existing model')
             try:
-                self.saver.restore(session, model_file)
+                self.saver.restore(self.sess, model_file)
             except:
                 print('unable to load model')
         else:
             print('unable to load model')
-
-        init = tf.global_variables_initializer()
-        session.run(init)
 
     def create_training_model_copy(self, batch_size):
         self.labels = tf.placeholder(tf.int64, shape=(None, self.num_actions))
@@ -72,8 +75,9 @@ class NNAtba:
             labels=self.labels, logits=self.logits, name='xentropy')
         loss = tf.reduce_mean(cross_entropy, name='xentropy_mean')
 
-        return loss, self.input, self.labels
+        optimizer = self.optimizer.minimize(loss)
 
+        return loss, self.input, self.labels, optimizer
 
     def create_model(self, input):
         self.create_weights()

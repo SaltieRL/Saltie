@@ -23,6 +23,8 @@ class ActorCriticModel:
                                                       self.state_dim,
                                                       self.num_actions,
                                                       summary_writer=summary_writer)
+    def initialize_model(self):
+        pass
 
     def actor_network(self, states):
         # define policy neural network

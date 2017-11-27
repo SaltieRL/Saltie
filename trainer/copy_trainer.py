@@ -29,10 +29,10 @@ class NNAtbaTrainer:
         self.state_dim = 195
         self.num_actions = len(self.options)
         self.agent = self.get_model()(self.sess, self.state_dim, self.num_actions, is_training=True)
-        self.loss, self.input, self.label = self.agent.create_training_model_copy(batch_size=self.batch_size)
-        self.optimizer = tf.train.GradientDescentOptimizer(self.learning_rate).minimize(self.loss)
-        init = tf.global_variables_initializer()
-        self.sess.run(init)
+        self.loss, self.input, self.label, self.optimizer = self.agent.create_training_model_copy(batch_size=self.batch_size)
+        if self.optimizer is None:
+            self.optimizer = tf.train.GradientDescentOptimizer(self.learning_rate).minimize(self.loss)
+        self.agent.initialize_model()
 
     def get_model(self):
         return nnatba.NNAtba

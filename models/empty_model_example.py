@@ -11,6 +11,9 @@ class EmptyModelExample:
                  summary_every=100):
         print('i do nothing!')
 
+    def initialize_model(self):
+        print(' i do nothing!')
+
     def store_rollout(self, state, last_action, reward):
         print(' i do nothing!')
 

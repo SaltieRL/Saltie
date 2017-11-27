@@ -35,9 +35,7 @@ def createOptions():
     boost = [True, False]
     handbrake = [True, False]
     option_list = [throttle, steer, pitch, yaw, roll, jump, boost, handbrake]
-    print(option_list)
     entirelist = list(itertools.product(*option_list))
-    print(len(entirelist))
     return entirelist
 
 def compare_options(option1, option2):
