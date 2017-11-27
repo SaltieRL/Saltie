@@ -10,9 +10,10 @@ class NNAtbaTrainer:
     file_number = 0
 
     epoch = 0
-    display_step = 1
+    display_step = 5
 
     options = option_handler.createOptions()
+    option_map = option_handler.OptionMap(options)
 
     batch_size = 100
     input_batch = []
@@ -50,7 +51,7 @@ class NNAtbaTrainer:
                 input_array = np.append(input_array, [0])
             self.input_batch.append(input_array)
 
-            index = option_handler.find_matching_option(self.options, output_array)[1]
+            index = option_handler.find_matching_option(self.option_map, self.options, output_array)[1]
             array = np.zeros(self.num_actions)
             array[index] = 1
             self.label_batch.append(array)
@@ -79,9 +80,10 @@ class NNAtbaTrainer:
         self.batch_process()
         if self.file_number % 3 == 0:
             saver = tf.train.Saver()
-            saver.save(self.sess, "../models/data/trained_variables_drop" + str(self.file_number) + ".ckpt")
-        pass
+            file_path = self.agent.get_model_path("trained_variables_drop" + str(self.file_number) + ".ckpt")
+            saver.save(self.sess, file_path)
 
     def end_everything(self):
         saver = tf.train.Saver()
-        saver.save(self.sess, "../models/data/trained_variables_drop.ckpt")
+        file_path = self.agent.get_model_path("trained_variables_drop" + str(self.file_number) + ".ckpt")
+        saver.save(self.sess, file_path)

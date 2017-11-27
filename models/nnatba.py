@@ -46,9 +46,11 @@ class NNAtba:
 
         #file does not exist too lazy to add check
 
-        dir_path = os.path.dirname(os.path.realpath(__file__))
-        print(dir_path)
-        self.saver.restore(session, dir_path + "\\data\\trained_variables_drop.ckpt")
+        model_file = self.get_model_path("trained_variables_drop.ckpt")
+        print(model_file)
+        if os.path.isfile(model_file):
+            print('loading existing model')
+            self.saver.restore(session, model_file)
 
         init = tf.global_variables_initializer()
         session.run(init)
@@ -79,4 +81,9 @@ class NNAtba:
 
     def sample_action(self, states):
         return self.sess.run(self.model, feed_dict={self.input: states})[0]
+
+
+    def get_model_path(self, filename):
+        dir_path = os.path.dirname(os.path.realpath(__file__))
+        return dir_path + "\\data\\" + filename
 

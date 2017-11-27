@@ -52,7 +52,6 @@ class Agent:
         self.model.store_rollout(state, self.previous_action, reward)
 
         action = self.model.sample_action(np.array(state).reshape((1, -1)))
-        print('selected action ' + str(action))
         if action is None:
             print("invalid action no type returned")
         if random.random() < 0.05 or action is None:
