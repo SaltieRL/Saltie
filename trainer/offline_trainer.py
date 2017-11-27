@@ -1,12 +1,16 @@
 import os
 from conversions import binary_converter
 from trainer import nnatba_trainer
+import time
 
 def get_all_files():
     dir_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
     training_path = dir_path + '\\training'
     files = []
+    exclude = set(['data'])
     for (dirpath, dirnames, filenames) in os.walk(training_path):
+        dirnames[:] = [d for d in dirnames if d not in exclude]
+        print(dirpath)
         for file in filenames:
             files.append(dirpath + '\\' + file)
     return files
@@ -23,11 +27,25 @@ if __name__ == '__main__':
     print(files)
     trainerClass = get_trainer_class()()
     counter = 0
-    for file in files:
-        counter += 1
-        with open(file, 'r+b') as f:
-            trainerClass.start_new_file()
-            print('running file ' + file + 'file ' + str(counter) + '/' + str(len(files)))
-            binary_converter.read_data(f, trainerClass.process_pair)
-            trainerClass.end_file()
-    trainerClass.end_everything()
+    total_time = 0
+    try:
+        for file in files:
+            start = time.time()
+            counter += 1
+            try:
+                with open(file, 'r+b') as f:
+                    trainerClass.start_new_file()
+                    print('running file ' + file + 'file ' + str(counter) + '/' + str(len(files)))
+                    binary_converter.read_data(f, trainerClass.process_pair)
+                    trainerClass.end_file()
+                end = time.time()
+                difference = end - start
+                total_time += difference
+                print('trained file in ' + str(difference) + 's')
+            except FileNotFoundError:
+                print('whoops file not found')
+                print(file)
+    finally:
+        print('ran through all files in ' + str(total_time / 60) + 'm')
+        print('average time: ' + str((total_time / len(files))) + 's')
+        trainerClass.end_everything()
