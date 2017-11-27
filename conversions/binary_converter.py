@@ -1,6 +1,7 @@
 import struct
 import io
 import numpy as np
+import os
 
 
 def convert_numpy_array(numpy_array):
@@ -25,21 +26,31 @@ def read_data(file, process_pair_function):
     """
 
     pair_number = 0
+    totalbytes = 0
     while True:
         try:
             chunk = file.read(4)
             if chunk == '':
+                totalbytes += 4
                 break
-            input_array = get_array(file, chunk)
+            input_array, num_bytes = get_array(file, chunk)
+            totalbytes += num_bytes + 4
             chunk = file.read(4)
             if chunk == '':
+                totalbytes += 4
                 break
-            output_array = get_array(file, chunk)
+            output_array, num_bytes = get_array(file, chunk)
             process_pair_function(input_array, output_array, pair_number)
             pair_number += 1
+            totalbytes += num_bytes + 4
         except EOFError:
             print('reached end of file')
             break
+    file_size = os.stat(file.name).st_size
+    if file_size - totalbytes <= 4:
+        print('read: 100% of file')
+    else:
+        print('read: ' + str(totalbytes) + '/' + str() + ' bytes')
 
 
 def get_array(file, chunk):
@@ -64,7 +75,7 @@ def get_array(file, chunk):
     except OSError:
         print('numpy parse error')
         raise EOFError
-    return result[result.files[0]]
+    return result[result.files[0]], starting_byte
 
 
 def default_process_pair(input_array, output_array, pair_number):
