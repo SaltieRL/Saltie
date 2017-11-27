@@ -28,11 +28,14 @@ class NNAtbaTrainer:
 
         self.state_dim = 195
         self.num_actions = len(self.options)
-        self.agent = nnatba.NNAtba(self.sess, self.state_dim, self.num_actions)
+        self.agent = self.get_model()(self.sess, self.state_dim, self.num_actions, is_training=True)
         self.loss, self.input, self.label = self.agent.create_training_model_copy(batch_size=self.batch_size)
         self.optimizer = tf.train.GradientDescentOptimizer(self.learning_rate).minimize(self.loss)
         init = tf.global_variables_initializer()
         self.sess.run(init)
+
+    def get_model(self):
+        return nnatba.NNAtba
 
     def start_new_file(self):
         self.file_number += 1
@@ -85,5 +88,5 @@ class NNAtbaTrainer:
 
     def end_everything(self):
         saver = tf.train.Saver()
-        file_path = self.agent.get_model_path("trained_variables_drop" + str(self.file_number) + ".ckpt")
+        file_path = self.agent.get_model_path("trained_variables_drop.ckpt")
         saver.save(self.sess, file_path)
