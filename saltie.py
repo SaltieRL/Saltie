@@ -35,7 +35,7 @@ class Agent:
                                             summary_writer=writer)
 
     def get_model_class(self):
-        return nnatba.NNAtba
+        return actor_critic_wrapper.ActorCriticModel
 
     def get_reward(self, packet):
         reward = self.reward_manager.get_reward(packet)
