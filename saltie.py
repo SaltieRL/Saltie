@@ -46,7 +46,8 @@ class Agent:
         return reward
 
     def get_output_vector(self, game_tick_packet):
-        state = self.inp.create_input_array(game_tick_packet)
+        state, features = self.inp.create_input_array(game_tick_packet)
+        state = np.append(state, features)
         if self.state_dim != len(state):
             print('wrong input size', self.index, len(state))
             return self.actions_handler.create_controller_output_from_actions(

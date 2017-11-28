@@ -1,9 +1,11 @@
 import numpy as np
+from modelHelpers import feature_creator
 
+#UBLUEGOALLOCATION =
 
 class InputFormatter:
     """
-    This is a class that takes in a gameTickPacket and will return an array of that value
+    This is a class that takes in a game_tick_packet and will return an array of that value
     """
 
     def __init__(self, team, index):
@@ -11,10 +13,10 @@ class InputFormatter:
         self.index = index
         self.total_score = [0, 0]
 
-    def create_input_array(self, gameTickPacket):
+    def create_input_array(self, game_tick_packet):
         """
 
-        :param gameTickPacket: A game packet for a single point in time
+        :param game_tick_packet: A game packet for a single point in time
         :return: A massive array representing that packet
         """
         team_members = []
@@ -22,38 +24,42 @@ class InputFormatter:
         ownTeamScore = 0
         enemyTeamScore = 0
         player_car = self.return_emtpy_player_array()
-        for index in range(gameTickPacket.numCars):
+        for index in range(game_tick_packet.numCars):
             if index == self.index:
-                ownTeamScore += self.get_player_goals(gameTickPacket, index)
-                enemyTeamScore += self.get_own_goals(gameTickPacket, index)
-                player_car = self.get_car_info(gameTickPacket, index)
-            elif gameTickPacket.gamecars[index].Team == self.team:
-                ownTeamScore += self.get_player_goals(gameTickPacket, index)
-                enemyTeamScore += self.get_own_goals(gameTickPacket, index)
-                team_members.append(self.get_car_info(gameTickPacket, index))
+                ownTeamScore += self.get_player_goals(game_tick_packet, index)
+                enemyTeamScore += self.get_own_goals(game_tick_packet, index)
+                player_car = self.get_car_info(game_tick_packet, index)
+            elif game_tick_packet.gamecars[index].Team == self.team:
+                ownTeamScore += self.get_player_goals(game_tick_packet, index)
+                enemyTeamScore += self.get_own_goals(game_tick_packet, index)
+                team_members.append(self.get_car_info(game_tick_packet, index))
             else:
-                enemies.append(self.get_car_info(gameTickPacket, index))
-                enemyTeamScore += self.get_player_goals(gameTickPacket, index)
-                ownTeamScore += self.get_own_goals(gameTickPacket, index)
+                enemies.append(self.get_car_info(game_tick_packet, index))
+                enemyTeamScore += self.get_player_goals(game_tick_packet, index)
+                ownTeamScore += self.get_own_goals(game_tick_packet, index)
         while len(team_members) < 2:
             team_members.append(self.return_emtpy_player_array())
         while len(enemies) < 3:
             enemies.append(self.return_emtpy_player_array())
 
-        ball_data = self.get_ball_info(gameTickPacket)
-        game_info = self.get_game_info(gameTickPacket)
-        boost_info = self.get_boost_info(gameTickPacket)
-        score_info = self.get_score_info(gameTickPacket.gamecars[self.index].Score)
+        ball_data = self.get_ball_info(game_tick_packet)
+        game_info = self.get_game_info(game_tick_packet)
+        boost_info = self.get_boost_info(game_tick_packet)
+        score_info = self.get_score_info(game_tick_packet.gamecars[self.index].Score)
         total_score = [ownTeamScore, enemyTeamScore]
         self.total_score = total_score
 
-        return np.array(game_info + score_info + player_car + ball_data + self.flattenArrays(team_members) + self.flattenArrays(enemies) + boost_info, dtype=np.float32)
+        extra_features = feature_creator.get_extra_features(game_tick_packet, self.index)
 
-    def get_player_goals(self, gameTickPacket, index):
-        return gameTickPacket.gamecars[index].Score.Goals
+        return np.array(game_info + score_info + player_car + ball_data +
+                        self.flattenArrays(team_members) + self.flattenArrays(enemies) + boost_info, dtype=np.float32), \
+               np.array(extra_features, dtype=np.float32)
 
-    def get_own_goals(self, gameTickPacket, index):
-        return gameTickPacket.gamecars[index].Score.OwnGoals
+    def get_player_goals(self, game_tick_packet, index):
+        return game_tick_packet.gamecars[index].Score.Goals
+
+    def get_own_goals(self, game_tick_packet, index):
+        return game_tick_packet.gamecars[index].Score.OwnGoals
 
     def return_emtpy_player_array(self):
         """
@@ -61,65 +67,65 @@ class InputFormatter:
         """
         return [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
 
-    def get_car_info(self, gameTickPacket, index):
-        player_x = gameTickPacket.gamecars[index].Location.X
-        player_y = gameTickPacket.gamecars[index].Location.Y
-        player_z = gameTickPacket.gamecars[index].Location.Z
-        player_pitch = float(gameTickPacket.gamecars[index].Rotation.Pitch)
-        player_yaw = float(gameTickPacket.gamecars[index].Rotation.Yaw)
-        player_roll = float(gameTickPacket.gamecars[index].Rotation.Roll)
-        player_speed_x = gameTickPacket.gamecars[index].Velocity.X
-        player_speed_y = gameTickPacket.gamecars[index].Velocity.Y
-        player_speed_z = gameTickPacket.gamecars[index].Velocity.Z
-        player_angular_speed_x = gameTickPacket.gamecars[index].AngularVelocity.X
-        player_angular_speed_y = gameTickPacket.gamecars[index].AngularVelocity.Y
-        player_angular_speed_z = gameTickPacket.gamecars[index].AngularVelocity.Z
-        player_demolished = gameTickPacket.gamecars[index].bDemolished
-        player_jumped = gameTickPacket.gamecars[index].bJumped
-        player_double_jumped = gameTickPacket.gamecars[index].bDoubleJumped
-        player_team = gameTickPacket.gamecars[index].Team
-        player_boost = gameTickPacket.gamecars[index].Boost
+    def get_car_info(self, game_tick_packet, index):
+        player_x = game_tick_packet.gamecars[index].Location.X
+        player_y = game_tick_packet.gamecars[index].Location.Y
+        player_z = game_tick_packet.gamecars[index].Location.Z
+        player_pitch = float(game_tick_packet.gamecars[index].Rotation.Pitch)
+        player_yaw = float(game_tick_packet.gamecars[index].Rotation.Yaw)
+        player_roll = float(game_tick_packet.gamecars[index].Rotation.Roll)
+        player_speed_x = game_tick_packet.gamecars[index].Velocity.X
+        player_speed_y = game_tick_packet.gamecars[index].Velocity.Y
+        player_speed_z = game_tick_packet.gamecars[index].Velocity.Z
+        player_angular_speed_x = game_tick_packet.gamecars[index].AngularVelocity.X
+        player_angular_speed_y = game_tick_packet.gamecars[index].AngularVelocity.Y
+        player_angular_speed_z = game_tick_packet.gamecars[index].AngularVelocity.Z
+        player_demolished = game_tick_packet.gamecars[index].bDemolished
+        player_jumped = game_tick_packet.gamecars[index].bJumped
+        player_double_jumped = game_tick_packet.gamecars[index].bDoubleJumped
+        player_team = game_tick_packet.gamecars[index].Team
+        player_boost = game_tick_packet.gamecars[index].Boost
         return [player_x, player_y, player_z, player_pitch, player_yaw, player_roll,
                 player_speed_x, player_speed_y, player_speed_z, player_angular_speed_x,
                 player_angular_speed_y, player_angular_speed_z, player_demolished, player_jumped,
                 player_double_jumped, player_team, player_boost]
 
-    def get_game_info(self, gameTickPacket):
-        game_ball_hit = gameTickPacket.gameInfo.bBallHasBeenHit
+    def get_game_info(self, game_tick_packet):
+        game_ball_hit = game_tick_packet.gameInfo.bBallHasBeenHit
 
         # no need for any of these but ball has been hit (kickoff indicator)
-        # game_timeseconds = gameTickPacket.gameInfo.TimeSeconds
-        # game_timeremaining = gameTickPacket.gameInfo.GameTimeRemaining
-        # game_overtime = gameTickPacket.gameInfo.bOverTime
-        # game_active = gameTickPacket.gameInfo.bRoundActive
-        # game_ended = gameTickPacket.gameInfo.bMatchEnded
+        # game_timeseconds = game_tick_packet.gameInfo.TimeSeconds
+        # game_timeremaining = game_tick_packet.gameInfo.GameTimeRemaining
+        # game_overtime = game_tick_packet.gameInfo.bOverTime
+        # game_active = game_tick_packet.gameInfo.bRoundActive
+        # game_ended = game_tick_packet.gameInfo.bMatchEnded
         return [game_ball_hit]
 
-    def get_ball_info(self, gameTickPacket):
-        ball_x = gameTickPacket.gameball.Location.X
-        ball_y = gameTickPacket.gameball.Location.Y
-        ball_z = gameTickPacket.gameball.Location.Z
-        ball_pitch = float(gameTickPacket.gameball.Rotation.Pitch)
-        ball_yaw = float(gameTickPacket.gameball.Rotation.Yaw)
-        ball_roll = float(gameTickPacket.gameball.Rotation.Roll)
-        ball_speed_x = gameTickPacket.gameball.Velocity.X
-        ball_speed_y = gameTickPacket.gameball.Velocity.Y
-        ball_speed_z = gameTickPacket.gameball.Velocity.Z
-        ball_angular_speed_x = gameTickPacket.gameball.AngularVelocity.X
-        ball_angular_speed_y = gameTickPacket.gameball.AngularVelocity.Y
-        ball_angular_speed_z = gameTickPacket.gameball.AngularVelocity.Z
-        ball_acceleration_x = gameTickPacket.gameball.Acceleration.X
-        ball_acceleration_y = gameTickPacket.gameball.Acceleration.Y
-        ball_acceleration_z = gameTickPacket.gameball.Acceleration.Z
+    def get_ball_info(self, game_tick_packet):
+        ball_x = game_tick_packet.gameball.Location.X
+        ball_y = game_tick_packet.gameball.Location.Y
+        ball_z = game_tick_packet.gameball.Location.Z
+        ball_pitch = float(game_tick_packet.gameball.Rotation.Pitch)
+        ball_yaw = float(game_tick_packet.gameball.Rotation.Yaw)
+        ball_roll = float(game_tick_packet.gameball.Rotation.Roll)
+        ball_speed_x = game_tick_packet.gameball.Velocity.X
+        ball_speed_y = game_tick_packet.gameball.Velocity.Y
+        ball_speed_z = game_tick_packet.gameball.Velocity.Z
+        ball_angular_speed_x = game_tick_packet.gameball.AngularVelocity.X
+        ball_angular_speed_y = game_tick_packet.gameball.AngularVelocity.Y
+        ball_angular_speed_z = game_tick_packet.gameball.AngularVelocity.Z
+        ball_acceleration_x = game_tick_packet.gameball.Acceleration.X
+        ball_acceleration_y = game_tick_packet.gameball.Acceleration.Y
+        ball_acceleration_z = game_tick_packet.gameball.Acceleration.Z
         return [ball_x, ball_y, ball_z, ball_pitch, ball_yaw, ball_roll, ball_speed_x, ball_speed_y,
                 ball_speed_z, ball_angular_speed_x, ball_angular_speed_y, ball_angular_speed_z,
                 ball_acceleration_x, ball_acceleration_y, ball_acceleration_z]
 
-    def get_boost_info(self, gameTickPacket):
+    def get_boost_info(self, game_tick_packet):
         game_inputs = []
-        for i in range(gameTickPacket.numBoosts):
-            game_inputs.append(gameTickPacket.gameBoosts[i].bActive)
-            game_inputs.append(gameTickPacket.gameBoosts[i].Timer)
+        for i in range(game_tick_packet.numBoosts):
+            game_inputs.append(game_tick_packet.gameBoosts[i].bActive)
+            game_inputs.append(game_tick_packet.gameBoosts[i].Timer)
         return game_inputs
 
     def get_score_info(self, Score):
@@ -133,11 +139,11 @@ class InputFormatter:
 
         return [score, goals, own_goals, assists, saves, shots, demolitions]
 
-    def flattenArrays(self, arrayOfArray):
+    def flattenArrays(self, array_of_array):
         """
         Takes an array of arrays and flattens it into a single array
-        :param arrayOfArray: A list that also contains a list
+        :param array_of_array: A list that also contains a list
         :return: A single flattened array
         """
-        return [item for sublist in arrayOfArray for item in sublist]
+        return [item for sublist in array_of_array for item in sublist]
 
