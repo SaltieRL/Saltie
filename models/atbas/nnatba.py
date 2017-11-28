@@ -64,13 +64,12 @@ class NNAtba(base_model.BaseModel):
             tf, labels=self.labels, logits=self.logits, name='xentropy')
         loss = tf.reduce_mean(cross_entropy, name='xentropy_mean')
 
-        optimizer = self.optimizer.minimize(loss)
+        self.train_op = self.optimizer.minimize(loss)
 
-        return loss, self.input, self.labels, optimizer
+        return loss, self.input, self.labels
 
     def sample_action(self, input_state):
         return self.sess.run(self.model, feed_dict={self.input: input_state})[0]
 
     def get_model_name(self):
         return 'nnatba' + ('_split' if self.action_handler.is_split_mode else '')
-

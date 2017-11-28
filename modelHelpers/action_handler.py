@@ -83,7 +83,6 @@ class ActionHandler:
         actions.append(pitch)
         actions.append(roll)
         actions.append(button_combo)
-        print(actions)
         return actions
 
     def create_controller_output_from_actions(self, action_selection):
@@ -106,7 +105,6 @@ class ActionHandler:
         if self.split_mode:
             return self.create_split_label(real_action)
         index = self.find_matching_action(real_action)
-        print(index)
         return self.create_one_hot_encoding(index)
 
     def create_split_label(self, real_action):
@@ -168,7 +166,6 @@ class ActionHandler:
 
     def create_one_hot_encoding(self, index):
         array = np.zeros(self.get_action_size())
-        print('index of encoding', index)
         array[index] = 1
         return array
 
@@ -201,7 +198,7 @@ class ActionHandler:
             It should return a tensor with the same rank as input_tensor
         :return: a stacked tensor (see tf.stack) or the same tensor depending on if it is in split mode or not.
         """
-        if (self.split_mode):
+        if not self.split_mode:
             return split_func(input_tensor)
 
         output1 = tf.slice(input_tensor, [0, 0], [-1, 5])
@@ -225,7 +222,7 @@ class ActionHandler:
             It should return a tensor with the same rank as input_tensor
         :return: a stacked tensor (see tf.stack) or the same tensor depending on if it is in split mode or not.
         """
-        if (self.split_mode):
+        if not self.split_mode:
             return split_func(numpy_array)
 
         if not is_already_split:

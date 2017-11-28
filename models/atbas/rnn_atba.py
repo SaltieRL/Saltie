@@ -1,5 +1,6 @@
-from models import nnatba
 import tensorflow as tf
+
+from models.atbas import nnatba
 
 CUDNN = "cudnn"
 BASIC = "basic"

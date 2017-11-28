@@ -1,14 +1,13 @@
 # Defined as a generic bot, can use multiple models
-import numpy as np
 import random
+
+import numpy as np
 import tensorflow as tf
 
 from conversions.input_formatter import InputFormatter
 from modelHelpers import action_handler
 from modelHelpers import reward_manager
 from models import actor_critic_wrapper
-from models import rnn_atba
-from models import nnatba
 
 
 class Agent:

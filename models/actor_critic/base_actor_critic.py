@@ -52,6 +52,10 @@ class BaseActorCritic(base_reinforcement.BaseReinforcment):
                                                                                      labels=self.taken_actions)
         self.create_training_op()
 
+    def create_copy_training_model(self, batch_size):
+        self.train_op = self.optimizer.minimize(self.cross_entropy_loss)
+        return self.cross_entropy_loss, self.input, self.taken_actions
+
     def create_training_op(self):
         self.train_op = self.optimizer.minimize(self.cross_entropy_loss)
 

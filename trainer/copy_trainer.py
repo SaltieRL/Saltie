@@ -1,13 +1,14 @@
-from conversions.input_formatter import get_state_dim_with_features
 from conversions import output_formatter
+from conversions.input_formatter import get_state_dim_with_features
 from modelHelpers import action_handler
 from modelHelpers import feature_creator
+from models.atbas import rnn_atba
+from models.actor_critic import base_actor_critic
+from models.atbas import nnatba
 
-from models import nnatba
-from models import rnn_atba
-
-import tensorflow as tf
 import numpy as np
+import tensorflow as tf
+
 
 class CopyTrainer:
 
@@ -32,22 +33,23 @@ class CopyTrainer:
         self.sess = tf.Session()
         # writer = tf.summary.FileWriter('tmp/{}-experiment'.format(random.randint(0, 1000000)))
 
-        self.action_handler = action_handler.ActionHandler(split_mode=True)
+        self.action_handler = action_handler.ActionHandler(split_mode=False)
 
         self.state_dim = get_state_dim_with_features()
         print('state size ' + str(self.state_dim))
         self.num_actions = self.action_handler.get_action_size()
         self.agent = self.get_model()(self.sess, self.state_dim, self.num_actions, self.action_handler, is_training=True, optimizer=tf.train.AdamOptimizer())
 
-        self.loss, self.input, self.label, self.optimizer = self.agent.create_copy_training_model(batch_size=self.batch_size)
+        self.loss, self.input, self.label = self.agent.create_copy_training_model(batch_size=self.batch_size)
 
-        if self.optimizer is None:
-            self.optimizer = tf.train.GradientDescentOptimizer(self.learning_rate).minimize(self.loss)
+        if self.agent.train_op is None:
+            self.agent.train_op = tf.train.GradientDescentOptimizer(self.learning_rate).minimize(self.loss)
         self.agent.initialize_model()
 
     def get_model(self):
-        return rnn_atba.RNNAtba
+        #return rnn_atba.RNNAtba
         #return nnatba.NNAtba
+        return base_actor_critic.BaseActorCritic
 
     def start_new_file(self):
         self.file_number += 1
@@ -89,7 +91,7 @@ class CopyTrainer:
         self.label_batch = np.array(self.label_batch)
         self.label_batch = self.label_batch.reshape(len(self.label_batch), self.num_actions)
 
-        _, c = self.sess.run([self.optimizer, self.loss], feed_dict={self.input: self.input_batch, self.label: self.label_batch})
+        _, c = self.sess.run([self.agent.optimizer, self.loss], feed_dict={self.input: self.input_batch, self.label: self.label_batch})
         # Display logs per step
         if self.epoch % self.display_step == 0:
             print("File:", '%04d' % self.file_number, "Epoch:", '%04d' % (self.epoch+1),

@@ -53,7 +53,7 @@ class BaseReinforcment(base_model.BaseModel):
         # reinforcement variables
         with tf.name_scope("compute_pg_gradients"):
             if self.action_handler.is_split_mode():
-                self.taken_actions = tf.placeholder(tf.int32, (None, 4), name="taken_actions")
+                self.taken_actions = tf.placeholder(tf.int32, (None, 4, ), name="taken_actions")
             else:
                 self.taken_actions = tf.placeholder(tf.int32, (None,), name="taken_actions")
             self.discounted_rewards = tf.placeholder(tf.float32, (None,), name="discounted_rewards")
