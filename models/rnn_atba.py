@@ -2,14 +2,20 @@ import tensorflow as tf
 import os
 
 CUDNN = "cudnn"
+BASIC = "basic"
 
 
-class NNAtba:
+class RNNAtba:
 
     num_hidden_1 = 500 # 1st layer num features
     labels = None
     num_layers = 5
     hidden_size = 300
+    rnn_mode = CUDNN
+    num_steps = 10
+    batch_size = 1
+    keep_prob = 0.5
+
 
 
     """"
@@ -34,16 +40,7 @@ class NNAtba:
 
         #file does not exist too lazy to add check
 
-        model_file = self.get_model_path("trained_variables_drop.ckpt")
-        print(model_file)
-        if os.path.isfile(model_file + '.meta'):
-            print('loading existing model')
-            self.saver.restore(session, model_file)
-        else:
-            print('unable to load model')
 
-        init = tf.global_variables_initializer()
-        session.run(init)
 
     def create_training_model_copy(self, batch_size):
         self.labels = tf.placeholder(tf.int64, shape=(None, self.num_actions))
@@ -51,9 +48,21 @@ class NNAtba:
         cross_entropy = tf.nn.softmax_cross_entropy_with_logits(
             labels=self.labels, logits=self.logits, name='xentropy')
         loss = tf.reduce_mean(cross_entropy, name='xentropy_mean')
+        self.batch_size = batch_size
 
         return loss, self.input, self.labels
 
+    def initialize_model(self):
+        init = tf.global_variables_initializer()
+        self.sess.run(init)
+
+        model_file = self.get_model_path("trained_variables_drop.ckpt")
+        print(model_file)
+        if os.path.isfile(model_file + '.meta'):
+            print('loading existing model')
+            self.saver.restore(self.sess, model_file)
+        else:
+            print('unable to load model')
 
     def create_model(self, input):
         self.create_weights()
@@ -61,7 +70,7 @@ class NNAtba:
 
         output, last_state = self._build_rnn_graph(inputs=self.hidden_layers, config=None, is_training=self.is_training)
         with tf.variable_scope('RNN'):
-            output_w = tf.get_variable('output_w', [self.hps.dec_rnn_size, n_out])
+            output_w = tf.get_variable('output_w', [self.hidden_size, n_out])
             output_b = tf.get_variable('output_b', [n_out])
 
         output = tf.reshape(output, [-1, self.hidden_size])
@@ -112,44 +121,44 @@ class NNAtba:
 
 
     def _build_rnn_graph(self, inputs, config, is_training):
-        if config.rnn_mode == CUDNN:
+        if self.rnn_mode == CUDNN:
             return self._build_rnn_graph_cudnn(inputs, config, is_training)
         else:
             return self._build_rnn_graph_lstm(inputs, config, is_training)
 
     def _build_rnn_graph_cudnn(self, inputs, config, is_training):
         """Build the inference graph using CUDNN cell."""
-        inputs = tf.transpose(inputs, [1, 0, 2])
+        #inputs = tf.transpose(inputs, [1, 0, 2])
         self._cell = tf.contrib.cudnn_rnn.CudnnLSTM(
-            num_layers=config.num_layers,
-            num_units=config.hidden_size,
-            input_size=config.hidden_size,
-            dropout=1 - config.keep_prob if is_training else 0)
+            num_layers=self.num_layers,
+            num_units=self.hidden_size,
+            input_size=self.hidden_size,
+            dropout=1 - self.keep_prob if is_training else 0)
         params_size_t = self._cell.params_size()
         self._rnn_params = tf.get_variable(
             "lstm_params",
             initializer=tf.random_uniform(
-                [params_size_t], -config.init_scale, config.init_scale),
+                [params_size_t], -self.init_scale, self.init_scale),
             validate_shape=False)
-        c = tf.zeros([config.num_layers, self.batch_size, config.hidden_size],
+        c = tf.zeros([self.num_layers, self.batch_size, self.hidden_size],
                      tf.float32)
-        h = tf.zeros([config.num_layers, self.batch_size, config.hidden_size],
+        h = tf.zeros([self.num_layers, self.batch_size, self.hidden_size],
                      tf.float32)
         self._initial_state = (tf.contrib.rnn.LSTMStateTuple(h=h, c=c),)
         outputs, h, c = self._cell(inputs, h, c, self._rnn_params, is_training)
         outputs = tf.transpose(outputs, [1, 0, 2])
-        outputs = tf.reshape(outputs, [-1, config.hidden_size])
+        outputs = tf.reshape(outputs, [-1, self.hidden_size])
         return outputs, (tf.contrib.rnn.LSTMStateTuple(h=h, c=c),)
 
     def _get_lstm_cell(self, config, is_training):
-        if config.rnn_mode == BASIC:
+        if self.rnn_mode == BASIC:
             return tf.contrib.rnn.BasicLSTMCell(
-                config.hidden_size, forget_bias=0.0, state_is_tuple=True,
+                self.hidden_size, forget_bias=0.0, state_is_tuple=True,
                 reuse=not is_training)
-        if config.rnn_mode == BLOCK:
+        if self.rnn_mode == BLOCK:
             return tf.contrib.rnn.LSTMBlockCell(
-                config.hidden_size, forget_bias=0.0)
-        raise ValueError("rnn_mode %s not supported" % config.rnn_mode)
+                self.hidden_size, forget_bias=0.0)
+        raise ValueError("rnn_mode %s not supported" % self.rnn_mode)
 
     def _build_rnn_graph_lstm(self, inputs, config, is_training):
         """Build the inference graph using canonical LSTM cells."""
@@ -158,15 +167,15 @@ class NNAtba:
         # different than reported in the paper.
         def make_cell():
             cell = self._get_lstm_cell(config, is_training)
-            if is_training and config.keep_prob < 1:
+            if is_training and self.keep_prob < 1:
                 cell = tf.contrib.rnn.DropoutWrapper(
-                    cell, output_keep_prob=config.keep_prob)
+                    cell, output_keep_prob=self.keep_prob)
             return cell
 
         cell = tf.contrib.rnn.MultiRNNCell(
-            [make_cell() for _ in range(config.num_layers)], state_is_tuple=True)
+            [make_cell() for _ in range(self.num_layers)], state_is_tuple=True)
 
-        self._initial_state = cell.zero_state(config.batch_size, data_type())
+        self._initial_state = cell.zero_state(self.batch_size, data_type())
         state = self._initial_state
         # Simplified version of tensorflow_models/tutorials/rnn/rnn.py's rnn().
         # This builds an unrolled LSTM for tutorial purposes only.
@@ -183,5 +192,5 @@ class NNAtba:
                 if time_step > 0: tf.get_variable_scope().reuse_variables()
                 (cell_output, state) = cell(inputs[:, time_step, :], state)
                 outputs.append(cell_output)
-        output = tf.reshape(tf.concat(outputs, 1), [-1, config.hidden_size])
+        output = tf.reshape(tf.concat(outputs, 1), [-1, self.hidden_size])
         return output, state

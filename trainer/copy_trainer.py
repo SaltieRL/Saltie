@@ -1,10 +1,13 @@
 from models import nnatba
-from modelHelpers import option_handler
+from conversions import output_formatter
+from modelHelpers import action_handler
+from modelHelpers import feature_creator
 import tensorflow as tf
 import numpy as np
 
 class NNAtbaTrainer:
 
+    array_formatter = output_formatter.OutputFormatter()
     learning_rate = 0.3
 
     file_number = 0
@@ -12,24 +15,28 @@ class NNAtbaTrainer:
     epoch = 0
     display_step = 5
 
-    options = option_handler.createOptions()
-    option_map = option_handler.OptionMap(options)
-
-    batch_size = 100
+    batch_size = 1000
+    input_game_tick = []
     input_batch = []
     label_batch = []
 
     def __init__(self):
-        config = tf.ConfigProto(
-            device_count={'GPU': 0}
-        )
-        self.sess = tf.Session(config=config)
+        #config = tf.ConfigProto(
+        #    device_count={'GPU': 1}
+        #)
+        #self.sess = tf.Session(config=config)
+        self.sess = tf.Session()
         # writer = tf.summary.FileWriter('tmp/{}-experiment'.format(random.randint(0, 1000000)))
 
-        self.state_dim = 195
-        self.num_actions = len(self.options)
-        self.agent = self.get_model()(self.sess, self.state_dim, self.num_actions, is_training=True)
+        self.action_handler = action_handler.ActionHandler(split_mode=True)
+
+        self.state_dim = 197
+        print('state size ' + str(self.state_dim))
+        self.num_actions = self.action_handler.get_action_size()
+        self.agent = self.get_model()(self.sess, self.state_dim, self.num_actions, self.action_handler, is_training=True, optimizer=tf.train.AdamOptimizer())
+
         self.loss, self.input, self.label, self.optimizer = self.agent.create_training_model_copy(batch_size=self.batch_size)
+
         if self.optimizer is None:
             self.optimizer = tf.train.GradientDescentOptimizer(self.learning_rate).minimize(self.loss)
         self.agent.initialize_model()
@@ -41,23 +48,30 @@ class NNAtbaTrainer:
         self.file_number += 1
         self.input_batch = []
         self.label_batch = []
+        self.input_game_tick = []
+
+    def add_pair(self, input_array, output_array):
+        if len(input_array) == 193:
+            input_array = np.append(input_array, [0])
+            input_array = np.append(input_array, [0])
+
+        extra_features = feature_creator.get_extra_features_from_array(input_array)
+
+        input = np.append(input_array, extra_features)
+        self.input_batch.append(input)
+
+        label = self.action_handler.create_action_label(output_array)
+        #print(label)
+        self.label_batch.append(label)
 
     def process_pair(self, input_array, output_array, pair_number):
+        self.add_pair(input_array, output_array)
         if len(self.input_batch) == self.batch_size:
             self.batch_process()
             self.input_batch = []
             self.label_batch = []
+            self.input_game_tick = []
             # do stuff
-        else:
-            if len(input_array) == 193:
-                input_array = np.append(input_array, [0])
-                input_array = np.append(input_array, [0])
-            self.input_batch.append(input_array)
-
-            index = option_handler.find_matching_option(self.option_map, self.options, output_array)[1]
-            array = np.zeros(self.num_actions)
-            array[index] = 1
-            self.label_batch.append(array)
 
     def batch_process(self):
      #   for i in range(len(self.input_batch)):
@@ -76,7 +90,8 @@ class NNAtbaTrainer:
         _, c = self.sess.run([self.optimizer, self.loss], feed_dict={self.input: self.input_batch, self.label: self.label_batch})
         # Display logs per step
         if self.epoch % self.display_step == 0:
-            print("File:", '%04d' % self.file_number, "Epoch:", '%04d' % (self.epoch+1), "cost= " + str(c))
+            print("File:", '%04d' % self.file_number, "Epoch:", '%04d' % (self.epoch+1),
+                  "cost= " + str(c))
         self.epoch += 1
 
     def end_file(self):

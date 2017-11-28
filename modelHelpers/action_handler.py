@@ -1,0 +1,212 @@
+import numpy as np
+import itertools
+import random
+import sys
+
+
+class ActionMap:
+    action_map = dict()
+
+    def __init__(self, actions):
+        for i in range(len(actions)):
+            self.add_action(i, actions[i])
+
+    def add_action(self, index, action):
+        tupleaction = tuple(np.array(action, dtype=np.float32))
+        self.action_map[tupleaction] = index
+
+    def has_key(self, action):
+        tupleaction = tuple(np.array(action, dtype=np.float32))
+        return tupleaction in self.action_map
+    def get_key(self, action):
+        tupleaction = tuple(np.array(action, dtype=np.float32))
+        return self.action_map[tupleaction]
+
+
+class ActionHandler:
+
+    def __init__(self, split_mode = False):
+        self.split_mode = split_mode
+        self.actions = self.create_actions()
+        self.action_map = ActionMap(self.actions)
+
+        self.actions_split = self.create_actions_split()
+        self.action_map_split = ActionMap(self.actions_split[3])
+
+    def get_action_size(self):
+        """
+        :param split_mode: True if we should use the reduced action size
+        :return: the size of the logits layer in a model
+        """
+        if self.split_mode:
+            return 39
+        return len(self.actions)
+
+    def create_actions(self):
+        """
+        Creates all variations of all of the actions.
+        :return: A combination of all actions. This is an array of an array
+        """
+        throttle = np.arange(-1, 2, 1)
+        steer = np.arange(-1, 2, 1)
+        pitch = np.arange(-1, 2, 1)
+        yaw = np.arange(-1, 2, 1)
+        roll = np.arange(-1, 2, 1)
+        jump = [True, False]
+        boost = [True, False]
+        handbrake = [True, False]
+        action_list = [throttle, steer, pitch, yaw, roll, jump, boost, handbrake]
+        entirelist = list(itertools.product(*action_list))
+        return entirelist
+
+    def create_actions_split(self):
+        """
+        Creates all variations of all of the actions.
+        :return: A combination of all actions. This is an array of an array
+        """
+
+        steer = np.arange(-1, 1.5, .5)
+        pitch = np.arange(-1, 1.5, .5)
+        roll = np.arange(-1, 1.5, .5)
+        throttle = np.arange(-1, 2, 1)
+        jump = [True, False]
+        boost = [True, False]
+        handbrake = [True, False]
+        action_list = [throttle, jump, boost, handbrake]
+        # 24 + 5 + 5 + 5 = 39
+        button_combo = list(itertools.product(*action_list))
+        actions = []
+        actions.append(steer)
+        actions.append(pitch)
+        actions.append(roll)
+        actions.append(button_combo)
+        print(actions)
+        return actions
+
+    def create_controller_output_from_actions(self, action_selection):
+        if len(action_selection) != len(self.actions_split):
+            print('ACTION SELECTION IS NOT THE SAME LENGTH returning invalid action data')
+            return [0, 0, 0, 0, 0, False, False, False]
+        steer = self.actions_split[0][action_selection[0]]
+        pitch = self.actions_split[1][action_selection[1]]
+        roll = self.actions_split[2][action_selection[2]]
+        button_combo = self.actions_split[3][action_selection[3]]
+        throttle = button_combo[0]
+        jump = button_combo[1]
+        boost = button_combo[2]
+        handbrake = button_combo[3]
+        controller_option = [throttle, steer, pitch, steer, roll, jump, boost, handbrake]
+        print(controller_option)
+        return controller_option
+
+    def create_action_label(self, real_action):
+        if self.split_mode:
+            return self.create_split_label(real_action)
+        index = self.find_matching_action(real_action)
+        print(index)
+        return self.create_one_hot_encoding(index)
+
+    def create_split_label(self, real_action):
+        throttle = real_action[0]
+        steer = real_action[1]
+        pitch = real_action[2]
+        yaw = real_action[3]
+        roll = real_action[4]
+        jump = real_action[5]
+        boost = real_action[6]
+        handbrake = real_action[7]
+        if steer != yaw:
+            # only take the larger magnitude number
+            if abs(steer) < abs(yaw):
+                steer = yaw
+
+        encoding = np.zeros(39)
+        index = self.action_map_split.get_key([throttle, jump, boost, handbrake])
+        encoding[self.find_closet_real_number(steer) + 0] = 1
+        encoding[self.find_closet_real_number(pitch) + 5] = 1
+        encoding[self.find_closet_real_number(roll) + 10] = 1
+        encoding[index + 15] = 1
+        return encoding
+
+    def find_closet_real_number(self, number):
+        if abs(-1 - number) <= abs(-0.5 - number):
+            return 0
+        if abs(-0.5 - number) <= abs(0.0 - number):
+            return 1
+        if abs(0.0 - number) <= abs(0.5 - number):
+            return 2
+        if abs(0.5 - number) <= abs(1 - number):
+            return 3
+        return 4
+
+
+    def compare_actions(self, action1, action2):
+        loss = 0
+        for i in range(len(action1)):
+            loss += abs(action1[i] - action2[i])
+        return loss
+
+    def find_matching_action(self, real_action):
+        # first time we do a close match I guess
+        if self.action_map.has_key(real_action):
+            #print('found a matching object!')
+            return self.action_map.get_key(real_action)
+        closest_action = None
+        index_of_action = 0
+        counter = 0
+        current_loss = sys.float_info.max
+        for action in self.actions:
+            loss = self.compare_actions(action, real_action)
+            if loss < current_loss:
+                current_loss = loss
+                closest_action = action
+                index_of_action = counter
+            counter += 1
+        return index_of_action
+
+    def create_one_hot_encoding(self, index):
+        array = np.zeros(self.get_action_size())
+        print('index of encoding', index)
+        array[index] = 1
+        return array
+
+    def create_model_output(self, tf, logits):
+        if self.split_mode:
+            return self.create_split_output(tf, logits)
+        else:
+            return tf.argmax(logits, 1)
+
+    def create_split_output(self, tf, logits):
+        output1 = tf.slice(logits, [0, 0], [-1, 5])
+        output2 = tf.slice(logits, [0, 5], [-1, 5])
+        output3 = tf.slice(logits, [0, 10], [-1, 5])
+        output4 = tf.slice(logits, [0, 15], [-1, 24])
+
+        arg_max1 = tf.argmax(output1, 1)
+        arg_max2 = tf.argmax(output2, 1)
+        arg_max3 = tf.argmax(output3, 1)
+        arg_max4 = tf.argmax(output4, 1)
+
+        return tf.stack([arg_max1, arg_max2, arg_max3, arg_max4], axis=1)
+
+    def create_controller_from_selection(self, selection):
+        if self.split_mode:
+            return self.create_controller_output_from_actions(selection)
+        else:
+            return self.actions[selection]
+
+    def get_random_action(self):
+        pass
+
+    def get_cross_entropy_with_logits(self, tf, labels, logits, name):
+        if self.split_mode:
+            return tf.nn.sigmoid_cross_entropy_with_logits(
+                labels=tf.cast(labels, tf.float32), logits=logits, name=name+'s')
+        return tf.nn.softmax_cross_entropy_with_logits(
+            labels=labels, logits=logits, name=name + 'ns')
+
+    def get_random_option(self):
+        if self.split_mode:
+            return [random.randrange(5), random.randrange(5), random.randrange(5), random.randrange(24)]
+        return random.randrange(self.get_action_size())
+        pass

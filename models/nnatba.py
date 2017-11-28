@@ -5,6 +5,7 @@ import os
 
 class NNAtba:
 
+    keep_prob = 0.5
     num_hidden_1 = 500 # 1st layer num features
     num_hidden_2 = 1000 # 1st layer num features
     labels = None
@@ -21,11 +22,17 @@ class NNAtba:
             'out': tf.Variable(tf.random_normal([self.num_actions]), name='bout'),
         }
 
+
+
     def encoder(self, input):
         # Encoder Hidden layer with sigmoid activation #1
         layer_1 = tf.nn.relu6(tf.add(tf.matmul(input, self.weights['h1']), self.biases['b1']))
 
-        layer_2 = tf.nn.relu6(tf.add(tf.matmul(layer_1, self.weights['h2']), self.biases['b2']))
+        layer_2 = tf.nn.sigmoid(tf.add(tf.matmul(layer_1, self.weights['h2']), self.biases['b2']))
+
+        if (self.is_training):
+            layer_2 = tf.nn.dropout(layer_2, self.keep_prob)
+
         # Encoder Hidden layer with sigmoid activation #3
         layer_3 = tf.nn.sigmoid(tf.add(tf.matmul(layer_2, self.weights['out']), self.biases['out']))
         return layer_3
@@ -37,11 +44,14 @@ class NNAtba:
     def __init__(self, session,
                  state_dim,
                  num_actions,
+                 action_handler,
                  is_training=False,
                  optimizer=tf.train.GradientDescentOptimizer(learning_rate=0.1),
                  summary_writer=None,
                  summary_every=100):
 
+        self.action_handler = action_handler
+        self.is_training = is_training
         self.optimizer = optimizer
         self.sess = session
         self.num_actions = num_actions
@@ -71,8 +81,8 @@ class NNAtba:
     def create_training_model_copy(self, batch_size):
         self.labels = tf.placeholder(tf.int64, shape=(None, self.num_actions))
 
-        cross_entropy = tf.nn.softmax_cross_entropy_with_logits(
-            labels=self.labels, logits=self.logits, name='xentropy')
+        cross_entropy = self.action_handler.get_cross_entropy_with_logits(
+            tf, labels=self.labels, logits=self.logits, name='xentropy')
         loss = tf.reduce_mean(cross_entropy, name='xentropy_mean')
 
         optimizer = self.optimizer.minimize(loss)
@@ -81,9 +91,8 @@ class NNAtba:
 
     def create_model(self, input):
         self.create_weights()
-        self.logits = hidden_layers = self.encoder(input)
-        result = tf.argmax(hidden_layers, 1)
-        return result
+        self.logits = self.encoder(input)
+        return self.action_handler.create_model_output(tf, self.logits)
 
     def store_rollout(self, state, last_action, reward):
         #I only care about the current state and action
