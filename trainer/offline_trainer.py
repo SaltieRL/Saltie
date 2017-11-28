@@ -26,7 +26,7 @@ def get_all_files():
 
 def get_trainer_class():
     #fill your input function here!
-    return copy_trainer.NNAtbaTrainer
+    return copy_trainer.CopyTrainer
 
 
 if __name__ == '__main__':

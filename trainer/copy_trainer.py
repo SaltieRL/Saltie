@@ -1,11 +1,12 @@
 from models import nnatba
+from models import rnn_atba
 from conversions import output_formatter
 from modelHelpers import action_handler
 from modelHelpers import feature_creator
 import tensorflow as tf
 import numpy as np
 
-class NNAtbaTrainer:
+class CopyTrainer:
 
     array_formatter = output_formatter.OutputFormatter()
     learning_rate = 0.3
@@ -42,7 +43,8 @@ class NNAtbaTrainer:
         self.agent.initialize_model()
 
     def get_model(self):
-        return nnatba.NNAtba
+        return rnn_atba.RNNAtba
+        #return nnatba.NNAtba
 
     def start_new_file(self):
         self.file_number += 1
@@ -74,13 +76,10 @@ class NNAtbaTrainer:
             # do stuff
 
     def batch_process(self):
-     #   for i in range(len(self.input_batch)):
-     #       one_input = self.input_batch[i]
-     #       one_label = self.label_batch[i]
+        if len(self.input_batch) == 0 or len(self.label_batch) == 0:
+            print('batch was empty quitting')
+            return
 
-     #       one_input = one_input.reshape(1, len(one_input))
-     #       one_label = np.array([one_label])
-     #       one_label = one_label.reshape(1,)
         self.input_batch = np.array(self.input_batch)
         self.input_batch = self.input_batch.reshape(len(self.input_batch), self.state_dim)
 
