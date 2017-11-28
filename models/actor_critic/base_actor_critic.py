@@ -1,4 +1,5 @@
 from models import base_reinforcement
+import numpy as np
 import tensorflow as tf
 import random
 

@@ -7,7 +7,7 @@ import tensorflow as tf
 from conversions.input_formatter import InputFormatter
 from modelHelpers import action_handler
 from modelHelpers import reward_manager
-from models import actor_critic_wrapper
+from models.actor_critic import policy_gradient
 
 
 class Agent:
@@ -26,7 +26,7 @@ class Agent:
         self.sess = tf.Session(config=config)
         #self.sess = tf.Session()
         writer = tf.summary.FileWriter('tmp/{}-experiment'.format(random.randint(0, 1000000)))
-        self.actions_handler = action_handler.ActionHandler(split_mode=True)
+        self.actions_handler = action_handler.ActionHandler(split_mode=False)
         self.state_dim = self.inp.get_state_dim_with_features()
         self.num_actions = self.actions_handler.get_action_size()
         print('num_actions', self.num_actions)
@@ -40,7 +40,7 @@ class Agent:
     def get_model_class(self):
         #return nnatba.NNAtba
         #return rnn_atba.RNNAtba
-        return actor_critic_wrapper.ActorCriticModel
+        return policy_gradient.PolicyGradient
 
     def get_reward(self, packet):
         reward = self.reward_manager.get_reward(packet)
