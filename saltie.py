@@ -21,10 +21,11 @@ class Agent:
         self.index = index
         self.inp = InputFormatter(team, index)
         self.reward_manager = reward_manager.RewardManager(name, team, index, self.inp)
-        config = tf.ConfigProto(
-            device_count={'GPU': 0}
-        )
-        self.sess = tf.Session(config=config)
+        #config = tf.ConfigProto(
+        #    device_count={'GPU': 0}
+        #)
+        #self.sess = tf.Session(config=config)
+        self.sess = tf.Session()
         writer = tf.summary.FileWriter('tmp/{}-experiment'.format(random.randint(0, 1000000)))
         self.actions_handler = action_handler.ActionHandler(split_mode=True)
         self.state_dim = 197
@@ -38,7 +39,8 @@ class Agent:
         self.model.initialize_model()
 
     def get_model_class(self):
-        return nnatba.NNAtba
+        #return nnatba.NNAtba
+        return rnn_atba.RNNAtba
 
     def get_reward(self, packet):
         reward = self.reward_manager.get_reward(packet)
@@ -50,7 +52,7 @@ class Agent:
         state = np.append(state, features)
         if self.state_dim != len(state):
             print('wrong input size', self.index, len(state))
-            return self.actions_handler.create_controller_output_from_actions(
+            return self.actions_handler.create_controller_from_selection(
                 self.actions_handler.get_random_option()) # do not return anything
 
         reward = self.get_reward(game_tick_packet)

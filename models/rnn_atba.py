@@ -15,6 +15,7 @@ class RNNAtba:
     num_steps = 10
     batch_size = 1
     keep_prob = 0.5
+    init_scale = .99
 
 
 
@@ -25,10 +26,14 @@ class RNNAtba:
     def __init__(self, session,
                  state_dim,
                  num_actions,
+                 action_handler,
                  is_training=False,
+                 optimizer=None,
                  summary_writer=None,
                  summary_every=100):
 
+        self.optimizer = optimizer
+        self.action_handler = action_handler
         self.is_training = is_training
         self.sess = session
         self.num_actions = num_actions
@@ -43,14 +48,16 @@ class RNNAtba:
 
 
     def create_training_model_copy(self, batch_size):
+        self.batch_size = batch_size
         self.labels = tf.placeholder(tf.int64, shape=(None, self.num_actions))
 
-        cross_entropy = tf.nn.softmax_cross_entropy_with_logits(
-            labels=self.labels, logits=self.logits, name='xentropy')
+        cross_entropy = self.action_handler.get_cross_entropy_with_logits(
+            tf, labels=self.labels, logits=self.logits, name='xentropy')
         loss = tf.reduce_mean(cross_entropy, name='xentropy_mean')
-        self.batch_size = batch_size
 
-        return loss, self.input, self.labels
+        optimizer = self.optimizer.minimize(loss)
+
+        return loss, self.input, self.labels, optimizer
 
     def initialize_model(self):
         init = tf.global_variables_initializer()
@@ -60,26 +67,28 @@ class RNNAtba:
         print(model_file)
         if os.path.isfile(model_file + '.meta'):
             print('loading existing model')
-            self.saver.restore(self.sess, model_file)
+            try:
+                self.saver.restore(self.sess, model_file)
+                print('loading successful')
+            except:
+                print('unable to load model')
         else:
             print('unable to load model')
 
     def create_model(self, input):
         self.create_weights()
-        self.hidden_layers = self.input_encoder(input)
-
-        output, last_state = self._build_rnn_graph(inputs=self.hidden_layers, config=None, is_training=self.is_training)
+        hidden_layers = self.input_encoder(input)
+        hidden_layers = tf.expand_dims(hidden_layers, 0)
+        output, last_state = self._build_rnn_graph(inputs=hidden_layers, config=None, is_training=self.is_training)
         with tf.variable_scope('RNN'):
-            output_w = tf.get_variable('output_w', [self.hidden_size, n_out])
-            output_b = tf.get_variable('output_b', [n_out])
+            output_w = tf.get_variable('output_w', [self.hidden_size, output.get_shape()[1]])
+            output_b = tf.get_variable('output_b', [output.get_shape()[1]])
 
         output = tf.reshape(output, [-1, self.hidden_size])
         output = tf.nn.xw_plus_b(output, output_w, output_b)
 
         self.logits = self.rnn_decoder(output)
-        result = tf.argmax(self.logits, 1)
-
-        return result
+        return self.action_handler.create_model_output(tf, self.logits)
 
     def store_rollout(self, state, last_action, reward):
         #I only care about the current state and action
@@ -128,7 +137,7 @@ class RNNAtba:
 
     def _build_rnn_graph_cudnn(self, inputs, config, is_training):
         """Build the inference graph using CUDNN cell."""
-        #inputs = tf.transpose(inputs, [1, 0, 2])
+        inputs = tf.transpose(inputs, [1, 0, 2])
         self._cell = tf.contrib.cudnn_rnn.CudnnLSTM(
             num_layers=self.num_layers,
             num_units=self.hidden_size,
