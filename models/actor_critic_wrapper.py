@@ -26,34 +26,6 @@ class ActorCriticModel:
     def initialize_model(self):
         pass
 
-    def actor_network(self, states):
-        # define policy neural network
-        W1 = tf.get_variable("W1", [self.state_dim, 20],
-                             initializer=tf.random_normal_initializer())
-        b1 = tf.get_variable("b1", [20],
-                             initializer=tf.constant_initializer(0))
-        h1 = tf.nn.tanh(tf.matmul(states, W1) + b1)
-        W2 = tf.get_variable("W2", [20, self.num_actions],
-                             initializer=tf.random_normal_initializer(stddev=0.1))
-        b2 = tf.get_variable("b2", [self.num_actions],
-                             initializer=tf.constant_initializer(0))
-        p = tf.matmul(h1, W2) + b2
-        return p
-
-    def critic_network(self, states):
-        # define policy neural network
-        W1 = tf.get_variable("W1", [self.state_dim, 20],
-                             initializer=tf.random_normal_initializer())
-        b1 = tf.get_variable("b1", [20],
-                             initializer=tf.constant_initializer(0))
-        h1 = tf.nn.tanh(tf.matmul(states, W1) + b1)
-        W2 = tf.get_variable("W2", [20, 1],
-                             initializer=tf.random_normal_initializer())
-        b2 = tf.get_variable("b2", [1],
-                             initializer=tf.constant_initializer(0))
-        v = tf.matmul(h1, W2) + b2
-        return v
-
     def store_rollout(self, state, last_action, reward):
         self.pg_reinforce.store_rollout(state, last_action, reward)
 

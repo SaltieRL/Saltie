@@ -1,6 +1,5 @@
 from models import base_model
 import tensorflow as tf
-import os
 
 
 class NNAtba(base_model.BaseModel):

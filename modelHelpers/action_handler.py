@@ -174,23 +174,8 @@ class ActionHandler:
         return array
 
     def create_model_output(self, tf, logits):
-        if self.split_mode:
-            return self.create_split_output(tf, logits)
-        else:
-            return tf.argmax(logits, 1)
-
-    def create_split_output(self, tf, logits):
-        output1 = tf.slice(logits, [0, 0], [-1, 5])
-        output2 = tf.slice(logits, [0, 5], [-1, 5])
-        output3 = tf.slice(logits, [0, 10], [-1, 5])
-        output4 = tf.slice(logits, [0, 15], [-1, 24])
-
-        arg_max1 = tf.argmax(output1, 1)
-        arg_max2 = tf.argmax(output2, 1)
-        arg_max3 = tf.argmax(output3, 1)
-        arg_max4 = tf.argmax(output4, 1)
-
-        return tf.stack([arg_max1, arg_max2, arg_max3, arg_max4], axis=1)
+        return self.optionally_split_tensors(tf, logits,
+                                 lambda input: tf.argmax(input(), 1))
 
     def create_controller_from_selection(self, selection):
         if self.split_mode:
@@ -213,3 +198,52 @@ class ActionHandler:
             return [random.randrange(5), random.randrange(5), random.randrange(5), random.randrange(24)]
         return random.randrange(self.get_action_size())
         pass
+
+    def optionally_split_tensors(self, tf, input_tensor, split_func):
+        """
+        Optionally splits the tensor and runs a function on the split tensor
+        If the tensor should not be split it runs the function on the entire tensor
+        :param tf: tensorflow
+        :param input_tensor: needs to have shape of (?, num_actions)
+        :param split_func: a function that is called with a tensor the same rank as input_tensor.
+            It should return a tensor with the same rank as input_tensor
+        :return: a stacked tensor (see tf.stack) or the same tensor depending on if it is in split mode or not.
+        """
+        if (self.split_mode):
+            return split_func(input_tensor)
+
+        output1 = tf.slice(input_tensor, [0, 0], [-1, 5])
+        output2 = tf.slice(input_tensor, [0, 5], [-1, 5])
+        output3 = tf.slice(input_tensor, [0, 10], [-1, 5])
+        output4 = tf.slice(input_tensor, [0, 15], [-1, 24])
+
+        result1 = split_func(output1)
+        result2 = split_func(output2)
+        result3 = split_func(output3)
+        result4 = split_func(output4)
+
+        return tf.stack([result1, result2, result3, result4], axis=1)
+
+    def optionally_split_numpy_arrays(self, numpy_array, split_func):
+        """
+        Optionally splits the tensor and runs a function on the split tensor
+        If the tensor should not be split it runs the function on the entire tensor
+        :param numpy_array: needs to have shape of (?, num_actions)
+        :param split_func: a function that is called with a tensor the same rank as input_tensor.
+            It should return a tensor with the same rank as input_tensor
+        :return: a stacked tensor (see tf.stack) or the same tensor depending on if it is in split mode or not.
+        """
+        if (self.split_mode):
+            return split_func(numpy_array)
+
+        output1 = numpy_array[:, 0:5]
+        output2 = numpy_array[:, 5:10]
+        output3 = numpy_array[:, 10:15]
+        output4 = numpy_array[:, 15:]
+
+        result1 = split_func(output1)
+        result2 = split_func(output2)
+        result3 = split_func(output3)
+        result4 = split_func(output4)
+
+        return [result1, result2, result3, result4]

@@ -1,6 +1,4 @@
-from models import base_model
 from models import nnatba
-import os
 import tensorflow as tf
 
 CUDNN = "cudnn"

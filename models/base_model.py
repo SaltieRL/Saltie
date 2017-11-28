@@ -2,6 +2,9 @@ import tensorflow as tf
 
 
 class BaseModel:
+
+    is_initialized = False
+
     """"
     This is a base class for all models It has a couple helper methods but is mainly used to provide a standard
     interface for running and training a model
@@ -15,18 +18,34 @@ class BaseModel:
                  summary_writer=None,
                  summary_every=100):
 
-        self.summary_writer = summary_writer
-        self.summary_every = summary_every
-        self.action_handler = action_handler
-        self.is_training = is_training
+        # tensorflow machinery
         self.optimizer = optimizer
         self.sess = session
+        self.summary_writer = summary_writer
+
+        # debug parameters
+        self.summary_every = summary_every
+
+        # for interfacing with the rest of the world
+        self.action_handler = action_handler
+
+        # output space
         self.num_actions = num_actions
+
+        # input space
         self.state_dim = state_dim
-        self.input = tf.placeholder(tf.float32, shape=(None, self.state_dim))
+
+        # create variables
+        self._create_variables()
+
+        # create model
         self.model = self.create_model(self.input)
 
         self.saver = tf.train.Saver()
+
+    def _create_variables(self):
+        with tf.name_scope("model_inputs"):
+            self.input = tf.placeholder(tf.float32, shape=(None, self.state_dim), name="state_input")
 
     def store_rollout(self, input_state, last_action, reward):
         """
@@ -100,6 +119,9 @@ class BaseModel:
         else:
             print('unable to load model')
 
+        self._add_summary_writer()
+        self.is_initialized = True
+
     def get_model_name(self):
         """
         :return: The name of the model used for saving the file
@@ -114,3 +136,9 @@ class BaseModel:
         """
         dir_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
         return dir_path + "\\training\\" + self.get_model_name() + "\\" + filename
+
+    def _add_summary_writer(self):
+        if self.summary_writer is not None:
+            self.summarize = tf.summary.merge_all()
+            # graph was not available when journalist was created
+            self.summary_writer.add_graph(self.sess.graph)
