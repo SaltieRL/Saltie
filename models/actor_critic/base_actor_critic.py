@@ -69,8 +69,10 @@ class BaseActorCritic(base_reinforcement.BaseReinforcment):
                                                          lambda input_tensor: tf.nn.softmax(input_tensor))
             action_scores = self.sess.run(softmax, {self.input: input_state})[0]
 
-            action = self.action_handler.optionally_split_numpy_arrays(action_scores,
-                                                              lambda input_array: np.argmax(np.random.multinomial(1, input_array)))
+            action = self.action_handler.\
+                optionally_split_numpy_arrays(action_scores,
+                                              lambda input_array: np.argmax(np.random.multinomial(1, input_array)),
+                                              is_already_split=True)
             return action
 
     def actor_network(self, states):

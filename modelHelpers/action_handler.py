@@ -142,7 +142,6 @@ class ActionHandler:
             return 3
         return 4
 
-
     def compare_actions(self, action1, action2):
         loss = 0
         for i in range(len(action1)):
@@ -175,7 +174,7 @@ class ActionHandler:
 
     def create_model_output(self, tf, logits):
         return self.optionally_split_tensors(tf, logits,
-                                 lambda input: tf.argmax(input(), 1))
+                                 lambda input_tensor: tf.argmax(input_tensor, 1))
 
     def create_controller_from_selection(self, selection):
         if self.split_mode:
@@ -185,13 +184,6 @@ class ActionHandler:
 
     def get_random_action(self):
         pass
-
-    def get_cross_entropy_with_logits(self, tf, labels, logits, name):
-        if self.split_mode:
-            return tf.nn.sigmoid_cross_entropy_with_logits(
-                labels=tf.cast(labels, tf.float32), logits=logits, name=name+'s')
-        return tf.nn.softmax_cross_entropy_with_logits(
-            labels=labels, logits=logits, name=name + 'ns')
 
     def get_random_option(self):
         if self.split_mode:
@@ -224,7 +216,7 @@ class ActionHandler:
 
         return tf.stack([result1, result2, result3, result4], axis=1)
 
-    def optionally_split_numpy_arrays(self, numpy_array, split_func):
+    def optionally_split_numpy_arrays(self, numpy_array, split_func, is_already_split=False):
         """
         Optionally splits the tensor and runs a function on the split tensor
         If the tensor should not be split it runs the function on the entire tensor
@@ -236,10 +228,16 @@ class ActionHandler:
         if (self.split_mode):
             return split_func(numpy_array)
 
-        output1 = numpy_array[:, 0:5]
-        output2 = numpy_array[:, 5:10]
-        output3 = numpy_array[:, 10:15]
-        output4 = numpy_array[:, 15:]
+        if not is_already_split:
+            output1 = numpy_array[:, 0:5]
+            output2 = numpy_array[:, 5:10]
+            output3 = numpy_array[:, 10:15]
+            output4 = numpy_array[:, 15:]
+        else:
+            output1 = numpy_array[0]
+            output2 = numpy_array[1]
+            output3 = numpy_array[2]
+            output4 = numpy_array[3]
 
         result1 = split_func(output1)
         result2 = split_func(output2)
@@ -247,3 +245,19 @@ class ActionHandler:
         result4 = split_func(output4)
 
         return [result1, result2, result3, result4]
+
+    def get_cross_entropy_with_logits(self, tf, labels, logits, name):
+        """
+        In split mode there can be more than one class at a time.
+        This is so that
+        :param tf:
+        :param labels:
+        :param logits:
+        :param name:
+        :return:
+        """
+        if self.split_mode:
+            return tf.nn.sigmoid_cross_entropy_with_logits(
+                labels=tf.cast(labels, tf.float32), logits=logits, name=name+'s')
+        return tf.nn.softmax_cross_entropy_with_logits(
+            labels=labels, logits=logits, name=name + 'ns')

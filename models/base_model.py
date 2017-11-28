@@ -1,5 +1,5 @@
 import tensorflow as tf
-
+import os
 
 class BaseModel:
 
@@ -34,6 +34,8 @@ class BaseModel:
 
         # input space
         self.state_dim = state_dim
+
+        self.is_training = is_training
 
         # create variables
         self._create_variables()

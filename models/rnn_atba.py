@@ -34,7 +34,7 @@ class RNNAtba(nnatba.NNAtba):
 
     def create_copy_training_model(self, batch_size):
         self.batch_size = batch_size
-        super().create_copy_training_model(batch_size)
+        return super().create_copy_training_model(batch_size)
 
     def create_model(self, input):
         self.create_weights()
