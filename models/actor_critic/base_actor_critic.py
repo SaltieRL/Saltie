@@ -54,13 +54,12 @@ class BaseActorCritic(base_reinforcement.BaseReinforcment):
                                                                           return_as_list=True)
 
     def _create_training_op(self, logprobs, estimated_values, taken_actions, actor_network_variables, critic_network_variables):
-        if len(taken_actions.get_shape()):
+        if len(taken_actions.get_shape()) == 2:
             taken_actions = tf.squeeze(taken_actions)
 
         # calculates the entropy loss from getting the label wrong
         cross_entropy_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logprobs,
                                                                                  labels=taken_actions)
-
         # makes sure that everything is a list
         if not isinstance(actor_network_variables, collections.Sequence):
             actor_network_variables = [actor_network_variables]

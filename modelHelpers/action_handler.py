@@ -101,7 +101,7 @@ class ActionHandler:
         boost = button_combo[2]
         handbrake = button_combo[3]
         controller_option = [throttle, steer, pitch, steer, roll, jump, boost, handbrake]
-        print(controller_option)
+        # print(controller_option)
         return controller_option
 
     def create_action_label(self, real_action):

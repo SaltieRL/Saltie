@@ -12,7 +12,7 @@ from models.actor_critic import policy_gradient
 
 class Agent:
     previous_reward = 0
-    previous_action = 0
+    previous_action = None
     previous_score = 0
     previous_enemy_goals = 0
     previous_owngoals = 0
@@ -26,7 +26,7 @@ class Agent:
         self.sess = tf.Session(config=config)
         #self.sess = tf.Session()
         writer = tf.summary.FileWriter('tmp/{}-experiment'.format(random.randint(0, 1000000)))
-        self.actions_handler = action_handler.ActionHandler(split_mode=False)
+        self.actions_handler = action_handler.ActionHandler(split_mode=True)
         self.state_dim = self.inp.get_state_dim_with_features()
         self.num_actions = self.actions_handler.get_action_size()
         print('num_actions', self.num_actions)
@@ -57,7 +57,8 @@ class Agent:
 
         reward = self.get_reward(game_tick_packet)
 
-        self.model.store_rollout(state, self.previous_action, reward)
+        if self.previous_action is not None:
+            self.model.store_rollout(state, self.previous_action, reward)
 
         action = self.model.sample_action(np.array(state).reshape((1, -1)))
         if action is None:
