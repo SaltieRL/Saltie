@@ -1,13 +1,13 @@
 # Defined as a generic bot, can use multiple models
-import numpy as np
 import random
+
+import numpy as np
 import tensorflow as tf
 
 from conversions.input_formatter import InputFormatter
-from modelHelpers import option_handler
+from modelHelpers import action_handler
 from modelHelpers import reward_manager
-from models import actor_critic_wrapper
-from models import nnatba
+from models.actor_critic import policy_gradient
 
 
 class Agent:
@@ -21,21 +21,26 @@ class Agent:
         self.inp = InputFormatter(team, index)
         self.reward_manager = reward_manager.RewardManager(name, team, index, self.inp)
         config = tf.ConfigProto(
-            device_count={'GPU': 0}
+            device_count={'GPU': 1}
         )
         self.sess = tf.Session(config=config)
+        #self.sess = tf.Session()
         writer = tf.summary.FileWriter('tmp/{}-experiment'.format(random.randint(0, 1000000)))
-        self.options = option_handler.createOptions()
-        self.state_dim = 195
-        self.num_actions = len(self.options)
+        self.actions_handler = action_handler.ActionHandler(split_mode=False)
+        self.state_dim = self.inp.get_state_dim_with_features()
+        self.num_actions = self.actions_handler.get_action_size()
         print('num_actions', self.num_actions)
         self.model = self.get_model_class()(self.sess,
                                             self.state_dim,
                                             self.num_actions,
+                                            action_handler=self.actions_handler,
                                             summary_writer=writer)
+        self.model.initialize_model()
 
     def get_model_class(self):
-        return actor_critic_wrapper.ActorCriticModel
+        #return nnatba.NNAtba
+        #return rnn_atba.RNNAtba
+        return policy_gradient.PolicyGradient
 
     def get_reward(self, packet):
         reward = self.reward_manager.get_reward(packet)
@@ -43,10 +48,13 @@ class Agent:
         return reward
 
     def get_output_vector(self, game_tick_packet):
-        state = self.inp.create_input_array(game_tick_packet)
+        state, features = self.inp.create_input_array(game_tick_packet)
+        state = np.append(state, features)
         if self.state_dim != len(state):
             print('wrong input size', self.index, len(state))
-            return self.options[0] # do not return anything
+            return self.actions_handler.create_controller_from_selection(
+                self.actions_handler.get_random_option()) # do not return anything
+
         reward = self.get_reward(game_tick_packet)
 
         self.model.store_rollout(state, self.previous_action, reward)
@@ -54,12 +62,7 @@ class Agent:
         action = self.model.sample_action(np.array(state).reshape((1, -1)))
         if action is None:
             print("invalid action no type returned")
-        if random.random() < 0.05 or action is None:
-            action = random.randint(0, self.num_actions)
-            if action == 256:
-                print('f_in rand int', action)
+        if random.random() < 0.00005 or action is None:
+            action = self.actions_handler.get_random_option()
         self.previous_action = action
-        if action >= self.num_actions or action < 0:
-            print (action, len(self.options))
-            return self.options[0]
-        return self.options[action]
+        return self.actions_handler.create_controller_from_selection(action)

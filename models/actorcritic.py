@@ -3,7 +3,6 @@ import random
 import numpy as np
 import tensorflow as tf
 
-
 class PolicyGradientActorCritic(object):
     def __init__(self, session,
                  optimizer,
@@ -73,15 +72,15 @@ class PolicyGradientActorCritic(object):
     def create_variables(self):
         with tf.name_scope("model_inputs"):
             # raw state representation
-            self.states = tf.placeholder(tf.float32, (None, self.state_dim), name="states")
+            self.input = tf.placeholder(tf.float32, (None, self.state_dim), name="states")
 
         # rollout action based on current policy
         with tf.name_scope("predict_actions"):
             # initialize actor-critic network
             with tf.variable_scope("actor_network"):
-                self.policy_outputs = self.actor_network(self.states)
+                self.policy_outputs = self.actor_network(self.input)
             with tf.variable_scope("critic_network"):
-                self.value_outputs = self.critic_network(self.states)
+                self.value_outputs = self.critic_network(self.input)
 
             # predict actions from policy network
             self.action_scores = tf.identity(self.policy_outputs, name="action_scores")
@@ -100,10 +99,10 @@ class PolicyGradientActorCritic(object):
             self.discounted_rewards = tf.placeholder(tf.float32, (None,), name="discounted_rewards")
 
             with tf.variable_scope("actor_network", reuse=True):
-                self.logprobs = self.actor_network(self.states)
+                self.logprobs = self.actor_network(self.input)
 
             with tf.variable_scope("critic_network", reuse=True):
-                self.estimated_values = self.critic_network(self.states)
+                self.estimated_values = self.critic_network(self.input)
 
             # compute policy loss and regularization loss
             self.cross_entropy_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=self.logprobs,
@@ -173,7 +172,7 @@ class PolicyGradientActorCritic(object):
         if random.random() < self.exploration:
             return random.randint(0, self.num_actions - 1)
         else:
-            action_scores = self.session.run(self.action_scores, {self.states: states})[0]
+            action_scores = self.session.run(self.action_scores, {self.input: states})[0]
             action_probs = softmax(action_scores) - 1e-5
             action = np.argmax(np.random.multinomial(1, action_probs))
             return action
@@ -206,7 +205,7 @@ class PolicyGradientActorCritic(object):
                 self.train_op,
                 self.summarize if calculate_summaries else self.no_op
             ], {
-                self.states: states,
+                self.input: states,
                 self.taken_actions: actions,
                 self.discounted_rewards: rewards
             })
@@ -220,10 +219,6 @@ class PolicyGradientActorCritic(object):
 
         # clean up
         self.clean_up()
-
-    def anneal_exploration(self, stategy='linear'):
-        ratio = max((self.anneal_steps - self.train_iteration) / float(self.anneal_steps), 0)
-        self.exploration = (self.init_exp - self.final_exp) * ratio + self.final_exp
 
     def store_rollout(self, state, action, reward):
         self.action_buffer.append(action)

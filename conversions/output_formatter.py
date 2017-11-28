@@ -3,10 +3,6 @@ class OutputFormatter:
     This is a class that takes in an arrray and will return a gametick packet of that value
     """
 
-    def __init__(self, team, index):
-        self.team = team
-        self.index = index
-
     def create_output_array(self, array):
         gameTickPacket = self.create_object()
         gameTickPacket.gamecars = []
@@ -20,7 +16,7 @@ class OutputFormatter:
         total_offset += offset
         player_car.Score = score_info
         # always put player car at 0
-        gameTickPacket.gamecars.push(player_car)
+        gameTickPacket.gamecars.append(player_car)
 
         ball_info, offset = self.get_ball_info(array, total_offset)
         total_offset += offset
@@ -29,27 +25,27 @@ class OutputFormatter:
         team_member1, offset = self.get_car_info(array, total_offset)
         total_offset += offset
         if team_member1 is not None:
-            gameTickPacket.gamecars.push(team_member1)
+            gameTickPacket.gamecars.append(team_member1)
 
         team_member2, offset = self.get_car_info(array, total_offset)
         total_offset += offset
         if team_member2 is not None:
-            gameTickPacket.gamecars.push(team_member2)
+            gameTickPacket.gamecars.append(team_member2)
 
         enemy1, offset = self.get_car_info(array, total_offset)
         total_offset += offset
         if enemy1 is not None:
-            gameTickPacket.gamecars.push(enemy1)
+            gameTickPacket.gamecars.append(enemy1)
 
         enemy2, offset = self.get_car_info(array, total_offset)
         total_offset += offset
         if enemy2 is not None:
-            gameTickPacket.gamecars.push(enemy2)
+            gameTickPacket.gamecars.append(enemy2)
 
         enemy3, offset = self.get_car_info(array, total_offset)
         total_offset += offset
         if enemy3 is not None:
-            gameTickPacket.gamecars.push(enemy3)
+            gameTickPacket.gamecars.append(enemy3)
 
         gameTickPacket.gameBoosts = self.get_boost_info(array, total_offset)
 
@@ -62,21 +58,28 @@ class OutputFormatter:
     def create_object(self):
         return lambda: None
 
-    def create_3D_object(self, x, y, z):
+    def create_3D_point(self, x, y, z):
         point = self.create_object()
         point.X = x
         point.Y = y
         point.Z = z
         return point
 
+    def create_3D_rotation(self, x, y, z):
+        point = self.create_object()
+        point.Pitch = x
+        point.Yaw = y
+        point.Roll = z
+        return point
+
     def get_car_info(self, array, index):
         if self.is_empty_player_array(array, index, 17):
-            return None
+            return None, 17
         car_info = self.create_object()
-        car_info.Location = self.create_3D_object(array[index], array[index + 1], array[index + 2])
-        car_info.Rotation = self.create_3D_object(array[index + 3], array[index + 4], array[index + 5])
-        car_info.Velocity = self.create_3D_object(array[index + 6], array[index + 7], array[index + 8])
-        car_info.AngularVelocity = self.create_3D_object(array[index + 9], array[index + 10], array[index + 11])
+        car_info.Location = self.create_3D_point(array[index], array[index + 1], array[index + 2])
+        car_info.Rotation = self.create_3D_rotation(array[index + 3], array[index + 4], array[index + 5])
+        car_info.Velocity = self.create_3D_point(array[index + 6], array[index + 7], array[index + 8])
+        car_info.AngularVelocity = self.create_3D_point(array[index + 9], array[index + 10], array[index + 11])
         car_info.bDemolished = (array[12] == 1)
         car_info.bJumped = (array[13] == 1)
         car_info.bDoubleJumped = (array[14] == 1)
@@ -98,11 +101,11 @@ class OutputFormatter:
 
     def get_ball_info(self, array, index):
         ball_info = self.create_object()
-        ball_info.Location = self.create_3D_object(array[index], array[index + 1], array[index + 2])
-        ball_info.Rotation = self.create_3D_object(array[index + 3], array[index + 4], array[index + 5])
-        ball_info.Velocity = self.create_3D_object(array[index + 6], array[index + 7], array[index + 8])
-        ball_info.AngularVelocity = self.create_3D_object(array[index + 9], array[index + 10], array[index + 11])
-        ball_info.Acceleration = self.create_3D_object(array[index + 12], array[index + 13], array[index + 14])
+        ball_info.Location = self.create_3D_point(array[index], array[index + 1], array[index + 2])
+        ball_info.Rotation = self.create_3D_rotation(array[index + 3], array[index + 4], array[index + 5])
+        ball_info.Velocity = self.create_3D_point(array[index + 6], array[index + 7], array[index + 8])
+        ball_info.AngularVelocity = self.create_3D_point(array[index + 9], array[index + 10], array[index + 11])
+        ball_info.Acceleration = self.create_3D_point(array[index + 12], array[index + 13], array[index + 14])
         return ball_info, 15
 
     def get_boost_info(self, array, index):

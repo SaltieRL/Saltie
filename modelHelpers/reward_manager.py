@@ -1,4 +1,4 @@
-from math import sqrt
+from modelHelpers.feature_creator import get_distance_location
 import copy
 
 class RewardManager:
@@ -45,10 +45,7 @@ class RewardManager:
         """
         return (packet.gamecars[self.index].Score.Score - self.previous_score) / 100.0
 
-    def get_distance(self, location1, location2):
-        return sqrt((location1.X - location2.X)**2 +
-                    (location1.Y - location2.Y)**2 +
-                    (location1.Z - location2.Z)**2)
+
 
     def calculate_ball_follow_change_reward(self, packet):
         """
@@ -57,8 +54,8 @@ class RewardManager:
         """
         if self.previous_car_location is None or self.previous_ball_location is None:
             return 0
-        current_distance = self.get_distance(packet.gamecars[self.index].Location, packet.gameball.Location)
-        previous_distance = self.get_distance(self.previous_car_location, self.previous_ball_location)
+        current_distance = get_distance_location(packet.gamecars[self.index].Location, packet.gameball.Location)
+        previous_distance = get_distance_location(self.previous_car_location, self.previous_ball_location)
         #moving faster = bigger reward or bigger punishment
         distance_change = (previous_distance - current_distance) / 100.0
         return min(max(distance_change, 0), .1)
@@ -68,7 +65,7 @@ class RewardManager:
         The more the car moves the more reward.
         There is no negative reward only zero
         """
-        return self.get_distance(packet.gamecars[self.index].Location, self.previous_car_location)
+        return get_distance_location(packet.gamecars[self.index].Location, self.previous_car_location)
 
     def calculate_controller_reward(self, controller1, controller2):
         """
