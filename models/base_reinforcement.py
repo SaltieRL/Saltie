@@ -1,4 +1,5 @@
 from models import base_model
+import numpy as np
 import tensorflow as tf
 
 class BaseReinforcment(base_model.BaseModel):
@@ -64,6 +65,8 @@ class BaseReinforcment(base_model.BaseModel):
         self.action_buffer.append(action)
         self.reward_buffer.append(reward)
         self.state_buffer.append(state)
+        if (len(self.action_buffer)) == 10:
+            self.updateModel()
 
     def updateModel(self):
         N = len(self.reward_buffer)
@@ -83,9 +86,13 @@ class BaseReinforcment(base_model.BaseModel):
         for t in range(N - 1):
 
             # prepare inputs
-            input_states = self.state_buffer[t][np.newaxis, :]
-            actions = np.array([self.action_buffer[t]])
-            rewards = np.array([discounted_rewards[t]])
+            # input_states = self.state_buffer[t][np.newaxis, :]
+            # actions = np.array([self.action_buffer[t]])
+            # rewards = np.array([discounted_rewards[t]])
+
+            input_states = np.array(self.state_buffer)
+            actions = np.array(self.action_buffer)
+            rewards = np.array(discounted_rewards)
 
             # perform one update of training
             _, summary_str = self.sess.run([
@@ -103,6 +110,8 @@ class BaseReinforcment(base_model.BaseModel):
 
         self.anneal_exploration()
         self.train_iteration += 1
+
+        print(self.train_iteration)
 
         # clean up
         self.clean_up()

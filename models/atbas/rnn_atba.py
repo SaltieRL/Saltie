@@ -50,7 +50,7 @@ class RNNAtba(nnatba.NNAtba):
         output = tf.nn.xw_plus_b(output, output_w, output_b)
 
         self.logits = self.rnn_decoder(output)
-        return self.action_handler.create_model_output(tf, self.logits)
+        return self.action_handler.create_model_output(self.logits)
 
     def create_weights(self):
         self.weights = {

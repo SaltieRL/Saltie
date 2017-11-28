@@ -33,7 +33,7 @@ class CopyTrainer:
         self.sess = tf.Session()
         # writer = tf.summary.FileWriter('tmp/{}-experiment'.format(random.randint(0, 1000000)))
 
-        self.action_handler = action_handler.ActionHandler(split_mode=False)
+        self.action_handler = action_handler.ActionHandler(split_mode=True)
 
         self.state_dim = get_state_dim_with_features()
         print('state size ' + str(self.state_dim))
@@ -48,8 +48,8 @@ class CopyTrainer:
 
     def get_model(self):
         #return rnn_atba.RNNAtba
-        #return nnatba.NNAtba
-        return base_actor_critic.BaseActorCritic
+        return nnatba.NNAtba
+        #return base_actor_critic.BaseActorCritic
 
     def start_new_file(self):
         self.file_number += 1
@@ -91,7 +91,7 @@ class CopyTrainer:
         self.label_batch = np.array(self.label_batch)
         self.label_batch = self.label_batch.reshape(len(self.label_batch), self.num_actions)
 
-        _, c = self.sess.run([self.agent.optimizer, self.loss], feed_dict={self.input: self.input_batch, self.label: self.label_batch})
+        _, c = self.sess.run([self.agent.train_op, self.loss], feed_dict={self.input: self.input_batch, self.label: self.label_batch})
         # Display logs per step
         if self.epoch % self.display_step == 0:
             print("File:", '%04d' % self.file_number, "Epoch:", '%04d' % (self.epoch+1),
