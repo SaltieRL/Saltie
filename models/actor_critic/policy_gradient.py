@@ -20,49 +20,49 @@ class PolicyGradient(BaseActorCritic):
         super().__init__(session, state_dim, num_actions, action_handler, is_training,
                          optimizer, summary_writer, summary_every, discount_factor)
 
-    def create_training_op(self):
+    def create_training_op(self, cross_entropy_loss, estimated_values, actor_network_variables, critic_network_variables):
         with tf.name_scope("compute_pg_gradients"):
-            self.pg_loss = tf.reduce_mean(self.cross_entropy_loss)
-            self.actor_reg_loss = tf.reduce_sum([tf.reduce_sum(tf.square(x)) for x in self.actor_network_variables])
-            self.actor_loss = self.pg_loss + self.reg_param * self.actor_reg_loss
+            pg_loss = tf.reduce_mean(cross_entropy_loss)
+            actor_reg_loss = tf.reduce_sum([tf.reduce_sum(tf.square(x)) for x in actor_network_variables])
+            actor_loss = pg_loss + self.reg_param * actor_reg_loss
 
             # compute actor gradients
-            self.actor_gradients = self.optimizer.compute_gradients(self.actor_loss, self.actor_network_variables)
+            actor_gradients = self.optimizer.compute_gradients(actor_loss, actor_network_variables)
             # compute advantages A(s) = R - V(s)
-            self.advantages = tf.reduce_sum(self.discounted_rewards - self.estimated_values)
+            advantages = tf.reduce_sum(self.discounted_rewards - estimated_values)
             # compute policy gradients
-            for i, (grad, var) in enumerate(self.actor_gradients):
+            for i, (grad, var) in enumerate(actor_gradients):
                 if grad is not None:
-                    self.actor_gradients[i] = (grad * self.advantages, var)
+                    actor_gradients[i] = (grad * advantages, var)
 
             # compute critic gradients
-            self.mean_square_loss = tf.reduce_mean(tf.square(self.discounted_rewards - self.estimated_values))
-            self.critic_reg_loss = tf.reduce_sum([tf.reduce_sum(tf.square(x)) for x in self.critic_network_variables])
-            self.critic_loss = self.mean_square_loss + self.reg_param * self.critic_reg_loss
-            self.critic_gradients = self.optimizer.compute_gradients(self.critic_loss, self.critic_network_variables)
+            mean_square_loss = tf.reduce_mean(tf.square(self.discounted_rewards - estimated_values))
+            critic_reg_loss = tf.reduce_sum([tf.reduce_sum(tf.square(x)) for x in critic_network_variables])
+            critic_loss = mean_square_loss + self.reg_param * critic_reg_loss
+            critic_gradients = self.optimizer.compute_gradients(critic_loss, critic_network_variables)
 
             # collect all gradients
-            self.gradients = self.actor_gradients + self.critic_gradients
+            gradients = actor_gradients + critic_gradients
 
             # clip gradients
-            for i, (grad, var) in enumerate(self.gradients):
+            for i, (grad, var) in enumerate(gradients):
                 # clip gradients by norm
                 if grad is not None:
-                    self.gradients[i] = (tf.clip_by_norm(grad, self.max_gradient), var)
+                    gradients[i] = (tf.clip_by_norm(grad, self.max_gradient), var)
 
             # summarize gradients
-            for grad, var in self.gradients:
+            for grad, var in gradients:
                 tf.summary.histogram(var.name, var)
                 if grad is not None:
                     tf.summary.histogram(var.name + '/gradients', grad)
 
             # emit summaries
             tf.summary.histogram("estimated_values", self.estimated_values)
-            tf.summary.scalar("actor_loss", self.actor_loss)
-            tf.summary.scalar("critic_loss", self.critic_loss)
-            tf.summary.scalar("reg_loss", self.actor_reg_loss + self.critic_reg_loss)
+            tf.summary.scalar("actor_loss", actor_loss)
+            tf.summary.scalar("critic_loss", critic_loss)
+            tf.summary.scalar("reg_loss", actor_reg_loss + critic_reg_loss)
 
         # training update
         with tf.name_scope("train_actor_critic"):
             # apply gradients to update actor network
-            self.train_op = self.optimizer.apply_gradients(self.gradients)
+            return self.optimizer.apply_gradients(gradients)

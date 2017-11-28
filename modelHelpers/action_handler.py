@@ -1,7 +1,9 @@
-import numpy as np
+import collections
 import itertools
+import numpy as np
 import random
 import sys
+import tensorflow as tf
 
 
 class ActionMap:
@@ -24,6 +26,7 @@ class ActionMap:
 
 
 class ActionHandler:
+    range_size = 5
 
     def __init__(self, split_mode = False):
         self.split_mode = split_mode
@@ -169,9 +172,9 @@ class ActionHandler:
         array[index] = 1
         return array
 
-    def create_model_output(self, tf, logits):
-        return self.optionally_split_tensors(tf, logits,
-                                 lambda input_tensor: tf.argmax(input_tensor, 1))
+    def create_model_output(self, logits):
+        return self.run_func_on_split_tensors(logits,
+                                              lambda input_tensor: tf.argmax(input_tensor, 1))
 
     def create_controller_from_selection(self, selection):
         if self.split_mode:
@@ -188,28 +191,60 @@ class ActionHandler:
         return random.randrange(self.get_action_size())
         pass
 
-    def optionally_split_tensors(self, tf, input_tensor, split_func):
+    def run_func_on_split_tensors(self, input_tensors, split_func, return_as_list = False):
         """
         Optionally splits the tensor and runs a function on the split tensor
         If the tensor should not be split it runs the function on the entire tensor
         :param tf: tensorflow
-        :param input_tensor: needs to have shape of (?, num_actions)
-        :param split_func: a function that is called with a tensor the same rank as input_tensor.
+        :param input_tensors: needs to have shape of (?, num_actions)
+        :param split_func: a function that is called with a tensor or array the same rank as input_tensor.
             It should return a tensor with the same rank as input_tensor
         :return: a stacked tensor (see tf.stack) or the same tensor depending on if it is in split mode or not.
         """
+
+        if not isinstance(input_tensors, collections.Sequence):
+            input_tensors = [input_tensors]
+
         if not self.split_mode:
-            return split_func(input_tensor)
+            return split_func(*input_tensors)
 
-        output1 = tf.slice(input_tensor, [0, 0], [-1, 5])
-        output2 = tf.slice(input_tensor, [0, 5], [-1, 5])
-        output3 = tf.slice(input_tensor, [0, 10], [-1, 5])
-        output4 = tf.slice(input_tensor, [0, 15], [-1, 24])
+        output1 = []
+        output2 = []
+        output3 = []
+        output4 = []
 
-        result1 = split_func(output1)
-        result2 = split_func(output2)
-        result3 = split_func(output3)
-        result4 = split_func(output4)
+        i = 0
+        for tensor in input_tensors:
+            i+=1
+            if isinstance(tensor, collections.Sequence):
+                output1.append(tensor[0])
+                output2.append(tensor[1])
+                output3.append(tensor[2])
+                output4.append(tensor[3])
+            else:
+                if tensor.get_shape()[1] == self.get_action_size():
+                    output1.append(tf.slice(tensor, [0, 0], [-1, self.range_size]))
+                    output2.append(tf.slice(tensor, [0, self.range_size], [-1, self.range_size]))
+                    output3.append(tf.slice(tensor, [0, self.range_size * 2], [-1, self.range_size]))
+                    output4.append(tf.slice(tensor, [0, self.range_size * 3], [-1, 24]))
+                elif tensor.get_shape()[1] == 4:
+                    output1.append(tf.slice(tensor, [0, 0], [-1, 1]))
+                    output2.append(tf.slice(tensor, [0, 1], [-1, 1]))
+                    output3.append(tf.slice(tensor, [0, 2], [-1, 1]))
+                    output4.append(tf.slice(tensor, [0, 3], [-1, 1]))
+                elif tensor.get_shape()[1] == 1:
+                    output1.append(tf.identity(tensor, name='copy1'))
+                    output2.append(tf.identity(tensor, name='copy2'))
+                    output3.append(tf.identity(tensor, name='copy3'))
+                    output4.append(tf.identity(tensor, name='copy4'))
+
+        result1 = split_func(*output1)
+        result2 = split_func(*output2)
+        result3 = split_func(*output3)
+        result4 = split_func(*output4)
+
+        if return_as_list:
+            return [result1, result2, result3, result4]
 
         return tf.stack([result1, result2, result3, result4], axis=1)
 
@@ -243,7 +278,7 @@ class ActionHandler:
 
         return [result1, result2, result3, result4]
 
-    def get_cross_entropy_with_logits(self, tf, labels, logits, name):
+    def get_cross_entropy_with_logits(self, labels, logits, name):
         """
         In split mode there can be more than one class at a time.
         This is so that

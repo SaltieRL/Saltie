@@ -30,7 +30,7 @@ class NNAtba(base_model.BaseModel):
     def create_model(self, input):
         self.create_weights()
         self.logits = self.encoder(input)
-        return self.action_handler.create_model_output(tf, self.logits)
+        return self.action_handler.create_model_output(self.logits)
 
     def create_weights(self):
         self.weights = {
@@ -61,7 +61,7 @@ class NNAtba(base_model.BaseModel):
         self.labels = tf.placeholder(tf.int64, shape=(None, self.num_actions))
 
         cross_entropy = self.action_handler.get_cross_entropy_with_logits(
-            tf, labels=self.labels, logits=self.logits, name='xentropy')
+            labels=self.labels, logits=self.logits, name='xentropy')
         loss = tf.reduce_mean(cross_entropy, name='xentropy_mean')
 
         self.train_op = self.optimizer.minimize(loss)

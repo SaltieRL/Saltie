@@ -1,3 +1,4 @@
+import collections
 from models import base_reinforcement
 import numpy as np
 import tensorflow as tf
@@ -29,8 +30,8 @@ class BaseActorCritic(base_reinforcement.BaseReinforcment):
             # predict actions from policy network
             self.action_scores = tf.identity(self.policy_outputs, name="action_scores")
             self.predicted_actions = \
-                self.action_handler.optionally_split_tensors(tf, self.action_scores,
-                                                             lambda split_tensor: tf.multinomial(split_tensor, 1))
+                self.action_handler.run_func_on_split_tensors(self.action_scores,
+                                                              lambda split_tensor: tf.multinomial(split_tensor, 1))
 
         # get variable list
         self.actor_network_variables = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope="actor_network")
@@ -44,21 +45,33 @@ class BaseActorCritic(base_reinforcement.BaseReinforcment):
             with tf.variable_scope("critic_network", reuse=True):
                 self.estimated_values = self.critic_network(self.input)
 
-            log_probs_split = \
-                self.action_handler.optionally_split_tensors(tf, self.logprobs,
-                                                             lambda split_tensor: tf.identity(split_tensor))
+            self.train_op = self.action_handler.run_func_on_split_tensors([self.logprobs,
+                                                          self.estimated_values,
+                                                          self.taken_actions,
+                                                          self.actor_network_variables,
+                                                          self.critic_network_variables],
+                                                                          self._create_training_op,
+                                                                          return_as_list=True)
 
-                # compute policy loss and regularization loss
-            self.cross_entropy_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=log_probs_split,
-                                                                                     labels=self.taken_actions)
-        self.create_training_op()
+    def _create_training_op(self, logprobs, estimated_values, taken_actions, actor_network_variables, critic_network_variables):
+        if len(taken_actions.get_shape()):
+            taken_actions = tf.squeeze(taken_actions)
 
-    def create_copy_training_model(self, batch_size):
-        self.train_op = self.optimizer.minimize(self.cross_entropy_loss)
-        return self.cross_entropy_loss, self.input, self.taken_actions
+        # calculates the entropy loss from getting the label wrong
+        cross_entropy_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logprobs,
+                                                                                 labels=taken_actions)
 
-    def create_training_op(self):
-        self.train_op = self.optimizer.minimize(self.cross_entropy_loss)
+        # makes sure that everything is a list
+        if not isinstance(actor_network_variables, collections.Sequence):
+            actor_network_variables = [actor_network_variables]
+
+        if not isinstance(critic_network_variables, collections.Sequence):
+            critic_network_variables = [critic_network_variables]
+
+        return self.create_training_op(cross_entropy_loss, estimated_values, actor_network_variables, critic_network_variables)
+
+    def create_training_op(self, cross_entropy_loss, estimated_values, actor_network_variables, critic_network_variables):
+        return self.optimizer.minimize(cross_entropy_loss)
 
     def sample_action(self, input_state):
         # TODO: use this code piece when tf.multinomial gets better
@@ -67,26 +80,27 @@ class BaseActorCritic(base_reinforcement.BaseReinforcment):
         # return actions[0]
 
         # epsilon-greedy exploration strategy
-        if random.random() < self.exploration:
-            return random.randint(0, self.num_actions - 1)
+        if random.random() < self.exploration and False:
+            return self.action_handler.get_random_option()
         else:
-            softmax = self.action_handler.optionally_split_tensors(tf, self.action_scores,
-                                                         lambda input_tensor: tf.nn.softmax(input_tensor))
-            action_scores = self.sess.run(softmax, {self.input: input_state})[0]
+            softmax = self.action_handler.run_func_on_split_tensors(self.action_scores,
+                                                                    lambda input_tensor: tf.nn.softmax(input_tensor),
+                                                                    return_as_list=True)
+            action_scores = self.sess.run(softmax, {self.input: input_state})
 
             action = self.action_handler.\
                 optionally_split_numpy_arrays(action_scores,
-                                              lambda input_array: np.argmax(np.random.multinomial(1, input_array)),
+                                              lambda input_array: np.argmax(np.random.multinomial(1, input_array[0])),
                                               is_already_split=True)
             return action
 
-    def actor_network(self, states):
+    def actor_network(self, input_states):
         # define policy neural network
         W1 = tf.get_variable("W1", [self.state_dim, 20],
                              initializer=tf.random_normal_initializer())
         b1 = tf.get_variable("b1", [20],
                              initializer=tf.constant_initializer(0))
-        h1 = tf.nn.tanh(tf.matmul(states, W1) + b1)
+        h1 = tf.nn.tanh(tf.matmul(input_states, W1) + b1)
         W2 = tf.get_variable("W2", [20, self.num_actions],
                              initializer=tf.random_normal_initializer(stddev=0.1))
         b2 = tf.get_variable("b2", [self.num_actions],
@@ -94,13 +108,13 @@ class BaseActorCritic(base_reinforcement.BaseReinforcment):
         p = tf.matmul(h1, W2) + b2
         return p
 
-    def critic_network(self, states):
+    def critic_network(self, input_states):
         # define policy neural network
         W1 = tf.get_variable("W1", [self.state_dim, 20],
                              initializer=tf.random_normal_initializer())
         b1 = tf.get_variable("b1", [20],
                              initializer=tf.constant_initializer(0))
-        h1 = tf.nn.tanh(tf.matmul(states, W1) + b1)
+        h1 = tf.nn.tanh(tf.matmul(input_states, W1) + b1)
         W2 = tf.get_variable("W2", [20, 1],
                              initializer=tf.random_normal_initializer())
         b2 = tf.get_variable("b2", [1],
