@@ -1,11 +1,12 @@
-import tensorflow as tf
+from models import base_model
+from models import nnatba
 import os
+import tensorflow as tf
 
 CUDNN = "cudnn"
 BASIC = "basic"
 
-
-class RNNAtba:
+class RNNAtba(nnatba.NNAtba):
 
     num_hidden_1 = 500 # 1st layer num features
     labels = None
@@ -16,8 +17,6 @@ class RNNAtba:
     batch_size = 1
     keep_prob = 0.5
     init_scale = .99
-
-
 
     """"
     This will be the example model framework with the needed functions but none of the code inside them
@@ -32,48 +31,12 @@ class RNNAtba:
                  summary_writer=None,
                  summary_every=100):
 
-        self.optimizer = optimizer
-        self.action_handler = action_handler
-        self.is_training = is_training
-        self.sess = session
-        self.num_actions = num_actions
-        self.state_dim = state_dim
-        self.input = tf.placeholder(tf.float32, shape=(None, self.state_dim))
-        self.model = self.create_model(self.input)
+        super().__init__(session, state_dim, num_actions, action_handler, is_training,
+                         optimizer, summary_writer, summary_every)
 
-        self.saver = tf.train.Saver()
-
-        #file does not exist too lazy to add check
-
-
-
-    def create_training_model_copy(self, batch_size):
+    def create_copy_training_model(self, batch_size):
         self.batch_size = batch_size
-        self.labels = tf.placeholder(tf.int64, shape=(None, self.num_actions))
-
-        cross_entropy = self.action_handler.get_cross_entropy_with_logits(
-            tf, labels=self.labels, logits=self.logits, name='xentropy')
-        loss = tf.reduce_mean(cross_entropy, name='xentropy_mean')
-
-        optimizer = self.optimizer.minimize(loss)
-
-        return loss, self.input, self.labels, optimizer
-
-    def initialize_model(self):
-        init = tf.global_variables_initializer()
-        self.sess.run(init)
-
-        model_file = self.get_model_path("trained_variables_drop.ckpt")
-        print(model_file)
-        if os.path.isfile(model_file + '.meta'):
-            print('loading existing model')
-            try:
-                self.saver.restore(self.sess, model_file)
-                print('loading successful')
-            except:
-                print('unable to load model')
-        else:
-            print('unable to load model')
+        super().create_copy_training_model(batch_size)
 
     def create_model(self, input):
         self.create_weights()
@@ -89,15 +52,6 @@ class RNNAtba:
 
         self.logits = self.rnn_decoder(output)
         return self.action_handler.create_model_output(tf, self.logits)
-
-    def store_rollout(self, state, last_action, reward):
-        #I only care about the current state and action
-        pass
-
-
-    def sample_action(self, states):
-        return self.sess.run(self.model, feed_dict={self.input: states})[0]
-
 
     def create_weights(self):
         self.weights = {
@@ -122,12 +76,6 @@ class RNNAtba:
 
         # Encoder Hidden layer with sigmoid activation #3
         return tf.nn.sigmoid(tf.add(tf.matmul(hidden_layer_1, self.weights['out']), self.biases['out']), name='logits')
-
-
-    def get_model_path(self, filename):
-        dir_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-        return dir_path + "\\training\\data\\rnnatba\\" + filename
-
 
     def _build_rnn_graph(self, inputs, config, is_training):
         if self.rnn_mode == CUDNN:
@@ -203,3 +151,6 @@ class RNNAtba:
                 outputs.append(cell_output)
         output = tf.reshape(tf.concat(outputs, 1), [-1, self.hidden_size])
         return output, state
+
+    def get_model_name(self):
+        return 'rnnatba' + ('_split' if self.action_handler.is_split_mode else '')

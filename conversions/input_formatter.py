@@ -1,7 +1,10 @@
 import numpy as np
 from modelHelpers import feature_creator
 
-#UBLUEGOALLOCATION =
+
+def get_state_dim_with_features():
+    return 197
+
 
 class InputFormatter:
     """
@@ -147,3 +150,5 @@ class InputFormatter:
         """
         return [item for sublist in array_of_array for item in sublist]
 
+    def get_state_dim_with_features(self):
+        return get_state_dim_with_features()

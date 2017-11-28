@@ -1,8 +1,11 @@
-from models import nnatba
-from models import rnn_atba
+from conversions.input_formatter import get_state_dim_with_features
 from conversions import output_formatter
 from modelHelpers import action_handler
 from modelHelpers import feature_creator
+
+from models import nnatba
+from models import rnn_atba
+
 import tensorflow as tf
 import numpy as np
 
@@ -31,12 +34,12 @@ class CopyTrainer:
 
         self.action_handler = action_handler.ActionHandler(split_mode=True)
 
-        self.state_dim = 197
+        self.state_dim = get_state_dim_with_features()
         print('state size ' + str(self.state_dim))
         self.num_actions = self.action_handler.get_action_size()
         self.agent = self.get_model()(self.sess, self.state_dim, self.num_actions, self.action_handler, is_training=True, optimizer=tf.train.AdamOptimizer())
 
-        self.loss, self.input, self.label, self.optimizer = self.agent.create_training_model_copy(batch_size=self.batch_size)
+        self.loss, self.input, self.label, self.optimizer = self.agent.create_copy_training_model(batch_size=self.batch_size)
 
         if self.optimizer is None:
             self.optimizer = tf.train.GradientDescentOptimizer(self.learning_rate).minimize(self.loss)

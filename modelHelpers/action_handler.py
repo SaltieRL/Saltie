@@ -33,6 +33,9 @@ class ActionHandler:
         self.actions_split = self.create_actions_split()
         self.action_map_split = ActionMap(self.actions_split[3])
 
+    def is_split_mode(self):
+        return self.split_mode
+
     def get_action_size(self):
         """
         :param split_mode: True if we should use the reduced action size

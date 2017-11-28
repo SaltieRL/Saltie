@@ -21,26 +21,27 @@ class Agent:
         self.index = index
         self.inp = InputFormatter(team, index)
         self.reward_manager = reward_manager.RewardManager(name, team, index, self.inp)
-        #config = tf.ConfigProto(
-        #    device_count={'GPU': 0}
-        #)
-        #self.sess = tf.Session(config=config)
-        self.sess = tf.Session()
+        config = tf.ConfigProto(
+            device_count={'GPU': 1}
+        )
+        self.sess = tf.Session(config=config)
+        #self.sess = tf.Session()
         writer = tf.summary.FileWriter('tmp/{}-experiment'.format(random.randint(0, 1000000)))
         self.actions_handler = action_handler.ActionHandler(split_mode=True)
-        self.state_dim = 197
+        self.state_dim = self.inp.get_state_dim_with_features()
         self.num_actions = self.actions_handler.get_action_size()
         print('num_actions', self.num_actions)
         self.model = self.get_model_class()(self.sess,
                                             self.state_dim,
                                             self.num_actions,
-                                            self.actions_handler,
+                                            action_handler=self.actions_handler,
                                             summary_writer=writer)
         self.model.initialize_model()
 
     def get_model_class(self):
         #return nnatba.NNAtba
-        return rnn_atba.RNNAtba
+        #return rnn_atba.RNNAtba
+        return actor_critic_wrapper.ActorCriticModel
 
     def get_reward(self, packet):
         reward = self.reward_manager.get_reward(packet)
