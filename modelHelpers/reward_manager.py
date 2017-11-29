@@ -57,7 +57,7 @@ class RewardManager:
 
     def get_reward(self, array):
 
-        score_info = output_formatter.get_score_info(output_formatter.GAME_INFO_OFFSET)
+        score_info = output_formatter.get_score_info(array, output_formatter.GAME_INFO_OFFSET)
         car_location = output_formatter.create_3D_point(array,
                                                         output_formatter.GAME_INFO_OFFSET + output_formatter.SCORE_INFO_OFFSET)
 

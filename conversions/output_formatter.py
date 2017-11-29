@@ -37,31 +37,31 @@ def create_output_array(array):
     # always put player car at 0
     gameTickPacket.gamecars.append(player_car)
 
-    ball_info, offset = get_ball_info(array, total_offset)
+    ball_info = get_ball_info(array, total_offset)
     total_offset += offset
     gameTickPacket.gameball = ball_info
 
-    team_member1, offset = get_car_info(array, total_offset)
+    team_member1 = get_car_info(array, total_offset)
     total_offset += offset
     if team_member1 is not None:
         gameTickPacket.gamecars.append(team_member1)
 
-    team_member2, offset = get_car_info(array, total_offset)
+    team_member2 = get_car_info(array, total_offset)
     total_offset += offset
     if team_member2 is not None:
         gameTickPacket.gamecars.append(team_member2)
 
-    enemy1, offset = get_car_info(array, total_offset)
+    enemy1 = get_car_info(array, total_offset)
     total_offset += offset
     if enemy1 is not None:
         gameTickPacket.gamecars.append(enemy1)
 
-    enemy2, offset = get_car_info(array, total_offset)
+    enemy2 = get_car_info(array, total_offset)
     total_offset += offset
     if enemy2 is not None:
         gameTickPacket.gamecars.append(enemy2)
 
-    enemy3, offset = get_car_info(array, total_offset)
+    enemy3 = get_car_info(array, total_offset)
     total_offset += offset
     if enemy3 is not None:
         gameTickPacket.gamecars.append(enemy3)
@@ -98,7 +98,7 @@ def create_3D_rotation(array, index):
 
 def get_car_info(array, index):
     if is_empty_player_array(array, index, 17):
-        return None, 17
+        return None
     car_info = create_object()
     car_info.Location = create_3D_point(array, index)
     car_info.Rotation = create_3D_rotation(array, index + 3)
@@ -109,7 +109,7 @@ def get_car_info(array, index):
     car_info.bDoubleJumped = (array[14] == 1)
     car_info.Team = int(array[15])
     car_info.Boost = array[16]
-    return car_info, 17
+    return car_info
 
 
 def get_game_info(array, index):
@@ -122,7 +122,7 @@ def get_game_info(array, index):
     # game_overtime = gameTickPacket.gameInfo.bOverTime
     # game_active = gameTickPacket.gameInfo.bRoundActive
     # game_ended = gameTickPacket.gameInfo.bMatchEnded
-    return game_info, 1
+    return game_info
 
 
 def get_ball_info(array, index):
@@ -132,7 +132,7 @@ def get_ball_info(array, index):
     ball_info.Velocity = create_3D_point(array, index + 6)
     ball_info.AngularVelocity = create_3D_point(array, index + 9)
     ball_info.Acceleration = create_3D_point(array, index + 12)
-    return ball_info, 15
+    return ball_info
 
 
 def get_boost_info(array, index):
@@ -154,5 +154,5 @@ def get_score_info(array, index):
     score_info.Shots = array[index + 5]
     score_info.Demolitions = array[index + 6]
     score_info.FrameScoreDiff = array[index + 7]
-    return score_info, 8
+    return score_info
 

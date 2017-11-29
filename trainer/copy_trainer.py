@@ -11,8 +11,6 @@ import tensorflow as tf
 
 
 class CopyTrainer:
-
-    array_formatter = output_formatter.OutputFormatter()
     learning_rate = 0.3
 
     file_number = 0
