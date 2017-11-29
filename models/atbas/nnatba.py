@@ -29,8 +29,8 @@ class NNAtba(base_model.BaseModel):
 
     def create_model(self, input):
         self.create_weights()
-        self.logits = self.encoder(input)
-        return self.action_handler.create_model_output(self.logits)
+        logits = self.encoder(input)
+        return self.action_handler.create_model_output(logits), logits
 
     def create_weights(self):
         self.weights = {

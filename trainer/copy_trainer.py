@@ -46,8 +46,8 @@ class CopyTrainer:
 
     def get_model(self):
         #return rnn_atba.RNNAtba
-        return nnatba.NNAtba
-        #return base_actor_critic.BaseActorCritic
+        #return nnatba.NNAtba
+        return base_actor_critic.BaseActorCritic
 
     def start_new_file(self):
         self.file_number += 1

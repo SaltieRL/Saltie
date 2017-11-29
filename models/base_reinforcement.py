@@ -42,6 +42,17 @@ class BaseReinforcment(base_model.BaseModel):
 
         self.create_reinforcement_training_model()
 
+    def create_copy_training_model(self, batch_size):
+        self.labels = tf.placeholder(tf.int64, shape=(None, self.num_actions))
+
+        cross_entropy = self.action_handler.get_cross_entropy_with_logits(
+            labels=self.labels, logits=self.logits, name='xentropy')
+        loss = tf.reduce_mean(cross_entropy, name='xentropy_mean')
+
+        self.train_op = self.optimizer.minimize(loss)
+
+        return loss, self.input, self.labels
+
     def create_reinforcement_training_model(self):
         """
         Creates a model used for training a bot that will learn through reinforcement
@@ -61,14 +72,17 @@ class BaseReinforcment(base_model.BaseModel):
 
         self.no_op = tf.no_op()
 
-    def store_rollout(self, state, action, reward):
-        self.action_buffer.append(action)
+    def store_rollout(self, input_state, last_action, reward):
+        self.action_buffer.append(last_action)
         self.reward_buffer.append(reward)
-        self.state_buffer.append(state)
+        self.state_buffer.append(input_state)
 
-    def updateModel(self):
+    def update_model(self):
         N = len(self.reward_buffer)
         r = 0  # use discounted reward to approximate Q value
+
+        if N == 0:
+            return
 
         # compute discounted future rewards
         discounted_rewards = np.zeros(N)
@@ -81,35 +95,34 @@ class BaseReinforcment(base_model.BaseModel):
         calculate_summaries = self.summary_writer is not None and self.train_iteration % self.summary_every == 0
 
         # update policy network with the rollout in batches
-        for t in range(N - 1):
 
-            # prepare inputs
-            # input_states = self.state_buffer[t][np.newaxis, :]
-            # actions = np.array([self.action_buffer[t]])
-            # rewards = np.array([discounted_rewards[t]])
+        # prepare inputs
+        # input_states = self.state_buffer[t][np.newaxis, :]
+        # actions = np.array([self.action_buffer[t]])
+        # rewards = np.array([discounted_rewards[t]])
 
-            input_states = np.array(self.state_buffer)
-            actions = np.array(self.action_buffer)
-            rewards = np.array(discounted_rewards)
+        input_states = np.array(self.state_buffer)
+        actions = np.array(self.action_buffer)
+        rewards = np.array(discounted_rewards)
 
-            # perform one update of training
-            _, summary_str = self.sess.run([
-                self.train_op,
-                self.summarize if calculate_summaries else self.no_op
-            ], feed_dict={
-                self.input: input_states,
-                self.taken_actions: actions,
-                self.discounted_rewards: rewards
-            })
+        # perform one update of training
+        result, summary_str = self.sess.run([
+            self.train_op,
+            self.summarize if calculate_summaries else self.no_op
+        ], feed_dict={
+            self.input: input_states,
+            self.taken_actions: actions,
+            self.discounted_rewards: rewards
+        })
 
-            # emit summaries
-            if calculate_summaries:
-                self.summary_writer.add_summary(summary_str, self.train_iteration)
+        # emit summaries
+        if calculate_summaries:
+            self.summary_writer.add_summary(summary_str, self.train_iteration)
 
         self.anneal_exploration()
         self.train_iteration += 1
 
-        print(self.train_iteration)
+        #print(self.train_iteration)
 
         # clean up
         self.clean_up()
@@ -130,4 +143,4 @@ class BaseReinforcment(base_model.BaseModel):
         self.sess.run(tf.variables_initializer(var_lists))
 
     def get_model_name(self):
-        return 'actor_critic'
+        return 'base_reinforcement'

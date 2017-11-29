@@ -36,6 +36,7 @@ class BaseActorCritic(base_reinforcement.BaseReinforcment):
         # get variable list
         self.actor_network_variables = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope="actor_network")
         self.critic_network_variables = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope="critic_network")
+        return self.predicted_actions, self.action_scores
 
     def create_reinforcement_training_model(self):
         with tf.name_scope("training_network"):
@@ -121,3 +122,5 @@ class BaseActorCritic(base_reinforcement.BaseReinforcment):
         v = tf.matmul(h1, W2) + b2
         return v
 
+    def get_model_name(self):
+        return 'base_actor_critic'

@@ -106,11 +106,17 @@ class ActionHandler:
 
     def create_action_label(self, real_action):
         if self.split_mode:
-            return self.create_split_label(real_action)
-        index = self.find_matching_action(real_action)
-        return self.create_one_hot_encoding(index)
+            indexes = self._create_split_indexes(real_action)
+            return self._create_split_label(indexes)
+        index = self._find_matching_action(real_action)
+        return self._create_one_hot_encoding(index)
 
-    def create_split_label(self, real_action):
+    def create_action_index(self, real_action):
+        if self.split_mode:
+            return self._create_split_indexes(real_action)
+        return self._find_matching_action(real_action)
+
+    def _create_split_indexes(self, real_action):
         throttle = real_action[0]
         steer = real_action[1]
         pitch = real_action[2]
@@ -124,15 +130,22 @@ class ActionHandler:
             if abs(steer) < abs(yaw):
                 steer = yaw
 
+        steer_index = self._find_closet_real_number(steer)
+        pitch_index = self._find_closet_real_number(pitch)
+        roll_index = self._find_closet_real_number(roll)
+        button_combo = self.action_map_split.get_key([throttle, jump, boost, handbrake])
+
+        return [steer_index, pitch_index, roll_index, button_combo]
+
+    def _create_split_label(self, action_indexes):
         encoding = np.zeros(39)
-        index = self.action_map_split.get_key([throttle, jump, boost, handbrake])
-        encoding[self.find_closet_real_number(steer) + 0] = 1
-        encoding[self.find_closet_real_number(pitch) + 5] = 1
-        encoding[self.find_closet_real_number(roll) + 10] = 1
-        encoding[index + 15] = 1
+        encoding[action_indexes[0] + 0] = 1
+        encoding[action_indexes[1] + 5] = 1
+        encoding[action_indexes[2] + 10] = 1
+        encoding[action_indexes[3] + 15] = 1
         return encoding
 
-    def find_closet_real_number(self, number):
+    def _find_closet_real_number(self, number):
         if abs(-1 - number) <= abs(-0.5 - number):
             return 0
         if abs(-0.5 - number) <= abs(0.0 - number):
@@ -143,13 +156,13 @@ class ActionHandler:
             return 3
         return 4
 
-    def compare_actions(self, action1, action2):
+    def _compare_actions(self, action1, action2):
         loss = 0
         for i in range(len(action1)):
             loss += abs(action1[i] - action2[i])
         return loss
 
-    def find_matching_action(self, real_action):
+    def _find_matching_action(self, real_action):
         # first time we do a close match I guess
         if self.action_map.has_key(real_action):
             #print('found a matching object!')
@@ -159,7 +172,7 @@ class ActionHandler:
         counter = 0
         current_loss = sys.float_info.max
         for action in self.actions:
-            loss = self.compare_actions(action, real_action)
+            loss = self._compare_actions(action, real_action)
             if loss < current_loss:
                 current_loss = loss
                 closest_action = action
@@ -167,7 +180,7 @@ class ActionHandler:
             counter += 1
         return index_of_action
 
-    def create_one_hot_encoding(self, index):
+    def _create_one_hot_encoding(self, index):
         array = np.zeros(self.get_action_size())
         array[index] = 1
         return array

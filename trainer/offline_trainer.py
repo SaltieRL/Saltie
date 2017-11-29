@@ -1,6 +1,7 @@
 import os
 from conversions import binary_converter
 from trainer import copy_trainer
+from trainer import reward_trainer
 import time
 
 def get_all_files():
@@ -8,13 +9,13 @@ def get_all_files():
     training_path = dir_path + '\\training'
     files = []
     exclude_paths = set(['data'])
-    exclude_files = set(['Saltie'])
+    exclude_files = set([''])
     for (dirpath, dirnames, filenames) in os.walk(training_path):
         dirnames[:] = [d for d in dirnames if d not in exclude_paths]
         for file in filenames:
             skip_file = False
             for excluded_name in exclude_files:
-                if excluded_name in file:
+                if excluded_name in file and excluded_name != '':
                     print('exclude file: ' + file)
                     skip_file = True
                     break
@@ -26,7 +27,7 @@ def get_all_files():
 
 def get_trainer_class():
     #fill your input function here!
-    return copy_trainer.CopyTrainer
+    return reward_trainer.RewardTrainer
 
 
 if __name__ == '__main__':

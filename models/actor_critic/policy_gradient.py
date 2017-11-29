@@ -66,3 +66,6 @@ class PolicyGradient(BaseActorCritic):
         with tf.name_scope("train_actor_critic"):
             # apply gradients to update actor network
             return self.optimizer.apply_gradients(gradients)
+
+    def get_model_name(self):
+        return 'a_c_policy_gradient'

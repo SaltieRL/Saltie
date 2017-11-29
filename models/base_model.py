@@ -41,7 +41,7 @@ class BaseModel:
         self._create_variables()
 
         # create model
-        self.model = self.create_model(self.input)
+        self.model, self.logits = self.create_model(self.input)
 
         self.saver = tf.train.Saver()
 
@@ -97,8 +97,10 @@ class BaseModel:
         :return:
             A tensorflow object representing the output of the model
             This output should be able to be run and create an action
+            And a tensorflow object representing the logits of the model
+            This output should be able to be used in training
         """
-        return None
+        return None, None
 
     def initialize_model(self):
         """
@@ -137,7 +139,7 @@ class BaseModel:
         :return: The path of the file
         """
         dir_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-        return dir_path + "\\training\\" + self.get_model_name() + "\\" + filename
+        return dir_path + "\\training\\data\\" + self.get_model_name() + "\\" + filename
 
     def _add_summary_writer(self):
         if self.summary_writer is not None:

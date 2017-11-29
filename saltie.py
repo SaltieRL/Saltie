@@ -21,7 +21,7 @@ class Agent:
         self.inp = InputFormatter(team, index)
         self.reward_manager = reward_manager.RewardManager()
         config = tf.ConfigProto(
-            device_count={'GPU': 1}
+            device_count={'GPU': 0}
         )
         self.sess = tf.Session(config=config)
         #self.sess = tf.Session()
