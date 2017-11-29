@@ -19,7 +19,7 @@ class Agent:
     def __init__(self, name, team, index):
         self.index = index
         self.inp = InputFormatter(team, index)
-        self.reward_manager = reward_manager.RewardManager(name, team, index, self.inp)
+        self.reward_manager = reward_manager.RewardManager()
         config = tf.ConfigProto(
             device_count={'GPU': 1}
         )
@@ -42,25 +42,24 @@ class Agent:
         #return rnn_atba.RNNAtba
         return policy_gradient.PolicyGradient
 
-    def get_reward(self, packet):
-        reward = self.reward_manager.get_reward(packet)
-        self.reward_manager.update_from_packet(packet)
+    def get_reward(self, input_state):
+        reward = self.reward_manager.get_reward(input_state)
         return reward
 
     def get_output_vector(self, game_tick_packet):
-        state, features = self.inp.create_input_array(game_tick_packet)
-        state = np.append(state, features)
-        if self.state_dim != len(state):
-            print('wrong input size', self.index, len(state))
+        input_state, features = self.inp.create_input_array(game_tick_packet)
+        input_state = np.append(input_state, features)
+        if self.state_dim != len(input_state):
+            print('wrong input size', self.index, len(input_state))
             return self.actions_handler.create_controller_from_selection(
                 self.actions_handler.get_random_option()) # do not return anything
 
-        reward = self.get_reward(game_tick_packet)
+        reward = self.get_reward(input_state)
 
         if self.previous_action is not None:
-            self.model.store_rollout(state, self.previous_action, reward)
+            self.model.store_rollout(input_state, self.previous_action, reward)
 
-        action = self.model.sample_action(np.array(state).reshape((1, -1)))
+        action = self.model.sample_action(np.array(input_state).reshape((1, -1)))
         if action is None:
             print("invalid action no type returned")
         if random.random() < 0.00005 or action is None:

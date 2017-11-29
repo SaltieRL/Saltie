@@ -3,10 +3,12 @@ from modelHelpers import feature_creator
 
 
 def get_state_dim_with_features():
-    return 197
+    return 198
 
 
 class InputFormatter:
+    last_score_diff = 0
+
     """
     This is a class that takes in a game_tick_packet and will return an array of that value
     """
@@ -49,8 +51,11 @@ class InputFormatter:
         game_info = self.get_game_info(game_tick_packet)
         boost_info = self.get_boost_info(game_tick_packet)
         score_info = self.get_score_info(game_tick_packet.gamecars[self.index].Score)
-        total_score = [ownTeamScore, enemyTeamScore]
-        self.total_score = total_score
+        total_score = enemyTeamScore - ownTeamScore
+        # we subtract so that when they score it becomes negative for this frame
+        # and when we score it is positive
+        diff_in_score = self.last_score_diff - total_score
+        score_info.append(diff_in_score)
 
         extra_features = feature_creator.get_extra_features(game_tick_packet, self.index)
 

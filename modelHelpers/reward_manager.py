@@ -1,9 +1,9 @@
 from modelHelpers.feature_creator import get_distance_location
-import copy
+from conversions import output_formatter
+
 
 class RewardManager:
     previous_reward = 0
-    previous_action = 0
     previous_score = 0
     previous_enemy_goals = 0
     previous_team_goals = 0
@@ -12,51 +12,34 @@ class RewardManager:
     previous_ball_location = None
     previous_saves = 0
 
-
-    def __init__(self, name, team, index, input_formatter):
-        self.name = name
-        self.team = team
-        self.index = index
-        self.input_converter = input_formatter
-
-    def update_from_packet(self, packet):
-        self.previous_saves = packet.gamecars[self.index].Score.Saves
-        self.previous_score = packet.gamecars[self.index].Score.Score
-        self.previous_game_score = self.input_converter.total_score
-        self.previous_ball_location = copy.deepcopy(packet.gameball.Location)
-        self.previous_car_location = copy.deepcopy(packet.gamecars[self.index].Location)
-
-    def calculate_save_reward(self, packet):
+    def calculate_save_reward(self, score_info):
         """
         :return: change in score.  More score = more reward
         """
-        return (packet.gamecars[self.index].Score.Saves - self.previous_saves) * 70 / 100
+        return (score_info.Saves - self.previous_saves) / 2.2
 
-    def calculate_goal_reward(self):
+    def calculate_goal_reward(self, fame_score_diff):
         """
         :return: change in my team goals - change in enemy team goals should always be 1, 0, -1
         """
-        return (self.input_converter.total_score[0] - self.previous_game_score[0]) - \
-               (self.input_converter.total_score[1] - self.previous_game_score[1])
+        return fame_score_diff
 
-    def calculate_score_reward(self, packet):
+    def calculate_score_reward(self, score_info):
         """
         :return: change in score.  More score = more reward
         """
-        return (packet.gamecars[self.index].Score.Score - self.previous_score) / 100.0
+        return (score_info.Score - self.previous_score) / 100.0
 
-
-
-    def calculate_ball_follow_change_reward(self, packet):
+    def calculate_ball_follow_change_reward(self, car_location, ball_location):
         """
         When the car moves closer to the ball it gets a reward
         When it moves further it gets punished
         """
         if self.previous_car_location is None or self.previous_ball_location is None:
             return 0
-        current_distance = get_distance_location(packet.gamecars[self.index].Location, packet.gameball.Location)
+        current_distance = get_distance_location(car_location, ball_location)
         previous_distance = get_distance_location(self.previous_car_location, self.previous_ball_location)
-        #moving faster = bigger reward or bigger punishment
+        # moving faster = bigger reward or bigger punishment
         distance_change = (previous_distance - current_distance) / 100.0
         return min(max(distance_change, 0), .1)
 
@@ -72,8 +55,29 @@ class RewardManager:
         A handcoded control reward so that the closer it gets to the correct output the better for scalers
         """
 
-    def get_reward(self, packet):
-        return max(-1.0, min(1.0,
-                self.calculate_ball_follow_change_reward(packet) +
-                (self.calculate_goal_reward() + self.calculate_score_reward(packet)) / 2 +
-                self.calculate_save_reward(packet)))
+    def get_reward(self, array):
+
+        score_info = output_formatter.get_score_info(output_formatter.GAME_INFO_OFFSET)
+        car_location = output_formatter.create_3D_point(array,
+                                                        output_formatter.GAME_INFO_OFFSET + output_formatter.SCORE_INFO_OFFSET)
+
+        ball_location = output_formatter.create_3D_point(array,
+                                                         output_formatter.GAME_INFO_OFFSET +
+                                                         output_formatter.SCORE_INFO_OFFSET +
+                                                         output_formatter.CAR_INFO_OFFSET)
+
+        # current if you score a goal you will get a reward of 2 that is capped at 1
+        # we need some kind of better scaling
+        reward = max(-1.0, min(1.0,
+                self.calculate_goal_reward(score_info.FrameScoreDiff) +
+                self.calculate_ball_follow_change_reward(car_location, ball_location) +
+                self.calculate_score_reward(score_info)) +
+                self.calculate_save_reward(score_info))
+
+        self.previous_saves = score_info.Saves
+        self.previous_score = score_info.Score
+        self.previous_ball_location = ball_location
+        self.previous_car_location = car_location
+        self.previous_reward = reward
+
+        return reward

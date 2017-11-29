@@ -65,8 +65,6 @@ class BaseReinforcment(base_model.BaseModel):
         self.action_buffer.append(action)
         self.reward_buffer.append(reward)
         self.state_buffer.append(state)
-        if (len(self.action_buffer)) == 10:
-            self.updateModel()
 
     def updateModel(self):
         N = len(self.reward_buffer)

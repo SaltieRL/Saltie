@@ -1,4 +1,5 @@
 from math import sqrt
+from conversions import output_formatter
 import math
 
 UCONST_Pi = 3.1415926
@@ -7,14 +8,14 @@ URotationToRadians = UCONST_Pi / URotation180
 
 
 def get_extra_features_from_array(array):
-    car_loc = 1 + 7
+    car_loc = output_formatter.GAME_INFO_OFFSET + output_formatter.SCORE_INFO_OFFSET
     car_x = array[car_loc]
     car_y = array[car_loc + 1]
     car_z = array[car_loc + 2]
     car_rot_pitch = array[car_loc + 3]
     car_rot_yaw = array[car_loc + 4]
 
-    ball_loc = car_loc + 17
+    ball_loc = car_loc + output_formatter.CAR_INFO_OFFSET
     ball_x = array[ball_loc]
     ball_y = array[ball_loc + 1]
     ball_z = array[ball_loc + 2]
