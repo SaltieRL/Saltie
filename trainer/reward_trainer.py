@@ -5,6 +5,7 @@ from modelHelpers import feature_creator
 from modelHelpers import reward_manager
 from models.atbas import rnn_atba
 from models.actor_critic import base_actor_critic
+from models.actor_critic import policy_gradient
 from models.atbas import nnatba
 
 import numpy as np
@@ -43,7 +44,8 @@ class RewardTrainer:
     def get_model(self):
         #return rnn_atba.RNNAtba
         #return nnatba.NNAtba
-        return base_actor_critic.BaseActorCritic
+        #return base_actor_critic.BaseActorCritic
+        return policy_gradient.PolicyGradient
 
     def start_new_file(self):
         self.file_number += 1
@@ -76,10 +78,10 @@ class RewardTrainer:
         self.batch_process()
         if self.file_number % 3 == 0:
             saver = tf.train.Saver()
-            file_path = self.agent.get_model_path("trained_variables_drop" + str(self.file_number) + ".ckpt")
+            file_path = self.agent.get_model_path(self.agent.get_default_file_name() + str(self.file_number) + ".ckpt")
             saver.save(self.sess, file_path)
 
     def end_everything(self):
         saver = tf.train.Saver()
-        file_path = self.agent.get_model_path("trained_variables_drop.ckpt")
+        file_path = self.agent.get_model_path(self.agent.get_default_file_name() + ".ckpt")
         saver.save(self.sess, file_path)

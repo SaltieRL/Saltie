@@ -112,16 +112,17 @@ class BaseModel:
 
         #file does not exist too lazy to add check
 
-        model_file = self.get_model_path("trained_variables.ckpt")
+        model_file = self.get_model_path(self.get_default_file_name() + '.ckpt')
         print(model_file)
         if os.path.isfile(model_file + '.meta'):
             print('loading existing model')
             try:
                 self.saver.restore(self.sess, model_file)
             except:
+                print("Unexpected error loading model:", sys.exc_info())
                 print('unable to load model')
         else:
-            print('unable to load model')
+            print('unable to find model to load')
 
         self._add_summary_writer()
         self.is_initialized = True
@@ -131,6 +132,9 @@ class BaseModel:
         :return: The name of the model used for saving the file
         """
         return 'base_model'
+
+    def get_default_file_name(self):
+        return 'trained_variables'
 
     def get_model_path(self, filename):
         """

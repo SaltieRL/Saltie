@@ -68,4 +68,4 @@ class PolicyGradient(BaseActorCritic):
             return self.optimizer.apply_gradients(gradients)
 
     def get_model_name(self):
-        return 'a_c_policy_gradient'
+        return 'a_c_policy_gradient' + ('_split' if self.action_handler.is_split_mode else '')
