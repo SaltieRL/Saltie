@@ -15,7 +15,7 @@ def get_all_files():
     dir_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
     training_path = dir_path + '\\training'
     files = []
-    exclude_paths = {'data'}
+    exclude_paths = {'data', 'ignore'}
     exclude_files = {''}
     for (dirpath, dirnames, filenames) in os.walk(training_path):
         dirnames[:] = [d for d in dirnames if d not in exclude_paths]
