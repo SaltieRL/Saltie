@@ -54,15 +54,15 @@ class Agent:
             return self.actions_handler.create_controller_from_selection(
                 self.actions_handler.get_random_option()) # do not return anything
 
-        reward = self.get_reward(input_state)
+        if self.model.is_training:
+            reward = self.get_reward(input_state)
 
-        if self.previous_action is not None:
-            self.model.store_rollout(input_state, self.previous_action, reward)
+            if self.previous_action is not None:
+                self.model.store_rollout(input_state, self.previous_action, reward)
 
         action = self.model.sample_action(np.array(input_state).reshape((1, -1)))
         if action is None:
             print("invalid action no type returned")
-        if random.random() < 0.00005 or action is None:
             action = self.actions_handler.get_random_option()
         self.previous_action = action
         return self.actions_handler.create_controller_from_selection(action)
