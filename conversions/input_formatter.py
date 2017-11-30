@@ -1,4 +1,5 @@
 import numpy as np
+import game_data_struct
 from modelHelpers import feature_creator
 
 
@@ -24,6 +25,10 @@ class InputFormatter:
         :param game_tick_packet: A game packet for a single point in time
         :return: A massive array representing that packet
         """
+
+        if self.team == 1:
+            game_data_struct.rotate_game_tick_packet_boost_omitted(game_tick_packet)
+
         team_members = []
         enemies = []
         ownTeamScore = 0
