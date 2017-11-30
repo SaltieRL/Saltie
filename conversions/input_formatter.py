@@ -3,7 +3,7 @@ from modelHelpers import feature_creator
 
 
 def get_state_dim_with_features():
-    return 196
+    return 194
 
 
 class InputFormatter:
@@ -131,7 +131,8 @@ class InputFormatter:
 
     def get_boost_info(self, game_tick_packet):
         game_inputs = []
-        for i in range(game_tick_packet.numBoosts):
+        # limit this to 33 boosts total
+        for i in range(34):
             game_inputs.append(game_tick_packet.gameBoosts[i].bActive)
             game_inputs.append(game_tick_packet.gameBoosts[i].Timer)
         return game_inputs
