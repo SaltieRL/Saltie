@@ -1,15 +1,22 @@
 import os
-from conversions import binary_converter
-from trainer import copy_trainer
-from trainer import reward_trainer
 import time
+import sys
+import inspect
+currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parentdir = os.path.dirname(currentdir)
+sys.path.insert(0,parentdir)
+
+from conversions import binary_converter
+from trainer import reward_trainer
+from trainer.model_eval_trainer import EvalTrainer
+
 
 def get_all_files():
     dir_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
     training_path = dir_path + '\\training'
     files = []
-    exclude_paths = set(['data'])
-    exclude_files = set([''])
+    exclude_paths = {'data'}
+    exclude_files = {''}
     for (dirpath, dirnames, filenames) in os.walk(training_path):
         dirnames[:] = [d for d in dirnames if d not in exclude_paths]
         for file in filenames:
@@ -26,8 +33,8 @@ def get_all_files():
 
 
 def get_trainer_class():
-    #fill your input function here!
-    return reward_trainer.RewardTrainer
+    # fill your input function here!
+    return EvalTrainer
 
 
 if __name__ == '__main__':
