@@ -80,7 +80,7 @@ class BaseActorCritic(base_reinforcement.BaseReinforcment):
         # return actions[0]
 
         # epsilon-greedy exploration strategy
-        if random.random() < self.exploration and False:
+        if random.random() < self.exploration:
             return self.action_handler.get_random_option()
         else:
             softmax = self.action_handler.run_func_on_split_tensors(self.action_scores,

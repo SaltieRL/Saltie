@@ -15,7 +15,7 @@ class BaseReinforcment(base_model.BaseModel):
                  optimizer=tf.train.GradientDescentOptimizer(learning_rate=0.1),
                  summary_writer=None,
                  summary_every=100,
-                 init_exp=0.1,  # initial exploration prob
+                 init_exp=0.05,  # initial exploration prob
                  final_exp=0.0,  # final exploration prob
                  anneal_steps=1000,  # N steps for annealing exploration
                  discount_factor=0.99,  # discount future rewards
@@ -73,9 +73,14 @@ class BaseReinforcment(base_model.BaseModel):
         self.no_op = tf.no_op()
 
     def store_rollout(self, input_state, last_action, reward):
-        self.action_buffer.append(last_action)
-        self.reward_buffer.append(reward)
-        self.state_buffer.append(input_state)
+        if  not self.is_training:
+            self.action_buffer.append(last_action)
+            self.reward_buffer.append(reward)
+            self.state_buffer.append(input_state)
+
+        if len(self.action_buffer) > 10000:
+            #just in case we should not have this large of a buffer
+            self.clean_up()
 
     def update_model(self):
         N = len(self.reward_buffer)

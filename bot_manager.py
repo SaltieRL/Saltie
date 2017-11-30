@@ -6,11 +6,11 @@ import os
 import struct
 from ctypes import *
 from datetime import datetime
-
 import bot_input_struct as bi
 import game_data_struct as gd
 import rate_limiter
 from conversions import input_formatter, binary_converter as compressor
+import time
 
 OUTPUT_SHARED_MEMORY_TAG = 'Local\\RLBotOutput'
 INPUT_SHARED_MEMORY_TAG = 'Local\\RLBotInput'
@@ -72,6 +72,7 @@ class BotManager:
         # Run until main process tells to stop
         while not self.terminateEvent.is_set():
             before = datetime.now()
+            before2 = time.time()
 
             # Read from game data shared memory
             game_data_shared_memory.seek(0)  # Move to beginning of shared memory
@@ -106,7 +107,10 @@ class BotManager:
 
             # Ratelimit here
             after = datetime.now()
-            #print('Latency of ' + self.name + ': ' + str(after - before))
+            after2 = time.time()
+            if after2 - before2 > 0.03:
+                print('Too slow for ' + self.name + ': ' + str(after2 - before2))
+            #print('Latency of ' + self.name + ': ' + str(after2 - before2))
 
             r.acquire(after-before)
 
