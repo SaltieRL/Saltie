@@ -68,6 +68,7 @@ class BotManager:
             self.game_file = open(filename.replace(" ", ""), 'wb')
         old_time = 0
         current_time = -10
+        counter = 0
 
         # Run until main process tells to stop
         while not self.terminateEvent.is_set():
@@ -109,7 +110,11 @@ class BotManager:
             after = datetime.now()
             after2 = time.time()
             if after2 - before2 > 0.03:
-                print('Too slow for ' + self.name + ': ' + str(after2 - before2))
+                print('Too slow for ' + self.name + ': ' + str(after2 - before2) +
+                      ' frames since slowdown ' + str(counter))
+                counter = 0
+            else:
+                counter += 1
             #print('Latency of ' + self.name + ': ' + str(after2 - before2))
 
             r.acquire(after-before)
