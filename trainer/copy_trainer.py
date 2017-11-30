@@ -69,7 +69,7 @@ class CopyTrainer:
         #print(label)
         self.label_batch.append(label)
 
-    def process_pair(self, input_array, output_array, pair_number):
+    def process_pair(self, input_array, output_array, pair_number, file_version):
         self.add_pair(input_array, output_array)
         if len(self.input_batch) == self.batch_size:
             self.batch_process()

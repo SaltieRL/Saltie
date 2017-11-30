@@ -28,7 +28,7 @@ class EvalTrainer:
         self.last_action = None
         self.reward_manager = reward_manager.RewardManager()
 
-    def process_pair(self, input_array, output_array, pair_number):
+    def process_pair(self, input_array, output_array, pair_number, file_version):
         reward = self.reward_manager.get_reward(input_array)
         # print (input_array[8], reward, self.file_frame_count)
         self.total_reward += reward

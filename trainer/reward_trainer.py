@@ -52,7 +52,7 @@ class RewardTrainer:
         self.last_action = None
         self.reward_manager = reward_manager.RewardManager()
 
-    def process_pair(self, input_array, output_array, pair_number):
+    def process_pair(self, input_array, output_array, pair_number, file_version):
         extra_features = feature_creator.get_extra_features_from_array(input_array)
 
         input_state = np.append(input_array, extra_features)

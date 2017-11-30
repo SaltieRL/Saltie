@@ -66,6 +66,7 @@ class BotManager:
             filename = self.game_name + '\\' + self.name + '.bin'
             print('creating file ' + filename)
             self.game_file = open(filename.replace(" ", ""), 'wb')
+            compressor.write_version_info(self.game_file, compressor.FLIPPED_FILE_VERSION)
         old_time = 0
         current_time = -10
         counter = 0
@@ -101,15 +102,15 @@ class BotManager:
             if self.save_data and game_tick_packet.gameInfo.bRoundActive and not old_time == current_time and not current_time == -10:
                 np_input, _ = self.input_converter.create_input_array(game_tick_packet)
                 np_output = np.array(controller_input, dtype=np.float32)
-                self.write_array_to_file(np_input)
-                self.write_array_to_file(np_output)
+                compressor.write_array_to_file(self.game_file, np_input)
+                compressor.write_array_to_file(self.game_file, np_output)
 
             old_time = current_time
 
             # Ratelimit here
             after = datetime.now()
             after2 = time.time()
-            if after2 - before2 > 0.03:
+            if after2 - before2 > 0.1:
                 print('Too slow for ' + self.name + ': ' + str(after2 - before2) +
                       ' frames since slowdown ' + str(counter))
                 counter = 0
@@ -123,11 +124,7 @@ class BotManager:
         print("something ended closing file")
         self.callbackEvent.set()
 
-    def write_array_to_file(self, array):
-        bytes = compressor.convert_numpy_array(array)
-        size_of_bytes = len(bytes.getvalue())
-        self.game_file.write(struct.pack('i', size_of_bytes))
-        self.game_file.write(bytes.getvalue())
+
 
 if __name__ == '__main__':
     open('training/')

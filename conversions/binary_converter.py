@@ -4,6 +4,17 @@ import numpy as np
 import os
 
 
+EMPTY_FILE = 'empty'
+NON_FLIPPED_FILE_VERSION = 0
+FLIPPED_FILE_VERSION = 1
+
+
+def write_array_to_file(game_file, array):
+    bytes = convert_numpy_array(array)
+    size_of_bytes = len(bytes.getvalue())
+    game_file.write(struct.pack('i', size_of_bytes))
+    game_file.write(bytes.getvalue())
+
 def convert_numpy_array(numpy_array):
     """
     Converts a numpy array into compressed bytes
@@ -15,6 +26,25 @@ def convert_numpy_array(numpy_array):
     return compressed_array
 
 
+def write_version_info(file, version_number):
+    file.write(struct.pack('i', version_number))
+
+
+def get_file_verision(file):
+    dir_name = os.path.basename(os.path.dirname(file.name))
+    time = dir_name.split('-')[0]
+    print('time: ' + time)
+    if int(time) < 1512069505446:
+        return NON_FLIPPED_FILE_VERSION
+    try:
+        chunk = file.read(4)
+        file_version = struct.unpack('i', chunk)[0]
+        return str(file_version)
+    except:
+        print('file was empty')
+        return EMPTY_FILE
+
+
 def read_data(file, process_pair_function):
     """
     Reads a file.  Quits if anything breaks.
@@ -24,6 +54,12 @@ def read_data(file, process_pair_function):
     It always starts at 0
     :return: None
     """
+
+    file_version = get_file_verision(file)
+    if file_version == EMPTY_FILE:
+        return
+
+    print('replay version:', file_version)
 
     pair_number = 0
     totalbytes = 0
@@ -40,7 +76,7 @@ def read_data(file, process_pair_function):
                 totalbytes += 4
                 break
             output_array, num_bytes = get_array(file, chunk)
-            process_pair_function(input_array, output_array, pair_number)
+            process_pair_function(input_array, output_array, pair_number, file_version)
             pair_number += 1
             totalbytes += num_bytes + 4
         except EOFError:
