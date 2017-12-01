@@ -40,7 +40,8 @@ class BaseReinforcment(base_model.BaseModel):
         self.final_exp = final_exp
         self.anneal_steps = anneal_steps
 
-        self.create_reinforcement_training_model()
+        if self.is_training:
+            self.create_reinforcement_training_model()
 
     def create_copy_training_model(self, batch_size):
         self.labels = tf.placeholder(tf.int64, shape=(None, self.num_actions))

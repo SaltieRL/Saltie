@@ -5,6 +5,7 @@ import tensorflow as tf
 import random
 
 class BaseActorCritic(base_reinforcement.BaseReinforcment):
+    is_evaluating = True
 
     def __init__(self, session,
                  state_dim,
@@ -80,7 +81,8 @@ class BaseActorCritic(base_reinforcement.BaseReinforcment):
         # return actions[0]
 
         # epsilon-greedy exploration strategy
-        if random.random() < self.exploration:
+        if random.random() < self.exploration and not self.is_evaluating:
+            print('random action used')
             return self.action_handler.get_random_option()
         else:
             softmax = self.action_handler.run_func_on_split_tensors(self.action_scores,
