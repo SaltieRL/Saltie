@@ -38,6 +38,10 @@ class BaseActorCritic(base_reinforcement.BaseReinforcment):
         # get variable list
         self.actor_network_variables = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope="actor_network")
         self.critic_network_variables = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope="critic_network")
+
+        self.softmax = self.action_handler.run_func_on_split_tensors(self.action_scores,
+                                                                     lambda input_tensor: tf.nn.softmax(input_tensor),
+                                                                     return_as_list=True)
         return self.predicted_actions, self.action_scores
 
     def create_reinforcement_training_model(self):
@@ -88,15 +92,14 @@ class BaseActorCritic(base_reinforcement.BaseReinforcment):
             return self.action_handler.get_random_option()
         else:
             self.frames_since_last_random_action += 1
-            softmax = self.action_handler.run_func_on_split_tensors(self.action_scores,
-                                                                    lambda input_tensor: tf.nn.softmax(input_tensor),
-                                                                    return_as_list=True)
-            action_scores = self.sess.run(softmax, {self.input: input_state})
+
+            action_scores = self.sess.run(self.softmax, {self.input: input_state})
 
             action = self.action_handler.\
                 optionally_split_numpy_arrays(action_scores,
                                               lambda input_array: np.argmax(np.random.multinomial(1, input_array[0])),
                                               is_already_split=True)
+
             return action
 
     def actor_network(self, input_states):
