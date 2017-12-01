@@ -8,6 +8,8 @@ EMPTY_FILE = 'empty'
 NON_FLIPPED_FILE_VERSION = 0
 FLIPPED_FILE_VERSION = 1
 
+BYTES_OBJECT = io.BytesIO()
+
 
 def write_array_to_file(game_file, array):
     bytes = convert_numpy_array(array)
@@ -21,7 +23,7 @@ def convert_numpy_array(numpy_array):
     :param numpy_array: An array that is going to be converted into bytes
     :return: A BytesIO object that contains compressed bytes
     """
-    compressed_array = io.BytesIO()    # np.savez_compressed() requires a file-like object to write to
+    compressed_array = BYTES_OBJECT    # np.savez_compressed() requires a file-like object to write to
     np.savez_compressed(compressed_array, numpy_array)
     return compressed_array
 

@@ -110,7 +110,8 @@ class BotManager:
             # Ratelimit here
             after = datetime.now()
             after2 = time.time()
-            if after2 - before2 > 0.03:
+            # 60 fps
+            if after2 - before2 > 0.01666:
               #  pass
                 print('Too slow for ' + self.name + ': ' + str(after2 - before2) +
                       ' frames since slowdown ' + str(counter))
