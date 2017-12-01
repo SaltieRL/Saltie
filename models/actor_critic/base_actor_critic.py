@@ -6,6 +6,7 @@ import random
 
 class BaseActorCritic(base_reinforcement.BaseReinforcment):
     is_evaluating = True
+    frames_since_last_random_action = 0
 
     def __init__(self, session,
                  state_dim,
@@ -81,10 +82,12 @@ class BaseActorCritic(base_reinforcement.BaseReinforcment):
         # return actions[0]
 
         # epsilon-greedy exploration strategy
-        if random.random() < self.exploration and not self.is_evaluating:
-            print('random action used')
+        if (random.random() * (500.0 - self.frames_since_last_random_action)) < self.exploration and not self.is_evaluating:
+            print('random action used', str(self.frames_since_last_random_action))
+            self.frames_since_last_random_action = 0
             return self.action_handler.get_random_option()
         else:
+            self.frames_since_last_random_action += 1
             softmax = self.action_handler.run_func_on_split_tensors(self.action_scores,
                                                                     lambda input_tensor: tf.nn.softmax(input_tensor),
                                                                     return_as_list=True)
