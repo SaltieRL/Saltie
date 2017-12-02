@@ -4,7 +4,7 @@ import numpy as np
 import tensorflow as tf
 import random
 
-class BaseActorCritic(base_reinforcement.BaseReinforcment):
+class BaseActorCritic(base_reinforcement.BaseReinforcement):
     is_evaluating = True
     frames_since_last_random_action = 0
     network_size = 128

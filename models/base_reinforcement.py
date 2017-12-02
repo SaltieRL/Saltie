@@ -2,7 +2,7 @@ from models import base_model
 import numpy as np
 import tensorflow as tf
 
-class BaseReinforcment(base_model.BaseModel):
+class BaseReinforcement(base_model.BaseModel):
     """"
     This is the actor critic model.
     """
