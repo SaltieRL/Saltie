@@ -4,7 +4,7 @@ from modelHelpers import feature_creator
 
 
 def get_state_dim_with_features():
-    return 194
+    return 206
 
 
 class InputFormatter:
@@ -78,7 +78,7 @@ class InputFormatter:
         """
         :return: An array representing a car with no data
         """
-        return [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+        return [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
 
     def get_car_info(self, game_tick_packet, index):
         player_x = game_tick_packet.gamecars[index].Location.X
@@ -99,11 +99,11 @@ class InputFormatter:
         player_team = game_tick_packet.gamecars[index].Team
         player_boost = game_tick_packet.gamecars[index].Boost
         last_touched_ball = (game_tick_packet.gamecars[index].wName ==
-                                game_tick_packet.BallInfo.LatestTouch.wPlayerName)
+                                game_tick_packet.gameball.LatestTouch.wPlayerName)
         return [player_x, player_y, player_z, player_pitch, player_yaw, player_roll,
                 player_speed_x, player_speed_y, player_speed_z, player_angular_speed_x,
                 player_angular_speed_y, player_angular_speed_z, player_demolished, player_jumped,
-                player_double_jumped, player_team, player_boost, last_touched_ball], last_touched_ball
+                player_double_jumped, player_team, player_boost, last_touched_ball]
 
     def get_game_info(self, game_tick_packet):
         game_ball_hit = game_tick_packet.gameInfo.bBallHasBeenHit
@@ -134,12 +134,12 @@ class InputFormatter:
         ball_acceleration_z = game_tick_packet.gameball.Acceleration.Z
 
         # touch info
-        ball_touch_x = game_tick_packet.gameball.Touch.sHitLocation.X
-        ball_touch_y = game_tick_packet.gameball.Touch.sHitLocation.Y
-        ball_touch_z = game_tick_packet.gameball.Touch.sHitLocation.Z
-        ball_touch_speed_x = game_tick_packet.gameball.Touch.sHitNormal.X
-        ball_touch_speed_y = game_tick_packet.gameball.Touch.sHitNormal.Y
-        ball_touch_speed_z = game_tick_packet.gameball.Touch.sHitNormal.Z
+        ball_touch_x = game_tick_packet.gameball.LatestTouch.sHitLocation.X
+        ball_touch_y = game_tick_packet.gameball.LatestTouch.sHitLocation.Y
+        ball_touch_z = game_tick_packet.gameball.LatestTouch.sHitLocation.Z
+        ball_touch_speed_x = game_tick_packet.gameball.LatestTouch.sHitNormal.X
+        ball_touch_speed_y = game_tick_packet.gameball.LatestTouch.sHitNormal.Y
+        ball_touch_speed_z = game_tick_packet.gameball.LatestTouch.sHitNormal.Z
         return [ball_x, ball_y, ball_z,
                 ball_pitch, ball_yaw, ball_roll,
                 ball_speed_x, ball_speed_y, ball_speed_z,
