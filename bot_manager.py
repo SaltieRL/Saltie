@@ -1,10 +1,10 @@
 import ctypes
+import gzip
 import importlib
 import mmap
 import os
-import time
-import gzip
 import shutil
+import time
 from datetime import datetime
 
 import numpy as np
@@ -13,8 +13,19 @@ import requests
 import bot_input_struct as bi
 import game_data_struct as gd
 import rate_limiter
+UPLOAD_SERVER = None
+uploading = False
+try:
+    import config
+    uploading = True
+    UPLOAD_SERVER = config.UPLOAD_SERVER
+except:
+    print('config.py not present, cannot upload replays to collective server')
+    print('Check Discord server for information')
+
 from conversions import input_formatter, binary_converter as compressor
-UPLOAD_SERVER = 'http://127.0.0.1'
+
+
 OUTPUT_SHARED_MEMORY_TAG = 'Local\\RLBotOutput'
 INPUT_SHARED_MEMORY_TAG = 'Local\\RLBotInput'
 RATE_LIMITED_ACTIONS_PER_SECOND = 60
@@ -139,13 +150,14 @@ class BotManager:
             for x in range(1, self.file_number + 1):
                 filename = self.game_name + '\\' + self.name + '-' + str(x) + '.bin'
                 compressed = self.compress(filename)
-                self.upload_replay(compressed, "http://127.0.0.1/")
+                if uploading:
+                    self.upload_replay(compressed, UPLOAD_SERVER)
         self.callbackEvent.set()
 
     def upload_replay(self, fn, server_ip):
         with open(fn, 'rb') as f:
             r = requests.post(server_ip, files={'file': f})
-            print ('Upload', r.json()['status'])
+            print('Upload', r.json()['status'])
 
     def compress(self, filename):
         output = filename + '.gz'
