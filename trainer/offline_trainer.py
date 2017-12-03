@@ -1,3 +1,4 @@
+import gzip
 import os
 import time
 import sys
@@ -15,12 +16,15 @@ def get_all_files():
     dir_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
     training_path = dir_path + '\\training'
     files = []
+    include_extensions = {'gz'}
     exclude_paths = {'data', 'ignore'}
     exclude_files = {''}
     for (dirpath, dirnames, filenames) in os.walk(training_path):
         dirnames[:] = [d for d in dirnames if d not in exclude_paths]
         for file in filenames:
             skip_file = False
+            if file.split('.')[-1] not in include_extensions:
+                continue
             for excluded_name in exclude_files:
                 if excluded_name in file and excluded_name != '':
                     print('exclude file: ' + file)
@@ -48,7 +52,7 @@ if __name__ == '__main__':
             start = time.time()
             counter += 1
             try:
-                with open(file, 'r+b') as f:
+                with gzip.open(file, 'rb') as f:
                     trainerClass.start_new_file()
                     print('running file ' + file + 'file ' + str(counter) + '/' + str(len(files)))
                     binary_converter.read_data(f, trainerClass.process_pair)

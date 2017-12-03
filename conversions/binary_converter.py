@@ -24,7 +24,7 @@ def convert_numpy_array(numpy_array):
     :return: A BytesIO object that contains compressed bytes
     """
     compressed_array = io.BytesIO()    # np.savez_compressed() requires a file-like object to write to
-    np.savez_compressed(compressed_array, numpy_array)
+    np.savez(compressed_array, numpy_array)
     return compressed_array
 
 
@@ -32,7 +32,7 @@ def write_version_info(file, version_number):
     file.write(struct.pack('i', version_number))
 
 
-def get_file_verision(file):
+def get_file_version(file):
     dir_name = os.path.basename(os.path.dirname(file.name))
     time = dir_name.split('-')[0]
     print('time: ' + time)
@@ -57,7 +57,7 @@ def read_data(file, process_pair_function):
     :return: None
     """
 
-    file_version = get_file_verision(file)
+    file_version = get_file_version(file)
     if file_version == EMPTY_FILE:
         return
 
