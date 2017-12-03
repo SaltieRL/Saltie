@@ -1,8 +1,8 @@
-import struct
 import io
-import numpy as np
 import os
+import struct
 
+import numpy as np
 
 EMPTY_FILE = 'empty'
 NON_FLIPPED_FILE_VERSION = 0
@@ -33,11 +33,6 @@ def write_version_info(file, version_number):
 
 
 def get_file_version(file):
-    dir_name = os.path.basename(os.path.dirname(file.name))
-    time = dir_name.split('-')[0]
-    print('time: ' + time)
-    if int(time) < 1512069505446:
-        return NON_FLIPPED_FILE_VERSION
     try:
         chunk = file.read(4)
         file_version = struct.unpack('i', chunk)[0]
@@ -45,6 +40,14 @@ def get_file_version(file):
     except:
         print('file was empty')
         return EMPTY_FILE
+
+def get_file_size(f):
+    # f is a file-like object.
+    old_file_position = f.tell()
+    f.seek(0, os.SEEK_END)
+    size = f.tell()
+    f.seek(old_file_position, os.SEEK_SET)
+    return size
 
 
 def read_data(file, process_pair_function):
@@ -84,7 +87,7 @@ def read_data(file, process_pair_function):
         except EOFError:
             print('reached end of file')
             break
-    file_size = os.stat(file.name).st_size
+    file_size = get_file_size(file)
     if file_size - totalbytes <= 4:
         print('read: 100% of file')
     else:
