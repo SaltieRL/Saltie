@@ -75,7 +75,8 @@ if __name__ == '__main__':
     total_time = 0
     try:
         for file in files:
-            # file.seek(0)
+            if isinstance(file, io.BytesIO):
+                file.seek(0)
             start = time.time()
             counter += 1
             try:
