@@ -118,16 +118,22 @@ class BotManager:
             current_time = game_tick_packet.gameInfo.TimeSeconds
 
             if self.save_data and game_tick_packet.gameInfo.bRoundActive and not old_time == current_time and not current_time == -10:
-                if self.frames > 20 * 60:
+                if self.frames > 20000:
+                    self.frames = 0
+                    print('adding new file and uploading')
                     self.file_number += 1
                     self.game_file.close()
                     print('creating file ' + filename)
+                    self.maybe_compress_and_upload(filename)
+                    filename = self.game_name + '\\' + self.name + '-' + str(self.file_number) + '.bin'
                     self.game_file = open(filename.replace(" ", ""), 'wb')
                     compressor.write_version_info(self.game_file, compressor.FLIPPED_FILE_VERSION)
+                    self.maybe_delete(self.file_number - 3)
                 np_input, _ = self.input_converter.create_input_array(game_tick_packet)
                 np_output = np.array(controller_input, dtype=np.float32)
                 compressor.write_array_to_file(self.game_file, np_input)
                 compressor.write_array_to_file(self.game_file, np_output)
+                self.frames += 1
 
             old_time = current_time
 
@@ -149,15 +155,23 @@ class BotManager:
         if self.save_data:
             for x in range(1, self.file_number + 1):
                 filename = self.game_name + '\\' + self.name + '-' + str(x) + '.bin'
-                compressed = self.compress(filename)
-                if uploading:
-                    self.upload_replay(compressed, UPLOAD_SERVER)
+                self.maybe_compress_and_upload(filename)
+
         self.callbackEvent.set()
+
+    def maybe_compress_and_upload(self, filename):
+        if not os.path.isfile(filename + '.gz'):
+            compressed = self.compress(filename)
+            if uploading:
+                self.upload_replay(compressed, UPLOAD_SERVER)
 
     def upload_replay(self, fn, server_ip):
         with open(fn, 'rb') as f:
             r = requests.post(server_ip, files={'file': f})
-            print('Upload', r.json()['status'])
+            try:
+                print('Upload', r.json()['status'])
+            except:
+                print('error retrieving status')
 
     def compress(self, filename):
         output = filename + '.gz'
@@ -165,6 +179,11 @@ class BotManager:
             with gzip.open(output, 'wb') as f_out:
                 shutil.copyfileobj(f_in, f_out)
         return output
+
+    def maybe_delete(self, file_number):
+        if file_number > 0:
+            filename = self.game_name + '\\' + self.name + '-' + str(file_number) + '.bin'
+            os.remove(filename)
 
 
 if __name__ == '__main__':
