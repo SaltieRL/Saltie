@@ -24,7 +24,7 @@ def convert_numpy_array(numpy_array):
     :return: A BytesIO object that contains compressed bytes
     """
     compressed_array = io.BytesIO()    # np.savez_compressed() requires a file-like object to write to
-    np.savez(compressed_array, numpy_array)
+    np.save(compressed_array, numpy_array)
     return compressed_array
 
 
@@ -113,7 +113,7 @@ def get_array(file, chunk):
     except OSError:
         print('numpy parse error')
         raise EOFError
-    return result[result.files[0]], starting_byte
+    return result, starting_byte
 
 
 def default_process_pair(input_array, output_array, pair_number):
