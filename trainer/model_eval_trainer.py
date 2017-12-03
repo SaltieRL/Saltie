@@ -45,7 +45,7 @@ class EvalTrainer:
 
     def end_file(self):
         self.batch_process()
-        print('Total reward for file:', self.file_reward)
+        print('Reward for file:', self.file_reward)
         print('Reward per frame:', self.file_reward / float(self.file_frame_count))
 
         self.file_reward = 0
@@ -57,7 +57,7 @@ class EvalTrainer:
         #     saver.save(self.sess, file_path)
 
     def end_everything(self):
-        print('Total reward for:', self.total_reward)
+        print('Total reward:', self.total_reward)
         print('Reward per frame:', self.total_reward / float(self.frame_count))
         # saver = tf.train.Saver()
         # file_path = self.agent.get_model_path(self.agent.get_default_file_name() + ".ckpt")
