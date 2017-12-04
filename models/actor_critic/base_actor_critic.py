@@ -5,7 +5,7 @@ import tensorflow as tf
 import random
 
 class BaseActorCritic(base_reinforcement.BaseReinforcement):
-    is_evaluating = True
+    is_evaluating = False
     frames_since_last_random_action = 0
     network_size = 128
 
@@ -103,33 +103,31 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
 
             return action
 
+    def _create_variables(self):
+        super()._create_variables()
+
+    def create_layer(self, activation_function, input, layer_number, input_size, output_size):
+        W = tf.get_variable("W" + str(layer_number), [input_size, output_size],
+                             initializer=tf.random_normal_initializer())
+        b = tf.get_variable("b" + str(layer_number), [output_size],
+                             initializer=tf.constant_initializer(0))
+        h = activation_function(tf.matmul(input, W) + b)
+        return h
+
     def actor_network(self, input_states):
         # define policy neural network
-        W1 = tf.get_variable("W1", [self.state_dim, self.network_size],
-                             initializer=tf.random_normal_initializer())
-        b1 = tf.get_variable("b1", [self.network_size],
-                             initializer=tf.constant_initializer(0))
-        h1 = tf.nn.tanh(tf.matmul(input_states, W1) + b1)
-        W2 = tf.get_variable("W2", [self.network_size, self.num_actions],
-                             initializer=tf.random_normal_initializer(stddev=0.1))
-        b2 = tf.get_variable("b2", [self.num_actions],
-                             initializer=tf.constant_initializer(0))
-        p = tf.matmul(h1, W2) + b2
-        return p
+        layer1 = self.create_layer(tf.nn.relu6, input_states, 1, self.state_dim, self.network_size)
+        layer2 = self.create_layer(tf.nn.relu6, layer1, 2, self.network_size, self.network_size)
+        output_layer = self.create_layer(tf.nn.sigmoid, layer2, 3, self.network_size, self.num_actions)
+
+        return output_layer
 
     def critic_network(self, input_states):
         # define policy neural network
-        W1 = tf.get_variable("W1", [self.state_dim, self.network_size],
-                             initializer=tf.random_normal_initializer())
-        b1 = tf.get_variable("b1", [self.network_size],
-                             initializer=tf.constant_initializer(0))
-        h1 = tf.nn.tanh(tf.matmul(input_states, W1) + b1)
-        W2 = tf.get_variable("W2", [self.network_size, 1],
-                             initializer=tf.random_normal_initializer())
-        b2 = tf.get_variable("b2", [1],
-                             initializer=tf.constant_initializer(0))
-        v = tf.matmul(h1, W2) + b2
-        return v
+        layer1 = self.create_layer(tf.nn.relu6, input_states, 1, self.state_dim, self.network_size)
+        layer2 = self.create_layer(tf.nn.relu6, layer1, 2, self.network_size, self.network_size)
+        output_layer = self.create_layer(tf.nn.sigmoid, layer2, 3, self.network_size, self.num_actions)
+        return output_layer
 
     def get_model_name(self):
         return 'base_actor_critic'
