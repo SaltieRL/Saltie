@@ -22,6 +22,8 @@ def download_batch(n):
     server = config.UPLOAD_SERVER
     r = requests.get(server + '/replays/list')
     replays = r.json()
+    print('num replays available', len(replays), ' num requested ', n)
+    n = min(n, len(replays))
     downloads = random.sample(replays, n)
     files = []
     for f in downloads:
