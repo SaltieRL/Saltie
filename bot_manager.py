@@ -1,11 +1,12 @@
 import ctypes
+import configparser
+from datetime import datetime
 import gzip
 import importlib
 import mmap
 import os
 import shutil
 import time
-from datetime import datetime
 
 import numpy as np
 import requests
@@ -35,7 +36,7 @@ MAX_CARS = 10
 
 
 class BotManager:
-    def __init__(self, terminateEvent, callbackEvent, name, team, index, modulename, gamename, savedata):
+    def __init__(self, terminateEvent, callbackEvent, config_file, name, team, index, modulename, gamename, savedata):
         self.terminateEvent = terminateEvent
         self.callbackEvent = callbackEvent
         self.name = name
@@ -47,6 +48,7 @@ class BotManager:
         self.input_converter = input_formatter.InputFormatter(team, index)
         self.frames = 0
         self.file_number = 1
+        self.config_file = config_file
 
     def run(self):
         # Set up shared memory map (offset makes it so bot only writes to its own input!) and map to buffer
@@ -75,7 +77,7 @@ class BotManager:
                 continue
 
         # Create bot from module
-        agent = agent_module.Agent(self.name, self.team, self.index)
+        agent = agent_module.Agent(self.name, self.team, self.index, config_file=self.config_file)
 
         if self.save_data:
             filename = self.game_name + '\\' + self.name + '-' + str(self.file_number) + '.bin'
@@ -141,7 +143,7 @@ class BotManager:
             after = datetime.now()
             after2 = time.time()
             # cant ever drop below 30 frames
-            if after2 - before2 > 0.033:
+            if after2 - before2 > 0.02:
                 print('Too slow for ' + self.name + ': ' + str(after2 - before2) +
                       ' frames since slowdown ' + str(counter))
                 counter = 0

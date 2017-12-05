@@ -43,8 +43,8 @@ def get_sanitized_bot_name(dict, name):
     return new_name
 
 
-def run_agent(terminate_event, callback_event, name, team, index, module_name, game_name, save_data):
-    bm = bot_manager.BotManager(terminate_event, callback_event, name, team, index, module_name, game_name, save_data)
+def run_agent(terminate_event, callback_event, config_file, name, team, index, module_name, game_name, save_data):
+    bm = bot_manager.BotManager(terminate_event, callback_event, config_file, name, team, index, module_name, game_name, save_data)
     bm.run()
 
 
@@ -69,6 +69,7 @@ if __name__ == '__main__':
     bot_modules = []
     processes = []
     callbacks = []
+    config_files = []
     name_dict = dict()
 
     save_data = True
@@ -121,6 +122,7 @@ if __name__ == '__main__':
         gameInputPacket.sPlayerConfiguration[i].iGoalExplosionID = bot_config.getint(BOT_CONFIG_LOADOUT_HEADER,
                                                                                      'goal_explosion_id')
 
+        config_files.append(bot_config)
         bot_names.append(bot_config.get(BOT_CONFIG_LOADOUT_HEADER, 'name'))
         bot_teams.append(framework_config.getint(PARTICPANT_CONFIGURATION_HEADER, PARTICPANT_TEAM_PREFIX + str(i)))
         if gameInputPacket.sPlayerConfiguration[i].bRLBotControlled:
@@ -135,8 +137,8 @@ if __name__ == '__main__':
     for i in range(num_participants):
         if gameInputPacket.sPlayerConfiguration[i].bRLBotControlled:
             callback = mp.Event()
-            callbacks.append(callback)
-            process = mp.Process(target=run_agent, args=(quit_event, callback, str(gameInputPacket.sPlayerConfiguration[i].wName), bot_teams[i], i, bot_modules[i], save_path + '\\' + game_name, save_data))
+            callbacks  .append(callback)
+            process = mp.Process(target=run_agent, args=(quit_event, callback, config_files[i], str(gameInputPacket.sPlayerConfiguration[i].wName), bot_teams[i], i, bot_modules[i], save_path + '\\' + game_name, save_data))
             process.start()
 
     print("Successfully configured bots. Setting flag for injected dll.")
