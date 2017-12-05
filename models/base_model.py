@@ -9,6 +9,7 @@ class BaseModel:
 
     config_file = None
     is_initialized = False
+    model_file = None
 
     """"
     This is a base class for all models It has a couple helper methods but is mainly used to provide a standard
@@ -117,10 +118,13 @@ class BaseModel:
         """
         init = tf.global_variables_initializer()
         self.sess.run(init)
+        model_file = None
 
         #file does not exist too lazy to add check
-
-        model_file = self.get_model_path(self.get_default_file_name() + '.ckpt')
+        if self.model_file is None:
+            model_file = self.get_model_path(self.get_default_file_name() + '.ckpt')
+        else:
+            model_file = self.model_file
         print(model_file)
         if os.path.isfile(model_file + '.meta'):
             print('loading existing model')
@@ -160,4 +164,7 @@ class BaseModel:
             self.summary_writer.add_graph(self.sess.graph)
 
     def load_config_file(self):
-        pass
+        try:
+            self.model_file = self.config_file.get(MODEL_CONFIGURATION_HEADER, 'model_directory')
+        except:
+            print('model directory is not in config')

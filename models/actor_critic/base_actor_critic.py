@@ -11,6 +11,7 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
     frames_since_last_random_action = 0
     network_size = 128
     num_layers = 3
+    forced_frame_action = 500
 
     def __init__(self, session,
                  state_dim,
@@ -26,11 +27,14 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
                          optimizer, summary_writer, summary_every, discount_factor)
 
     def load_config_file(self):
+        super().load_config_file()
         self.num_layers = self.config_file.getint(base_model.MODEL_CONFIGURATION_HEADER,
                                              'num_layers')
 
         self.is_evaluating = self.config_file.getboolean(base_model.MODEL_CONFIGURATION_HEADER,
                                                      'is_evaluating')
+        self.forced_frame_action = self.config_file.getint(base_model.MODEL_CONFIGURATION_HEADER,
+                                                         'exploration_factor')
 
     def create_model(self, input):
         with tf.name_scope("predict_actions"):
@@ -97,7 +101,7 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
         # return actions[0]
 
         # epsilon-greedy exploration strategy
-        if not self.is_evaluating and (random.random() * (500.0 - self.frames_since_last_random_action)) < self.exploration:
+        if not self.is_evaluating and (random.random() * (self.forced_frame_action - self.frames_since_last_random_action)) < self.exploration:
             print('random action used', str(self.frames_since_last_random_action))
             self.frames_since_last_random_action = 0
             return self.action_handler.get_random_option()
