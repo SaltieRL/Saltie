@@ -1,13 +1,16 @@
 import collections
 from models import base_reinforcement
+from models import base_model
 import numpy as np
 import tensorflow as tf
 import random
+
 
 class BaseActorCritic(base_reinforcement.BaseReinforcement):
     is_evaluating = False
     frames_since_last_random_action = 0
     network_size = 128
+    num_layers = 3
 
     def __init__(self, session,
                  state_dim,
@@ -21,6 +24,13 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
                  ):
         super().__init__(session, state_dim, num_actions, action_handler, is_training,
                          optimizer, summary_writer, summary_every, discount_factor)
+
+    def load_config_file(self):
+        self.num_layers = self.config_file.getint(base_model.MODEL_CONFIGURATION_HEADER,
+                                             'num_layers')
+
+        self.is_evaluating = self.config_file.getboolean(base_model.MODEL_CONFIGURATION_HEADER,
+                                                     'is_evaluating')
 
     def create_model(self, input):
         with tf.name_scope("predict_actions"):
@@ -117,17 +127,22 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
     def actor_network(self, input_states):
         # define policy neural network
         layer1 = self.create_layer(tf.nn.relu6, input_states, 1, self.state_dim, self.network_size)
-        layer2 = self.create_layer(tf.nn.relu6, layer1, 2, self.network_size, self.network_size)
-        output_layer = self.create_layer(tf.nn.sigmoid, layer2, 3, self.network_size, self.num_actions)
+        inner_layer = layer1
+        print('num layers', self.num_layers)
+        for i in range(0, self.num_layers - 2):
+            inner_layer = self.create_layer(tf.nn.relu6, inner_layer, i + 2, self.network_size, self.network_size)
+        output_layer = self.create_layer(tf.nn.sigmoid, inner_layer, self.num_layers, self.network_size, self.num_actions)
 
         return output_layer
 
     def critic_network(self, input_states):
         # define policy neural network
         layer1 = self.create_layer(tf.nn.relu6, input_states, 1, self.state_dim, self.network_size)
-        layer2 = self.create_layer(tf.nn.relu6, layer1, 2, self.network_size, self.network_size)
-        output_layer = self.create_layer(tf.nn.sigmoid, layer2, 3, self.network_size, self.num_actions)
+        inner_layer = layer1
+        for i in range(0, self.num_layers - 2):
+            inner_layer = self.create_layer(tf.nn.relu6, inner_layer, i + 2, self.network_size, self.network_size)
+        output_layer = self.create_layer(tf.nn.sigmoid, inner_layer, self.num_layers, self.network_size, self.num_actions)
         return output_layer
 
     def get_model_name(self):
-        return 'base_actor_critic'
+        return 'base_actor_critic-' + str(self.num_layers) + '-layers'

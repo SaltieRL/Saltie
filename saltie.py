@@ -1,23 +1,30 @@
 # Defined as a generic bot, can use multiple models
-import random
-
-import numpy as np
-import tensorflow as tf
 
 from conversions.input_formatter import InputFormatter
+import importlib
+import inspect
 from modelHelpers import action_handler
 from modelHelpers import reward_manager
 from models.actor_critic import policy_gradient
 
+import numpy as np
+import random
+import tensorflow as tf
+
+MODEL_CONFIGURATION_HEADER = 'Model Configuration'
 
 class Agent:
+    model_class = None
     previous_reward = 0
     previous_action = None
     previous_score = 0
     previous_enemy_goals = 0
     previous_owngoals = 0
-    def __init__(self, name, team, index):
+
+    def __init__(self, name, team, index, config_file=None):
+        self.config_file = config_file
         self.index = index
+        self.load_config_file()
         self.inp = InputFormatter(team, index)
         self.reward_manager = reward_manager.RewardManager()
         config = tf.ConfigProto(
@@ -37,10 +44,32 @@ class Agent:
                                             summary_writer=writer)
         self.model.initialize_model()
 
+    def load_config_file(self):
+        if self.config_file is None:
+            return
+        #read file code here
+
+        model_package = self.config_file.get(MODEL_CONFIGURATION_HEADER,
+                                                   'model_package')
+        model_name = self.config_file.get(MODEL_CONFIGURATION_HEADER,
+                                                 'model_name')
+        print('getting model from', model_package)
+        print('name of model', model_name)
+        model_package = importlib.import_module(model_package)
+        module_classes = inspect.getmembers(model_package,  inspect.isclass)
+        for class_group in module_classes:
+            if class_group[0] == model_name:
+                self.model_class = class_group[1]
+        if self.model_class is not None:
+            self.model_class.config_file = self.config_file
+
+
     def get_model_class(self):
-        #return nnatba.NNAtba
-        #return rnn_atba.RNNAtba
-        return policy_gradient.PolicyGradient
+        if self.model_class is None:
+            print('Invalid model using default')
+            return policy_gradient.PolicyGradient
+        else:
+            return self.model_class
 
     def get_reward(self, input_state):
         reward = self.reward_manager.get_reward(input_state)

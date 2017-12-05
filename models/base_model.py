@@ -2,9 +2,12 @@ import tensorflow as tf
 import os
 import sys
 
+MODEL_CONFIGURATION_HEADER = 'Model Configuration'
+
 
 class BaseModel:
 
+    config_file = None
     is_initialized = False
 
     """"
@@ -38,6 +41,9 @@ class BaseModel:
         self.state_dim = state_dim
 
         self.is_training = is_training
+
+        if self.config_file is not None:
+            self.load_config_file()
 
         # create variables
         self._create_variables()
@@ -152,3 +158,6 @@ class BaseModel:
             self.summarize = tf.summary.merge_all()
             # graph was not available when journalist was created
             self.summary_writer.add_graph(self.sess.graph)
+
+    def load_config_file(self):
+        pass
