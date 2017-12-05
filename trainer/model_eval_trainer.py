@@ -51,6 +51,8 @@ class EvalTrainer:
 
     def end_file(self):
         self.batch_process()
+        if self.file_frame_count == 0:
+            return
         per_frame_award = self.file_reward / float(self.file_frame_count)
         if not self.current_file in self.eval_compare:
             self.eval_compare[self.current_file] = []

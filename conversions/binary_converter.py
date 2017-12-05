@@ -1,5 +1,6 @@
 import io
 import os
+import sys
 import struct
 import hashlib
 
@@ -51,11 +52,11 @@ def get_file_version(file):
         if file_version < HASHED_NAME_FILE_VERSION:
             return str(file_version), file_name
         else:
-            chunk = file.read(4)
+            chunk = file.read(8)
             hashed_name = struct.unpack('Q', chunk)[0]
             return file_version, str(hashed_name)
     except:
-        print('file was empty')
+        print('file was empty', sys.exc_info()[0])
         return EMPTY_FILE, file_name
 
 def get_file_size(f):
