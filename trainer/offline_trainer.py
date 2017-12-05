@@ -1,3 +1,4 @@
+import configparser
 import gzip
 import inspect
 import io
@@ -15,7 +16,11 @@ parentdir = os.path.dirname(currentdir)
 sys.path.insert(0, parentdir)
 
 from conversions import binary_converter
-from trainer.model_eval_trainer import EvalTrainer
+import importlib
+
+
+MODEL_CONFIGURATION_HEADER = 'Model Configuration'
+TRAINER_CONFIGURATION_HEADER = 'Trainer Configuration'
 
 
 def download_batch(n):
@@ -26,9 +31,14 @@ def download_batch(n):
     n = min(n, len(replays))
     downloads = random.sample(replays, n)
     files = []
+    download_counter = 0
     for f in downloads:
         r = requests.get(server + '/replays/' + f)
         files.append(io.BytesIO(r.content))
+        if download_counter % 10 == 0:
+            print('downloaded 10 more files')
+        download_counter += 1
+    print('downloaded all files')
     return files
 
 
@@ -58,21 +68,53 @@ def get_all_files(download=False, n=5):
     return files
 
 
-def get_trainer_class():
-    # fill your input function here!
-    return EvalTrainer
+def train_on_file(trainer_class, f):
+    trainer_class.start_new_file()
+    binary_converter.read_data(f, trainer_class.process_pair)
+    trainer_class.end_file()
 
 
-def train_on_file(trainerClass, f):
-    trainerClass.start_new_file()
-    binary_converter.read_data(f, trainerClass.process_pair)
-    trainerClass.end_file()
+def get_class(class_package, class_name):
+    class_package = importlib.import_module(class_package)
+    module_classes = inspect.getmembers(class_package, inspect.isclass)
+    for class_group in module_classes:
+        if class_group[0] == class_name:
+            return class_group[1]
+    return None
+
+
+def load_config_file(config_file):
+    if config_file is None:
+        return
+    #read file code here
+
+    model_package = config_file.get(MODEL_CONFIGURATION_HEADER,
+                                         'model_package')
+    model_name = config_file.get(MODEL_CONFIGURATION_HEADER,
+                                      'model_name')
+    model_class = get_class(model_package, model_name)
+    trainer_package = config_file.get(TRAINER_CONFIGURATION_HEADER,
+                                    'trainer_package')
+    trainer_name = config_file.get(TRAINER_CONFIGURATION_HEADER,
+                                 'trainer_name')
+    trainer_class = get_class(trainer_package, trainer_name)
+    print('getting model from', model_package)
+    print('name of model', model_name)
+
+    if model_class is not None and trainer_class is not None:
+        trainer_class.model_class = model_class
+        model_class.config_file = config_file
+
+    return trainer_class
 
 
 if __name__ == '__main__':
-    files = get_all_files(download=True)
+    framework_config = configparser.RawConfigParser()
+    framework_config.read('trainer.cfg')
+    loaded_class = load_config_file(framework_config)
+    files = get_all_files(download=False, n=500)
     print('training on ' + str(len(files)) + ' files')
-    trainerClass = get_trainer_class()()
+    trainer_object = loaded_class()
     counter = 0
     total_time = 0
     try:
@@ -86,11 +128,11 @@ if __name__ == '__main__':
                 if isinstance(file, io.BytesIO):
                     # file in memory
                     with gzip.GzipFile(fileobj=file, mode='rb') as f:
-                        train_on_file(trainerClass=trainerClass, f=f)
+                        train_on_file(trainer_class=trainer_object, f=f)
                 else:
                     # file on disk
                     with gzip.open(file, 'rb') as f:
-                        train_on_file(trainerClass=trainerClass, f=f)
+                        train_on_file(trainer_class=trainer_object, f=f)
                 end = time.time()
                 difference = end - start
                 total_time += difference
@@ -102,4 +144,4 @@ if __name__ == '__main__':
     finally:
         print('ran through all files in ' + str(total_time / 60) + 'm')
         print('average time: ' + str((total_time / len(files))) + 's')
-        trainerClass.end_everything()
+        trainer_object.end_everything()

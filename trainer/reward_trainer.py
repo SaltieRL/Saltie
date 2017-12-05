@@ -13,6 +13,7 @@ import tensorflow as tf
 
 
 class RewardTrainer:
+    model_class = None
     learning_rate = 0.3
 
     file_number = 0
@@ -45,7 +46,7 @@ class RewardTrainer:
         #return rnn_atba.RNNAtba
         #return nnatba.NNAtba
         #return base_actor_critic.BaseActorCritic
-        return policy_gradient.PolicyGradient
+        return self.model_class
 
     def start_new_file(self):
         self.file_number += 1
