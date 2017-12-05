@@ -157,9 +157,7 @@ class BotManager:
         # If terminated, send callback
         print("something ended closing file")
         if self.save_data:
-            for x in range(1, self.file_number + 1):
-                filename = self.game_name + '\\' + self.name + '-' + str(x) + '.bin'
-                self.maybe_compress_and_upload(filename)
+            self.server_manager.retry_files()
 
         self.callbackEvent.set()
 

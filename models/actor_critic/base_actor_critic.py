@@ -102,7 +102,7 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
 
         # epsilon-greedy exploration strategy
         if not self.is_evaluating and (random.random() * (self.forced_frame_action - self.frames_since_last_random_action)) < self.exploration:
-            print('random action used', str(self.frames_since_last_random_action))
+            # print('random action used', str(self.frames_since_last_random_action))
             self.frames_since_last_random_action = 0
             return self.action_handler.get_random_option()
         else:
