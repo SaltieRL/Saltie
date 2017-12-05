@@ -1,12 +1,14 @@
 import io
 import os
 import struct
+import hashlib
 
 import numpy as np
 
 EMPTY_FILE = 'empty'
 NON_FLIPPED_FILE_VERSION = 0
 FLIPPED_FILE_VERSION = 1
+HASHED_NAME_FILE_VERSION = 2
 
 #BYTES_OBJECT = io.BytesIO()
 
@@ -32,14 +34,29 @@ def write_version_info(file, version_number):
     file.write(struct.pack('i', version_number))
 
 
+def write_bot_name(game_file, name):
+    hashed_name = int(hashlib.sha256(name.encode('utf-8')).hexdigest(), 16) % 2 ** 64
+    print('hashed_name', hashed_name)
+    game_file.write(struct.pack('Q', hashed_name))
+
+
 def get_file_version(file):
+    file_name = 0
+    if not isinstance(file, io.BytesIO):
+        file_name = os.path.basename(file.name).split('-')[0]
+
     try:
         chunk = file.read(4)
         file_version = struct.unpack('i', chunk)[0]
-        return str(file_version)
+        if file_version < HASHED_NAME_FILE_VERSION:
+            return str(file_version), file_name
+        else:
+            chunk = file.read(4)
+            hashed_name = struct.unpack('Q', chunk)[0]
+            return file_version, str(hashed_name)
     except:
         print('file was empty')
-        return EMPTY_FILE
+        return EMPTY_FILE, file_name
 
 def get_file_size(f):
     # f is a file-like object.
@@ -60,11 +77,12 @@ def read_data(file, process_pair_function):
     :return: None
     """
 
-    file_version = get_file_version(file)
+    file_version, hashed_name = get_file_version(file)
     if file_version == EMPTY_FILE:
         return
 
     print('replay version:', file_version)
+    print('hashed name:', hashed_name)
 
     pair_number = 0
     totalbytes = 0
@@ -81,7 +99,7 @@ def read_data(file, process_pair_function):
                 totalbytes += 4
                 break
             output_array, num_bytes = get_array(file, chunk)
-            process_pair_function(input_array, output_array, pair_number, file_version)
+            process_pair_function(input_array, output_array, pair_number, hashed_name)
             pair_number += 1
             totalbytes += num_bytes + 4
         except EOFError:
@@ -122,8 +140,3 @@ def get_array(file, chunk):
 def default_process_pair(input_array, output_array, pair_number):
     pass
 
-
-if __name__ == '__main__':
-    test_file = open('training\\1511676262748-30\\SaltieRl(2).txt', 'r+b')
-    print(test_file)
-    read_data(test_file, default_process_pair)

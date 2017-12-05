@@ -1,4 +1,5 @@
 import ctypes
+import hashlib
 import configparser
 from datetime import datetime
 import gzip
@@ -83,7 +84,8 @@ class BotManager:
             filename = self.game_name + '\\' + self.name + '-' + str(self.file_number) + '.bin'
             print('creating file ' + filename)
             self.game_file = open(filename.replace(" ", ""), 'wb')
-            compressor.write_version_info(self.game_file, compressor.FLIPPED_FILE_VERSION)
+            compressor.write_version_info(self.game_file, compressor.HASHED_NAME_FILE_VERSION)
+            compressor.write_bot_name(self.game_file, self.name)
         old_time = 0
         current_time = -10
         counter = 0
