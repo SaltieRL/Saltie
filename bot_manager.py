@@ -1,6 +1,4 @@
 import ctypes
-import hashlib
-import configparser
 from datetime import datetime
 import gzip
 import importlib
@@ -9,8 +7,9 @@ import os
 import shutil
 import time
 
+from conversions import server_converter
+
 import numpy as np
-import requests
 
 import bot_input_struct as bi
 import game_data_struct as gd
@@ -19,8 +18,8 @@ UPLOAD_SERVER = None
 uploading = False
 try:
     import config
-    uploading = True
     UPLOAD_SERVER = config.UPLOAD_SERVER
+    uploading = True
 except:
     print('config.py not present, cannot upload replays to collective server')
     print('Check Discord server for information')
@@ -50,6 +49,7 @@ class BotManager:
         self.frames = 0
         self.file_number = 1
         self.config_file = config_file
+        self.server_manager = server_converter.ServerConverter(uploading, UPLOAD_SERVER)
 
     def run(self):
         # Set up shared memory map (offset makes it so bot only writes to its own input!) and map to buffer
@@ -166,16 +166,7 @@ class BotManager:
     def maybe_compress_and_upload(self, filename):
         if not os.path.isfile(filename + '.gz'):
             compressed = self.compress(filename)
-            if uploading:
-                self.upload_replay(compressed, UPLOAD_SERVER)
-
-    def upload_replay(self, fn, server_ip):
-        with open(fn, 'rb') as f:
-            r = requests.post(server_ip, files={'file': f})
-            try:
-                print('Upload', r.json()['status'])
-            except:
-                print('error retrieving status')
+            self.server_manager.maybe_upload_replay(compressed)
 
     def compress(self, filename):
         output = filename + '.gz'
