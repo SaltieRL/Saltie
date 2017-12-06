@@ -1,15 +1,27 @@
-import bot_input_struct as bi
-import bot_manager
 import configparser
 import ctypes
-import game_data_struct as gd
 import mmap
-import multiprocessing as mp
 import msvcrt
-import rlbot_exception
-import time
+import multiprocessing as mp
 import os
 import random
+import time
+import io
+
+import requests
+
+import bot_input_struct as bi
+import bot_manager
+import game_data_struct as gd
+import rlbot_exception
+
+try:
+    import config
+
+    download_config = True
+except ImportError:
+    download_config = False
+    print('Find the correct config.py on the Discord server (#replays)')
 PARTICPANT_CONFIGURATION_HEADER = 'Participant Configuration'
 PARTICPANT_BOT_KEY_PREFIX = 'participant_is_bot_'
 PARTICPANT_RLBOT_KEY_PREFIX = 'participant_is_rlbot_controlled_'
@@ -33,18 +45,19 @@ def get_bot_config_file_list(botCount, config):
 # Cut off at 31 characters and handle duplicates
 def get_sanitized_bot_name(dict, name):
     if name not in dict:
-        new_name = name[:31] # Make sure name does not exceed 31 characters
+        new_name = name[:31]  # Make sure name does not exceed 31 characters
         dict[name] = 1
     else:
         count = dict[name]
-        new_name = name[:27] + "(" + str(count + 1) + ")" # Truncate at 27 because we can have up to '(10)' appended
+        new_name = name[:27] + "(" + str(count + 1) + ")"  # Truncate at 27 because we can have up to '(10)' appended
         dict[name] = count + 1
 
     return new_name
 
 
 def run_agent(terminate_event, callback_event, config_file, name, team, index, module_name, game_name, save_data):
-    bm = bot_manager.BotManager(terminate_event, callback_event, config_file, name, team, index, module_name, game_name, save_data)
+    bm = bot_manager.BotManager(terminate_event, callback_event, config_file, name, team, index, module_name, game_name,
+                                save_data)
     bm.run()
 
 
@@ -85,21 +98,35 @@ if __name__ == '__main__':
         print('gameName: ' + game_name + 'in ' + save_path)
 
     gameInputPacket.iNumPlayers = num_participants
-
+    r = None
+    if download_config:
+        try:
+            r = requests.get(config.UPLOAD_SERVER + '/config/get')
+        except Exception as e:
+            print('Error downloading config, reverting to file on disk:', e)
+            download_config = False
     # Set configuration values for bots and store name and team
     for i in range(num_participants):
         bot_config = configparser.RawConfigParser()
-        bot_config.read(participant_configs[i])
+        if download_config:
+            if 'saltie' in os.path.basename(participant_configs[i]):
+                print(r.text)
+                bot_config._read(io.StringIO(r.json()['content']), 'saltie.cfg')
+        else:
+            bot_config.read(participant_configs[i])
 
         gameInputPacket.sPlayerConfiguration[i].bBot = framework_config.getboolean(PARTICPANT_CONFIGURATION_HEADER,
-                                                                               PARTICPANT_BOT_KEY_PREFIX + str(i))
-        gameInputPacket.sPlayerConfiguration[i].bRLBotControlled = framework_config.getboolean(PARTICPANT_CONFIGURATION_HEADER,
-                                                                                               PARTICPANT_RLBOT_KEY_PREFIX + str(i))
+                                                                                   PARTICPANT_BOT_KEY_PREFIX + str(i))
+        gameInputPacket.sPlayerConfiguration[i].bRLBotControlled = framework_config.getboolean(
+            PARTICPANT_CONFIGURATION_HEADER,
+            PARTICPANT_RLBOT_KEY_PREFIX + str(i))
         gameInputPacket.sPlayerConfiguration[i].fBotSkill = framework_config.getfloat(PARTICPANT_CONFIGURATION_HEADER,
-                                                                                      PARTICPANT_BOT_SKILL_KEY_PREFIX + str(i))
+                                                                                      PARTICPANT_BOT_SKILL_KEY_PREFIX + str(
+                                                                                          i))
         gameInputPacket.sPlayerConfiguration[i].iPlayerIndex = i
-        gameInputPacket.sPlayerConfiguration[i].wName = get_sanitized_bot_name(name_dict, bot_config.get(BOT_CONFIG_LOADOUT_HEADER,
-                                                                       'name'))
+        gameInputPacket.sPlayerConfiguration[i].wName = get_sanitized_bot_name(name_dict,
+                                                                               bot_config.get(BOT_CONFIG_LOADOUT_HEADER,
+                                                                                              'name'))
         gameInputPacket.sPlayerConfiguration[i].ucTeam = framework_config.getint(PARTICPANT_CONFIGURATION_HEADER,
                                                                                  PARTICPANT_TEAM_PREFIX + str(i))
         gameInputPacket.sPlayerConfiguration[i].ucTeamColorID = bot_config.getint(BOT_CONFIG_LOADOUT_HEADER,
@@ -121,7 +148,6 @@ if __name__ == '__main__':
         gameInputPacket.sPlayerConfiguration[i].iTrailsID = bot_config.getint(BOT_CONFIG_LOADOUT_HEADER, 'trails_id')
         gameInputPacket.sPlayerConfiguration[i].iGoalExplosionID = bot_config.getint(BOT_CONFIG_LOADOUT_HEADER,
                                                                                      'goal_explosion_id')
-
         config_files.append(bot_config)
         bot_names.append(bot_config.get(BOT_CONFIG_LOADOUT_HEADER, 'name'))
         bot_teams.append(framework_config.getint(PARTICPANT_CONFIGURATION_HEADER, PARTICPANT_TEAM_PREFIX + str(i)))
@@ -137,8 +163,11 @@ if __name__ == '__main__':
     for i in range(num_participants):
         if gameInputPacket.sPlayerConfiguration[i].bRLBotControlled:
             callback = mp.Event()
-            callbacks  .append(callback)
-            process = mp.Process(target=run_agent, args=(quit_event, callback, config_files[i], str(gameInputPacket.sPlayerConfiguration[i].wName), bot_teams[i], i, bot_modules[i], save_path + '\\' + game_name, save_data))
+            callbacks.append(callback)
+            process = mp.Process(target=run_agent, args=(
+                quit_event, callback, config_files[i], str(gameInputPacket.sPlayerConfiguration[i].wName), bot_teams[i],
+                i,
+                bot_modules[i], save_path + '\\' + game_name, save_data))
             process.start()
 
     print("Successfully configured bots. Setting flag for injected dll.")
@@ -172,8 +201,3 @@ if __name__ == '__main__':
         for callback in callbacks:
             if not callback.is_set():
                 terminated = False
-
-
-
-
-
