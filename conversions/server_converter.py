@@ -22,6 +22,9 @@ class ServerConverter:
             except ConnectionError as error:
                 print('server is down', error)
                 self.add_to_local_files(fn)
+            except:
+                print('server is down, general error')
+                self.add_to_local_files(fn)
             try:
                 print('Upload', r.json()['status'])
                 self.file_status[fn] = True
