@@ -56,8 +56,8 @@ def get_sanitized_bot_name(dict, name):
 
 
 def run_agent(terminate_event, callback_event, config_file, name, team, index, module_name, game_name, save_data):
-    bm = bot_manager.BotManager(terminate_event, callback_event, config_file, name, team, index, module_name, game_name,
-                                save_data)
+    bm = bot_manager.BotManager(terminate_event, callback_event, config_file, name, team,
+                                index, module_name, game_name, save_data)
     bm.run()
 
 
@@ -121,8 +121,8 @@ if __name__ == '__main__':
             PARTICPANT_CONFIGURATION_HEADER,
             PARTICPANT_RLBOT_KEY_PREFIX + str(i))
         gameInputPacket.sPlayerConfiguration[i].fBotSkill = framework_config.getfloat(PARTICPANT_CONFIGURATION_HEADER,
-                                                                                      PARTICPANT_BOT_SKILL_KEY_PREFIX + str(
-                                                                                          i))
+                                                                                      PARTICPANT_BOT_SKILL_KEY_PREFIX
+                                                                                      + str(i))
         gameInputPacket.sPlayerConfiguration[i].iPlayerIndex = i
         gameInputPacket.sPlayerConfiguration[i].wName = get_sanitized_bot_name(name_dict,
                                                                                bot_config.get(BOT_CONFIG_LOADOUT_HEADER,
@@ -165,9 +165,8 @@ if __name__ == '__main__':
             callback = mp.Event()
             callbacks.append(callback)
             process = mp.Process(target=run_agent, args=(
-                quit_event, callback, config_files[i], str(gameInputPacket.sPlayerConfiguration[i].wName), bot_teams[i],
-                i,
-                bot_modules[i], save_path + '\\' + game_name, save_data))
+                quit_event, callback, config_files[i], str(gameInputPacket.sPlayerConfiguration[i].wName),
+                bot_teams[i], i, bot_modules[i], save_path + '\\' + game_name, save_data))
             process.start()
 
     print("Successfully configured bots. Setting flag for injected dll.")
