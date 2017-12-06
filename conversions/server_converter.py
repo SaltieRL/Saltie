@@ -10,6 +10,12 @@ class ServerConverter:
         self.server_ip = server_ip
 
     def maybe_upload_replay(self, fn):
+        try:
+            self._upload_replay(fn)
+        except:
+            print('catching all errors to keep the program going')
+
+    def _upload_replay(self, fn):
         if not self.uploading:
             self.add_to_local_files(fn)
         with open(fn, 'rb') as f:
@@ -22,10 +28,15 @@ class ServerConverter:
             except ConnectionError as error:
                 print('server is down', error)
                 self.add_to_local_files(fn)
+            except:
+                print('server is down, general error')
+                self.add_to_local_files(fn)
+
             try:
                 print('Upload', r.json()['status'])
                 self.file_status[fn] = True
             except:
+                self.add_to_local_files(fn)
                 print('error retrieving status')
 
     def add_to_local_files(self, fn):
@@ -37,3 +48,4 @@ class ServerConverter:
             if not self.file_status[key]:
                 print('retrying file:', key)
                 self.maybe_upload_replay(key)
+        print('all files retried')
