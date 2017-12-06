@@ -36,6 +36,7 @@ class ServerConverter:
                 print('Upload', r.json()['status'])
                 self.file_status[fn] = True
             except:
+                self.add_to_local_files(fn)
                 print('error retrieving status')
 
     def add_to_local_files(self, fn):
