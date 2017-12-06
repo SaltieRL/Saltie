@@ -159,6 +159,8 @@ class BotManager:
         if self.save_data:
             self.server_manager.retry_files()
 
+        print('done with bot')
+
         self.callbackEvent.set()
 
     def maybe_compress_and_upload(self, filename):
@@ -177,7 +179,3 @@ class BotManager:
         if file_number > 0:
             filename = self.game_name + '\\' + self.name + '-' + str(file_number) + '.bin'
             os.remove(filename)
-
-
-if __name__ == '__main__':
-    open('training/')

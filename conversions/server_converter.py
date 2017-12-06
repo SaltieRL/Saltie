@@ -37,3 +37,4 @@ class ServerConverter:
             if not self.file_status[key]:
                 print('retrying file:', key)
                 self.maybe_upload_replay(key)
+        print('all files retried')
