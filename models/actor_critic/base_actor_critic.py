@@ -28,13 +28,22 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
 
     def load_config_file(self):
         super().load_config_file()
-        self.num_layers = self.config_file.getint(base_model.MODEL_CONFIGURATION_HEADER,
+        try:
+            self.num_layers = self.config_file.getint(base_model.MODEL_CONFIGURATION_HEADER,
                                              'num_layers')
+        except:
+            print('unable to load num_layers')
 
-        self.is_evaluating = self.config_file.getboolean(base_model.MODEL_CONFIGURATION_HEADER,
+        try:
+            self.is_evaluating = self.config_file.getboolean(base_model.MODEL_CONFIGURATION_HEADER,
                                                      'is_evaluating')
-        self.forced_frame_action = self.config_file.getint(base_model.MODEL_CONFIGURATION_HEADER,
+        except:
+            print('unable to load if it should be evaluating')
+        try:
+            self.forced_frame_action = self.config_file.getint(base_model.MODEL_CONFIGURATION_HEADER,
                                                          'exploration_factor')
+        except:
+            print('unable to load exploration_factor')
 
     def create_model(self, input):
         with tf.name_scope("predict_actions"):

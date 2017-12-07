@@ -59,13 +59,17 @@ def get_file_version(file):
         print('file was empty', sys.exc_info()[0])
         return EMPTY_FILE, file_name
 
+
 def get_file_size(f):
     # f is a file-like object.
-    old_file_position = f.tell()
-    f.seek(0, os.SEEK_END)
-    size = f.tell()
-    f.seek(old_file_position, os.SEEK_SET)
-    return size
+    try:
+        old_file_position = f.tell()
+        f.seek(0, os.SEEK_END)
+        size = f.tell()
+        f.seek(old_file_position, os.SEEK_SET)
+        return size
+    except:
+        return 0
 
 
 def read_data(file, process_pair_function):

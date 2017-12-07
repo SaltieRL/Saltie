@@ -32,11 +32,12 @@ def download_batch(n):
     downloads = random.sample(replays, n)
     files = []
     download_counter = 0
+    total_downloads = len(downloads)
     for f in downloads:
         r = requests.get(server + '/replays/' + f)
         files.append(io.BytesIO(r.content))
         if download_counter % 10 == 0:
-            print('downloaded 10 more files')
+            print('downloaded 10 more files: ', (float(download_counter) / float(total_downloads)) * 100.0)
         download_counter += 1
     print('downloaded all files')
     return files
@@ -70,7 +71,10 @@ def get_all_files(download=False, n=5):
 
 def train_on_file(trainer_class, f):
     trainer_class.start_new_file()
-    binary_converter.read_data(f, trainer_class.process_pair)
+    try:
+        binary_converter.read_data(f, trainer_class.process_pair)
+    except:
+        print('error traiing on file')
     trainer_class.end_file()
 
 
@@ -112,9 +116,9 @@ if __name__ == '__main__':
     framework_config = configparser.RawConfigParser()
     framework_config.read('trainer.cfg')
     loaded_class = load_config_file(framework_config)
-    files = get_all_files(download=False, n=500)
-    print('training on ' + str(len(files)) + ' files')
     trainer_object = loaded_class()
+    files = get_all_files(download=True, n=2000)
+    print('training on ' + str(len(files)) + ' files')
     counter = 0
     total_time = 0
     try:
@@ -141,6 +145,8 @@ if __name__ == '__main__':
                 print('whoops file not found')
                 print(e.filename)
                 print(file)
+            except:
+                print('error training on file going to next one')
     finally:
         print('ran through all files in ' + str(total_time / 60) + 'm')
         print('average time: ' + str((total_time / len(files))) + 's')
