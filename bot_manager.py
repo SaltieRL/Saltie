@@ -189,6 +189,6 @@ class BotManager:
 
     def create_new_file(self, filename):
         self.game_file = open(filename.replace(" ", ""), 'wb')
-        compressor.write_version_info(self.game_file, compressor.IS_EVAL)
+        compressor.write_version_info(self.game_file, compressor.IS_EVAL_FILE_VERSION)
         compressor.write_bot_hash(self.game_file, self.model_hash)
         compressor.write_is_eval(self.game_file, self.is_eval)
