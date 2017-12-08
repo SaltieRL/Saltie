@@ -101,8 +101,8 @@ if __name__ == '__main__':
         print('gameName: ' + game_name + 'in ' + save_path)
 
     gameInputPacket.iNumPlayers = num_participants
-    server_manager.load_config()
-    server_manager.load_model()
+    server_manager.download_files()
+
 
 
     # Set configuration values for bots and store name and team

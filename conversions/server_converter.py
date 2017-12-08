@@ -87,3 +87,7 @@ class ServerConverter:
                 print('retrying file:', key)
                 self.maybe_upload_replay(key)
         print('all files retried')
+
+    def download_files(self):
+        self.load_config()
+        self.load_model()
