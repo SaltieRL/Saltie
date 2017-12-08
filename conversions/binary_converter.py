@@ -61,7 +61,7 @@ def get_file_version(file):
             chunk = file.read(8)
             hashed_name = struct.unpack('Q', chunk)[0]
             result.append(hashed_name)
-        if file_version < IS_EVAL:
+        if file_version < IS_EVAL_FILE_VERSION:
             result.append(False)
         else:
             chunk = file.read(1)

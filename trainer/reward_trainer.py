@@ -21,7 +21,7 @@ class RewardTrainer:
     epoch = 0
     display_step = 5
 
-    batch_size = 1000
+    batch_size = 2000
     last_action = None
     reward_manager = None
 
@@ -77,7 +77,7 @@ class RewardTrainer:
 
     def end_file(self):
         self.batch_process()
-        if self.file_number % 20 == 0:
+        if self.file_number % 100 == 0:
             saver = tf.train.Saver()
             file_path = self.agent.get_model_path(self.agent.get_default_file_name() + str(self.file_number) + ".ckpt")
             saver.save(self.sess, file_path)

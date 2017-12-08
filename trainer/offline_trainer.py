@@ -43,7 +43,7 @@ def download_batch(n):
     return files
 
 
-def get_all_files(download=False, n=5):
+def get_all_files(download=False, n=3000):
     if download:
         return download_batch(n)
     dir_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
@@ -124,7 +124,7 @@ if __name__ == '__main__':
     framework_config.read('trainer.cfg')
     loaded_class, download_files = load_config_file(framework_config)
     trainer_object = loaded_class()
-    files = get_all_files(download=download_files, n=2000)
+    files = get_all_files(download=download_files, n=10)
     print('training on ' + str(len(files)) + ' files')
     counter = 0
     total_time = 0
