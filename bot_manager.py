@@ -70,7 +70,10 @@ class BotManager:
                 continue
 
         # Create bot from module
-        agent = agent_module.Agent(self.name, self.team, self.index, config_file=self.config_file)
+        try:
+            agent = agent_module.Agent(self.name, self.team, self.index, config_file=self.config_file)
+        except TypeError:
+            agent = agent_module.Agent(self.name, self.team, self.index)
 
         if self.save_data:
             filename = self.game_name + '\\' + self.name + '-' + str(self.file_number) + '.bin'

@@ -111,6 +111,8 @@ if __name__ == '__main__':
         if server_manager.download_config:
             if 'saltie' in os.path.basename(participant_configs[i]):
                 bot_config._read(io.StringIO(server_manager.config_response.json()['content']), 'saltie.cfg')
+            else:
+                bot_config.read(participant_configs[i])
         else:
             bot_config.read(participant_configs[i])
 
