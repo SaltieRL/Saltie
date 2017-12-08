@@ -7,6 +7,7 @@ import os
 import random
 import time
 import io
+import zipfile
 
 import requests
 
@@ -17,10 +18,11 @@ import rlbot_exception
 
 try:
     import config
-
     download_config = True
+    download_model = True
 except ImportError:
     download_config = False
+    download_model = False
     print('Find the correct config.py on the Discord server (#replays)')
 PARTICPANT_CONFIGURATION_HEADER = 'Participant Configuration'
 PARTICPANT_BOT_KEY_PREFIX = 'participant_is_bot_'
@@ -105,12 +107,31 @@ if __name__ == '__main__':
         except Exception as e:
             print('Error downloading config, reverting to file on disk:', e)
             download_config = False
+    if download_model:
+        folder = 'training\\saltie\\'
+        try:
+            b = requests.get(config.UPLOAD_SERVER + '/model/get')
+            bytes = io.BytesIO()
+            for chunk in b.iter_content(chunk_size=1024):
+                if chunk:
+                    bytes.write(chunk)
+            print ('downloaded model')
+            with zipfile.ZipFile(bytes) as f:
+                if not os.path.isdir(folder):
+                    os.makedirs(folder)
+                for file in f.namelist():
+                    contents = f.open(file)
+                    print(file)
+                    with open(os.path.join(folder, os.path.basename(file)), "wb") as unzipped:
+                        unzipped.write(contents.read())
+        except Exception as e:
+            print('Error downloading model, not writing it:', e)
+            download_model = False
     # Set configuration values for bots and store name and team
     for i in range(num_participants):
         bot_config = configparser.RawConfigParser()
         if download_config:
             if 'saltie' in os.path.basename(participant_configs[i]):
-                print(r.text)
                 bot_config._read(io.StringIO(r.json()['content']), 'saltie.cfg')
         else:
             bot_config.read(participant_configs[i])

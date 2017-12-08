@@ -129,9 +129,9 @@ class BaseModel:
         if os.path.isfile(model_file + '.meta'):
             print('loading existing model')
             try:
-                self.saver.restore(self.sess, model_file)
-            except:
-                print("Unexpected error loading model:", sys.exc_info())
+                self.saver.restore(self.sess, os.path.abspath(model_file))
+            except Exception as e:
+                print("Unexpected error loading model:", e)
                 print('unable to load model')
         else:
             print('unable to find model to load')
