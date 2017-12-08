@@ -148,7 +148,7 @@ if __name__ == '__main__':
 
     server = ServerConverter(config.UPLOAD_SERVER, False, False, False)
 
-    max_files = 100
+    max_files = 3000
     num_download_threads = 5
     num_train_threads = 1
 
