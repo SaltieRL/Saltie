@@ -1,13 +1,12 @@
 import ctypes
 from datetime import datetime
 import gzip
+import hashlib
 import importlib
 import mmap
 import os
 import shutil
 import time
-
-from conversions import server_converter
 
 import numpy as np
 
@@ -28,6 +27,10 @@ MAX_CARS = 10
 
 
 class BotManager:
+
+    game_file = None
+    model_hash = None
+
     def __init__(self, terminateEvent, callbackEvent, config_file, name, team, index, modulename, gamename, savedata, server_manager):
         self.terminateEvent = terminateEvent
         self.callbackEvent = callbackEvent
@@ -75,14 +78,16 @@ class BotManager:
         except TypeError:
             agent = agent_module.Agent(self.name, self.team, self.index)
 
+        if hasattr(agent, 'create_model_hash'):
+            self.model_hash = agent.create_model_hash()
+        else:
+            self.model_hash = int(hashlib.sha256(self.name.encode('utf-8')).hexdigest(), 16) % 2 ** 64
+
         if self.save_data:
             filename = self.game_name + '\\' + self.name + '-' + str(self.file_number) + '.bin'
             print('creating file ' + filename)
-            self.game_file = open(filename.replace(" ", ""), 'wb')
-            compressor.write_version_info(self.game_file, compressor.HASHED_NAME_FILE_VERSION)
-            compressor.write_bot_name(self.game_file, self.name)
+            self.create_new_file(filename, self.model_hash)
         old_time = 0
-        current_time = -10
         counter = 0
 
         # Run until main process tells to stop
@@ -100,6 +105,9 @@ class BotManager:
                 ctypes.memmove(ctypes.addressof(game_tick_packet),
                                game_data_shared_memory.read(ctypes.sizeof(gd.GameTickPacket)),
                                ctypes.sizeof(gd.GameTickPacket))  # copy shared memory into struct
+            if game_tick_packet.gameInfo.bMatchEnded:
+                print('\n\n\n\n Match has ended so ending bot loop\n\n\n\n\n')
+                break
 
             # Call agent
             controller_input = agent.get_output_vector(game_tick_packet)
@@ -125,8 +133,7 @@ class BotManager:
                     print('creating file ' + filename)
                     self.maybe_compress_and_upload(filename)
                     filename = self.game_name + '\\' + self.name + '-' + str(self.file_number) + '.bin'
-                    self.game_file = open(filename.replace(" ", ""), 'wb')
-                    compressor.write_version_info(self.game_file, compressor.FLIPPED_FILE_VERSION)
+                    self.create_new_file(filename, self.model_hash)
                     self.maybe_delete(self.file_number - 3)
                 np_input, _ = self.input_converter.create_input_array(game_tick_packet)
                 np_output = np.array(controller_input, dtype=np.float32)
@@ -152,6 +159,7 @@ class BotManager:
         # If terminated, send callback
         print("something ended closing file")
         if self.save_data:
+            self.maybe_compress_and_upload(filename)
             self.server_manager.retry_files()
 
         print('done with bot')
@@ -161,7 +169,7 @@ class BotManager:
     def maybe_compress_and_upload(self, filename):
         if not os.path.isfile(filename + '.gz'):
             compressed = self.compress(filename)
-            self.server_manager.maybe_upload_replay(compressed)
+            self.server_manager.maybe_upload_replay(compressed, self.model_hash)
 
     def compress(self, filename):
         output = filename + '.gz'
@@ -174,3 +182,8 @@ class BotManager:
         if file_number > 0:
             filename = self.game_name + '\\' + self.name + '-' + str(file_number) + '.bin'
             os.remove(filename)
+
+    def create_new_file(self, filename, model_hash):
+        self.game_file = open(filename.replace(" ", ""), 'wb')
+        compressor.write_version_info(self.game_file, compressor.HASHED_NAME_FILE_VERSION)
+        compressor.write_bot_hash(self.game_file, model_hash)

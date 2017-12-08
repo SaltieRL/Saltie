@@ -1,6 +1,6 @@
-import tensorflow as tf
+import hashlib
 import os
-import sys
+import tensorflow as tf
 
 MODEL_CONFIGURATION_HEADER = 'Model Configuration'
 
@@ -166,5 +166,20 @@ class BaseModel:
     def load_config_file(self):
         try:
             self.model_file = self.config_file.get(MODEL_CONFIGURATION_HEADER, 'model_directory')
-        except:
-            print('model directory is not in config')
+        except Exception as e:
+            print('model directory is not in config', e)
+
+    def create_model_hash(self):
+
+        # BUF_SIZE is totally arbitrary, change for your app!
+        BUF_SIZE = 65536  # lets read stuff in 64kb chunks!
+
+        md5 = hashlib.md5()
+        with open(self.model_file, 'rb') as f:
+            while True:
+                data = f.read(BUF_SIZE)
+                if not data:
+                    break
+                md5.update(data)
+
+        return int(md5.hexdigest(), 16) % 2 ** 64

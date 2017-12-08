@@ -35,8 +35,7 @@ def write_version_info(file, version_number):
     file.write(struct.pack('i', version_number))
 
 
-def write_bot_name(game_file, name):
-    hashed_name = int(hashlib.sha256(name.encode('utf-8')).hexdigest(), 16) % 2 ** 64
+def write_bot_hash(game_file, hashed_name):
     print('hashed_name', hashed_name)
     game_file.write(struct.pack('Q', hashed_name))
 

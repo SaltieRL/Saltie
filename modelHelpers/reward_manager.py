@@ -42,7 +42,7 @@ class RewardManager:
         previous_distance = get_distance_location(self.previous_car_location, self.previous_ball_location)
         # moving faster = bigger reward or bigger punishment
         distance_change = (previous_distance - current_distance) / 100.0
-        return min(max(distance_change, -0.05), .3)
+        return min(max(distance_change, 0), .3)
 
     def calculate_move_fast_reward(self, packet):
         """

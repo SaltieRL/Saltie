@@ -47,13 +47,13 @@ class ServerConverter:
                 print('Error downloading model, not writing it:', e)
                 download_model = False
 
-    def maybe_upload_replay(self, fn):
+    def maybe_upload_replay(self, fn, model_hash):
         try:
-            self._upload_replay(fn)
+            self._upload_replay(fn, model_hash)
         except:
             print('catching all errors to keep the program going')
 
-    def _upload_replay(self, fn):
+    def _upload_replay(self, fn, model_hash):
         if not self.uploading:
             self.add_to_local_files(fn)
         with open(fn, 'rb') as f:
