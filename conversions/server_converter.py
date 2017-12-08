@@ -11,11 +11,14 @@ class ServerConverter:
     download_config = False
     download_model = False
 
-    def __init__(self, server_ip, uploading, download_config, download_model):
+    def __init__(self, server_ip, uploading, download_config, download_model, num_players=2, num_my_team=1, username=''):
         self.server_ip = server_ip
         self.uploading = uploading
         self.download_config = download_config
         self.download_model = download_model
+        self.username = username
+        self.num_players = num_players
+        self.num_my_team = num_my_team
 
     def load_config(self):
         if self.download_config:
@@ -47,7 +50,7 @@ class ServerConverter:
                 print('Error downloading model, not writing it:', e)
                 download_model = False
 
-    def maybe_upload_replay(self, fn, model_hash):
+    def maybe_upload_replay(self, fn, model_hash=''):
         try:
             self._upload_replay(fn, model_hash)
         except:
@@ -57,9 +60,10 @@ class ServerConverter:
         if not self.uploading:
             self.add_to_local_files(fn)
         with open(fn, 'rb') as f:
-            r = ''
+            r = None
+            payload = {'username': self.username, 'hash': model_hash, 'num_my_team': self.num_my_team, 'num_players': self.num_players}
             try:
-                r = requests.post(self.server_ip, files={'file': f})
+                r = requests.post(self.server_ip, files={'file': f}, data=payload)
             except ConnectionRefusedError as error:
                 print('server is down ', error)
                 self.add_to_local_files(fn)
