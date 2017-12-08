@@ -14,15 +14,7 @@ import numpy as np
 import bot_input_struct as bi
 import game_data_struct as gd
 import rate_limiter
-UPLOAD_SERVER = None
-uploading = False
-try:
-    import config
-    UPLOAD_SERVER = config.UPLOAD_SERVER
-    uploading = True
-except:
-    print('config.py not present, cannot upload replays to collective server')
-    print('Check Discord server for information')
+
 
 from conversions import input_formatter, binary_converter as compressor
 
@@ -36,7 +28,7 @@ MAX_CARS = 10
 
 
 class BotManager:
-    def __init__(self, terminateEvent, callbackEvent, config_file, name, team, index, modulename, gamename, savedata):
+    def __init__(self, terminateEvent, callbackEvent, config_file, name, team, index, modulename, gamename, savedata, server_manager):
         self.terminateEvent = terminateEvent
         self.callbackEvent = callbackEvent
         self.name = name
@@ -49,7 +41,7 @@ class BotManager:
         self.frames = 0
         self.file_number = 1
         self.config_file = config_file
-        self.server_manager = server_converter.ServerConverter(uploading, UPLOAD_SERVER)
+        self.server_manager = server_manager
 
     def run(self):
         # Set up shared memory map (offset makes it so bot only writes to its own input!) and map to buffer

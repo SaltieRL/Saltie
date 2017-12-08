@@ -1,13 +1,51 @@
+import os
+import io
 import requests
+import zipfile
 
 
 class ServerConverter:
     file_status = {}
     local_file = None
+    config_response = None
+    download_config = False
+    download_model = False
 
-    def __init__(self, uploading, server_ip):
-        self.uploading = uploading
+    def __init__(self, server_ip, uploading, download_config, download_model):
         self.server_ip = server_ip
+        self.uploading = uploading
+        self.download_config = download_config
+        self.download_model = download_model
+
+    def load_config(self):
+        if self.download_config:
+            try:
+                self.config_response = requests.get(self.server_ip + '/config/get')
+            except Exception as e:
+                print('Error downloading config, reverting to file on disk:', e)
+                self.download_config = False
+
+    def load_model(self):
+        if self.download_model:
+            folder = 'training\\saltie\\'
+            try:
+                b = requests.get(self.server_ip + '/model/get')
+                bytes = io.BytesIO()
+                for chunk in b.iter_content(chunk_size=1024):
+                    if chunk:
+                        bytes.write(chunk)
+                print('downloaded model')
+                with zipfile.ZipFile(bytes) as f:
+                    if not os.path.isdir(folder):
+                        os.makedirs(folder)
+                    for file in f.namelist():
+                        contents = f.open(file)
+                        print(file)
+                        with open(os.path.join(folder, os.path.basename(file)), "wb") as unzipped:
+                            unzipped.write(contents.read())
+            except Exception as e:
+                print('Error downloading model, not writing it:', e)
+                download_model = False
 
     def maybe_upload_replay(self, fn):
         try:

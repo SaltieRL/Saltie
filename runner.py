@@ -7,23 +7,15 @@ import os
 import random
 import time
 import io
-import zipfile
-
-import requests
 
 import bot_input_struct as bi
 import bot_manager
 import game_data_struct as gd
 import rlbot_exception
 
-try:
-    import config
-    download_config = True
-    download_model = True
-except ImportError:
-    download_config = False
-    download_model = False
-    print('Find the correct config.py on the Discord server (#replays)')
+from conversions.server_converter import ServerConverter
+
+
 PARTICPANT_CONFIGURATION_HEADER = 'Participant Configuration'
 PARTICPANT_BOT_KEY_PREFIX = 'participant_is_bot_'
 PARTICPANT_RLBOT_KEY_PREFIX = 'participant_is_rlbot_controlled_'
@@ -35,6 +27,15 @@ RLBOT_CONFIGURATION_HEADER = 'RLBot Configuration'
 INPUT_SHARED_MEMORY_TAG = 'Local\\RLBotInput'
 BOT_CONFIG_LOADOUT_HEADER = 'Participant Loadout'
 BOT_CONFIG_MODULE_HEADER = 'Bot Location'
+
+
+try:
+    import config
+    server_manager = ServerConverter(config.UPLOAD_SERVER, True, True, True)
+except ImportError:
+    server_manager = ServerConverter(config.UPLOAD_SERVER, False, False, False)
+    print('config.py not present, cannot upload replays to collective server')
+    print('Check Discord server for information')
 
 
 def get_bot_config_file_list(botCount, config):
@@ -57,9 +58,9 @@ def get_sanitized_bot_name(dict, name):
     return new_name
 
 
-def run_agent(terminate_event, callback_event, config_file, name, team, index, module_name, game_name, save_data):
+def run_agent(terminate_event, callback_event, config_file, name, team, index, module_name, game_name, save_data, server_uploader):
     bm = bot_manager.BotManager(terminate_event, callback_event, config_file, name, team,
-                                index, module_name, game_name, save_data)
+                                index, module_name, game_name, save_data, server_uploader)
     bm.run()
 
 
@@ -100,39 +101,16 @@ if __name__ == '__main__':
         print('gameName: ' + game_name + 'in ' + save_path)
 
     gameInputPacket.iNumPlayers = num_participants
-    r = None
-    if download_config:
-        try:
-            r = requests.get(config.UPLOAD_SERVER + '/config/get')
-        except Exception as e:
-            print('Error downloading config, reverting to file on disk:', e)
-            download_config = False
-    if download_model:
-        folder = 'training\\saltie\\'
-        try:
-            b = requests.get(config.UPLOAD_SERVER + '/model/get')
-            bytes = io.BytesIO()
-            for chunk in b.iter_content(chunk_size=1024):
-                if chunk:
-                    bytes.write(chunk)
-            print ('downloaded model')
-            with zipfile.ZipFile(bytes) as f:
-                if not os.path.isdir(folder):
-                    os.makedirs(folder)
-                for file in f.namelist():
-                    contents = f.open(file)
-                    print(file)
-                    with open(os.path.join(folder, os.path.basename(file)), "wb") as unzipped:
-                        unzipped.write(contents.read())
-        except Exception as e:
-            print('Error downloading model, not writing it:', e)
-            download_model = False
+    server_manager.load_config()
+    server_manager.load_model()
+
+
     # Set configuration values for bots and store name and team
     for i in range(num_participants):
         bot_config = configparser.RawConfigParser()
-        if download_config:
+        if server_manager.download_config:
             if 'saltie' in os.path.basename(participant_configs[i]):
-                bot_config._read(io.StringIO(r.json()['content']), 'saltie.cfg')
+                bot_config._read(io.StringIO(server_manager.config_response.json()['content']), 'saltie.cfg')
         else:
             bot_config.read(participant_configs[i])
 
@@ -187,7 +165,7 @@ if __name__ == '__main__':
             callbacks.append(callback)
             process = mp.Process(target=run_agent, args=(
                 quit_event, callback, config_files[i], str(gameInputPacket.sPlayerConfiguration[i].wName),
-                bot_teams[i], i, bot_modules[i], save_path + '\\' + game_name, save_data))
+                bot_teams[i], i, bot_modules[i], save_path + '\\' + game_name, save_data, server_manager))
             process.start()
 
     print("Successfully configured bots. Setting flag for injected dll.")
