@@ -1,5 +1,6 @@
 import os
 import io
+import random
 import requests
 import zipfile
 
@@ -91,3 +92,14 @@ class ServerConverter:
     def download_files(self):
         self.load_config()
         self.load_model()
+
+    def get_replays(self, num_replays, get_eval_only):
+        r = requests.get(self.server_ip + '/replays/list')
+        replays = r.json()
+        print('num replays available', len(replays), ' num requested ', num_replays)
+        n = min(num_replays, len(replays))
+        return random.sample(replays, n)
+
+    def download_file(self, file):
+        response = requests.get(self.server_ip + '/replays/' + file)
+        return io.BytesIO(response.content)
