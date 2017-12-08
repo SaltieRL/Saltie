@@ -101,6 +101,13 @@ def load_config_file(config_file):
                                     'trainer_package')
     trainer_name = config_file.get(TRAINER_CONFIGURATION_HEADER,
                                  'trainer_name')
+    try:
+        download_files = config_file.getboolean(TRAINER_CONFIGURATION_HEADER,
+                                       'download_files')
+    except Exception as e:
+        download_files = True
+
+
     trainer_class = get_class(trainer_package, trainer_name)
     print('getting model from', model_package)
     print('name of model', model_name)
@@ -109,15 +116,15 @@ def load_config_file(config_file):
         trainer_class.model_class = model_class
         model_class.config_file = config_file
 
-    return trainer_class
+    return trainer_class, download_files
 
 
 if __name__ == '__main__':
     framework_config = configparser.RawConfigParser()
     framework_config.read('trainer.cfg')
-    loaded_class = load_config_file(framework_config)
+    loaded_class, download_files = load_config_file(framework_config)
     trainer_object = loaded_class()
-    files = get_all_files(download=True, n=2000)
+    files = get_all_files(download=download_files, n=2000)
     print('training on ' + str(len(files)) + ' files')
     counter = 0
     total_time = 0
