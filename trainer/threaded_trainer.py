@@ -24,7 +24,7 @@ class ThreadedFiles:
             file = self.downloaded_files.get()
             if file is None and self.files_to_download.empty() and self.downloaded_files.empty():
                 break
-            print('running file', self.counter, '/', self.downloaded_files.qsize())
+            print('running file', self.counter, '/', self.counter + self.downloaded_files.qsize())
             self.total_time += self.train_function(file, self.trainer_object)
             self.counter += 1
             self.downloaded_files.task_done()
@@ -63,5 +63,8 @@ class ThreadedFiles:
         self.files_to_download.join()
         self.downloaded_files.join()
 
-        print('ran through all files in ' + str(self.total_time / 60) + 'm')
-        print('average time: ' + str((self.total_time / self.total_files)) + 's')
+        self.trainer_object.end_everything()
+
+        print('ran through all files in ' + str(self.total_time / 60) + ' minutes')
+        print('ran through all files in ' + str(self.total_time / 360) + ' hours')
+        print('average time per file: ' + str((self.total_time / self.total_files)) + ' seconds')
