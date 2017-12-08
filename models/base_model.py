@@ -10,6 +10,7 @@ class BaseModel:
     config_file = None
     is_initialized = False
     model_file = None
+    is_evaluating = False
 
     """"
     This is a base class for all models It has a couple helper methods but is mainly used to provide a standard
@@ -168,6 +169,12 @@ class BaseModel:
             self.model_file = self.config_file.get(MODEL_CONFIGURATION_HEADER, 'model_directory')
         except Exception as e:
             print('model directory is not in config', e)
+
+        try:
+            self.is_evaluating = self.config_file.getboolean(MODEL_CONFIGURATION_HEADER,
+                                                             'is_evaluating')
+        except Exception as e:
+            print('unable to load if it should be evaluating')
 
     def create_model_hash(self):
 

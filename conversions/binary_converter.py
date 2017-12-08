@@ -10,6 +10,7 @@ EMPTY_FILE = 'empty'
 NON_FLIPPED_FILE_VERSION = 0
 FLIPPED_FILE_VERSION = 1
 HASHED_NAME_FILE_VERSION = 2
+IS_EVAL = 3
 
 #BYTES_OBJECT = io.BytesIO()
 
@@ -36,8 +37,11 @@ def write_version_info(file, version_number):
 
 
 def write_bot_hash(game_file, hashed_name):
-    print('hashed_name', hashed_name)
     game_file.write(struct.pack('Q', hashed_name))
+
+
+def write_is_eval(game_file, is_eval):
+    game_file.write(struct.pack('?', is_eval))
 
 
 def get_file_version(file):
@@ -45,18 +49,29 @@ def get_file_version(file):
     if not isinstance(file, io.BytesIO):
         file_name = os.path.basename(file.name).split('-')[0]
 
+    result = []
+
     try:
         chunk = file.read(4)
         file_version = struct.unpack('i', chunk)[0]
+        result.append(file_version)
         if file_version < HASHED_NAME_FILE_VERSION:
-            return str(file_version), file_name
+            result.append(file_name)
         else:
             chunk = file.read(8)
             hashed_name = struct.unpack('Q', chunk)[0]
-            return file_version, str(hashed_name)
-    except:
-        print('file was empty', sys.exc_info()[0])
-        return EMPTY_FILE, file_name
+            result.append(hashed_name)
+        if file_version < IS_EVAL:
+            result.append(False)
+        else:
+            chunk = file.read(1)
+            is_eval = struct.unpack('?', chunk)[0]
+            result.append(is_eval)
+    except Exception as e:
+        result = [EMPTY_FILE, file_name, False]
+        print('file version was messed up', e)
+    finally:
+        return tuple(result)
 
 
 def get_file_size(f):
@@ -81,7 +96,7 @@ def read_data(file, process_pair_function):
     :return: None
     """
 
-    file_version, hashed_name = get_file_version(file)
+    file_version, hashed_name, is_eval = get_file_version(file)
     if file_version == EMPTY_FILE:
         return
 

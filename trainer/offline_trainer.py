@@ -73,8 +73,8 @@ def train_on_file(trainer_class, f):
     trainer_class.start_new_file()
     try:
         binary_converter.read_data(f, trainer_class.process_pair)
-    except:
-        print('error traiing on file')
+    except Exception as e:
+        print('error training on file ', e)
     trainer_class.end_file()
 
 

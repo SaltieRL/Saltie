@@ -7,7 +7,6 @@ import random
 
 
 class BaseActorCritic(base_reinforcement.BaseReinforcement):
-    is_evaluating = False
     frames_since_last_random_action = 0
     network_size = 128
     num_layers = 3
@@ -34,11 +33,6 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
         except:
             print('unable to load num_layers')
 
-        try:
-            self.is_evaluating = self.config_file.getboolean(base_model.MODEL_CONFIGURATION_HEADER,
-                                                     'is_evaluating')
-        except:
-            print('unable to load if it should be evaluating')
         try:
             self.forced_frame_action = self.config_file.getint(base_model.MODEL_CONFIGURATION_HEADER,
                                                          'exploration_factor')

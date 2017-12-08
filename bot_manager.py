@@ -30,6 +30,7 @@ class BotManager:
 
     game_file = None
     model_hash = None
+    is_eval = False
 
     def __init__(self, terminateEvent, callbackEvent, config_file, name, team, index, modulename, gamename, savedata, server_manager):
         self.terminateEvent = terminateEvent
@@ -83,10 +84,13 @@ class BotManager:
         else:
             self.model_hash = int(hashlib.sha256(self.name.encode('utf-8')).hexdigest(), 16) % 2 ** 64
 
+        if hasattr(agent, 'is_evaluating'):
+            self.is_eval = agent.is_evaluating
+
         if self.save_data:
             filename = self.game_name + '\\' + self.name + '-' + str(self.file_number) + '.bin'
             print('creating file ' + filename)
-            self.create_new_file(filename, self.model_hash)
+            self.create_new_file(filename)
         old_time = 0
         counter = 0
 
@@ -133,7 +137,7 @@ class BotManager:
                     print('creating file ' + filename)
                     self.maybe_compress_and_upload(filename)
                     filename = self.game_name + '\\' + self.name + '-' + str(self.file_number) + '.bin'
-                    self.create_new_file(filename, self.model_hash)
+                    self.create_new_file(filename)
                     self.maybe_delete(self.file_number - 3)
                 np_input, _ = self.input_converter.create_input_array(game_tick_packet)
                 np_output = np.array(controller_input, dtype=np.float32)
@@ -183,7 +187,8 @@ class BotManager:
             filename = self.game_name + '\\' + self.name + '-' + str(file_number) + '.bin'
             os.remove(filename)
 
-    def create_new_file(self, filename, model_hash):
+    def create_new_file(self, filename):
         self.game_file = open(filename.replace(" ", ""), 'wb')
-        compressor.write_version_info(self.game_file, compressor.HASHED_NAME_FILE_VERSION)
-        compressor.write_bot_hash(self.game_file, model_hash)
+        compressor.write_version_info(self.game_file, compressor.IS_EVAL)
+        compressor.write_bot_hash(self.game_file, self.model_hash)
+        compressor.write_is_eval(self.game_file, self.is_eval)
