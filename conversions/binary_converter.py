@@ -15,7 +15,9 @@ HASHED_NAME_FILE_VERSION = 2
 IS_EVAL_FILE_VERSION = 3
 BATCH_ARRAY_FILE_VERSION = 4
 
-#BYTES_OBJECT = io.BytesIO()
+
+def get_latest_file_version():
+    return BATCH_ARRAY_FILE_VERSION
 
 
 def write_array_to_file(game_file, array):
@@ -23,6 +25,7 @@ def write_array_to_file(game_file, array):
     size_of_bytes = len(bytes.getvalue())
     game_file.write(struct.pack('i', size_of_bytes))
     game_file.write(bytes.getvalue())
+
 
 def convert_numpy_array(numpy_array):
     """
@@ -139,6 +142,8 @@ def read_data(file, process_pair_function):
         except Exception as e:
             print('error ', e)
     print(counter)
+    print('total batches', counter)
+    print('total pairs', pair_number)
     print('time reading', total_time)
     file_size = get_file_size(file)
     if file_size - totalbytes <= 4 + 4 + 8 + 1:
