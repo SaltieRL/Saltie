@@ -73,12 +73,13 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
             self.train_op = self.action_handler.run_func_on_split_tensors([self.logprobs,
                                                           self.estimated_values,
                                                           self.taken_actions,
+                                                          self.discounted_rewards,
                                                           self.actor_network_variables,
                                                           self.critic_network_variables],
                                                                           self._create_training_op,
                                                                           return_as_list=True)
 
-    def _create_training_op(self, logprobs, estimated_values, taken_actions, actor_network_variables, critic_network_variables):
+    def _create_training_op(self, logprobs, estimated_values, taken_actions, discounted_rewards, actor_network_variables, critic_network_variables):
         if len(taken_actions.get_shape()) == 2:
             taken_actions = tf.squeeze(taken_actions)
 
@@ -92,9 +93,9 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
         if not isinstance(critic_network_variables, collections.Sequence):
             critic_network_variables = [critic_network_variables]
 
-        return self.create_training_op(cross_entropy_loss, estimated_values, actor_network_variables, critic_network_variables)
+        return self.create_training_op(cross_entropy_loss, estimated_values, discounted_rewards, actor_network_variables, critic_network_variables)
 
-    def create_training_op(self, cross_entropy_loss, estimated_values, actor_network_variables, critic_network_variables):
+    def create_training_op(self, cross_entropy_loss, estimated_values, discounted_rewards, actor_network_variables, critic_network_variables):
         return self.optimizer.minimize(cross_entropy_loss)
 
     def sample_action(self, input_state):

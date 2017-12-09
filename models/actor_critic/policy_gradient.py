@@ -20,7 +20,7 @@ class PolicyGradient(BaseActorCritic):
         super().__init__(session, state_dim, num_actions, action_handler, is_training,
                          optimizer, summary_writer, summary_every, discount_factor)
 
-    def create_training_op(self, cross_entropy_loss, estimated_values, actor_network_variables, critic_network_variables):
+    def create_training_op(self, cross_entropy_loss, estimated_values, discounted_rewards, actor_network_variables, critic_network_variables):
         with tf.name_scope("compute_pg_gradients"):
             pg_loss = tf.reduce_mean(cross_entropy_loss)
             actor_reg_loss = tf.reduce_sum([tf.reduce_sum(tf.square(x)) for x in actor_network_variables])
@@ -29,14 +29,14 @@ class PolicyGradient(BaseActorCritic):
             # compute actor gradients
             actor_gradients = self.optimizer.compute_gradients(actor_loss, actor_network_variables)
             # compute advantages A(s) = R - V(s)
-            advantages = tf.reduce_sum(self.discounted_rewards - estimated_values)
+            advantages = tf.reduce_sum(discounted_rewards - estimated_values)
             # compute policy gradients
             for i, (grad, var) in enumerate(actor_gradients):
                 if grad is not None:
                     actor_gradients[i] = (grad * advantages, var)
 
             # compute critic gradients
-            mean_square_loss = tf.reduce_mean(tf.square(self.discounted_rewards - estimated_values))
+            mean_square_loss = tf.reduce_mean(tf.square(discounted_rewards - estimated_values))
             critic_reg_loss = tf.reduce_sum([tf.reduce_sum(tf.square(x)) for x in critic_network_variables])
             critic_loss = mean_square_loss + self.reg_param * critic_reg_loss
             critic_gradients = self.optimizer.compute_gradients(critic_loss, critic_network_variables)

@@ -235,6 +235,7 @@ class ActionHandler:
                 output3.append(tensor[2])
                 output4.append(tensor[3])
             else:
+                print(tensor.get_shape())
                 if tensor.get_shape()[1] == self.get_action_size():
                     output1.append(tf.slice(tensor, [0, 0], [-1, self.range_size]))
                     output2.append(tf.slice(tensor, [0, self.range_size], [-1, self.range_size]))
