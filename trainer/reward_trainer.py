@@ -1,16 +1,8 @@
-import time
-
-from conversions import output_formatter
-from conversions.input_formatter import get_state_dim_with_features, InputFormatter
+from conversions.input_formatter import get_state_dim_with_features
 from modelHelpers import action_handler
-from modelHelpers import feature_creator
 from modelHelpers import reward_manager
-from models.atbas import rnn_atba
-from models.actor_critic import base_actor_critic
-from models.actor_critic import policy_gradient
-from models.atbas import nnatba
+import random
 
-import numpy as np
 import tensorflow as tf
 
 
@@ -41,6 +33,9 @@ class RewardTrainer:
         print('state size ' + str(self.state_dim))
         self.num_actions = self.action_handler.get_action_size()
         self.agent = self.get_model()(self.sess, self.state_dim, self.num_actions, self.action_handler, is_training=True)
+
+        self.agent.summary_writer = tf.summary.FileWriter(
+            'training/events/{}-experiment'.format(self.agent.get_model_name()))
 
         self.agent.initialize_model()
 

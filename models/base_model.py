@@ -117,7 +117,7 @@ class BaseModel:
         This is used to initialize the model variables
         This will also try to load an existing model if it exists
         """
-        init = tf.global_variables_initializer()
+        init = tf.report_uninitialized_variables(tf.global_variables())
         self.sess.run(init)
         model_file = None
 

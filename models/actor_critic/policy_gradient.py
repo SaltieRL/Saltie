@@ -22,22 +22,24 @@ class PolicyGradient(BaseActorCritic):
 
     def create_training_op(self, cross_entropy_loss, estimated_values, discounted_rewards, actor_network_variables, critic_network_variables):
         with tf.name_scope("compute_pg_gradients"):
-            pg_loss = tf.reduce_mean(cross_entropy_loss)
-            actor_reg_loss = tf.reduce_sum([tf.reduce_sum(tf.square(x)) for x in actor_network_variables])
+            pg_loss = tf.reduce_mean(cross_entropy_loss, name='pg_loss')
+            actor_reg_loss = tf.reduce_sum([tf.reduce_sum(tf.square(x)) for x in actor_network_variables],
+                                           name='actor_reg_loss')
             actor_loss = pg_loss + self.reg_param * actor_reg_loss
 
             # compute actor gradients
             actor_gradients = self.optimizer.compute_gradients(actor_loss, actor_network_variables)
             # compute advantages A(s) = R - V(s)
-            advantages = tf.reduce_sum(discounted_rewards - estimated_values)
+            advantages = tf.reduce_sum(discounted_rewards - estimated_values, name='advantages')
             # compute policy gradients
             for i, (grad, var) in enumerate(actor_gradients):
                 if grad is not None:
                     actor_gradients[i] = (grad * advantages, var)
 
             # compute critic gradients
-            mean_square_loss = tf.reduce_mean(tf.square(discounted_rewards - estimated_values))
-            critic_reg_loss = tf.reduce_sum([tf.reduce_sum(tf.square(x)) for x in critic_network_variables])
+            mean_square_loss = tf.reduce_mean(tf.square(discounted_rewards - estimated_values), name='mean_square_loss')
+            critic_reg_loss = tf.reduce_sum([tf.reduce_sum(tf.square(x)) for x in critic_network_variables],
+                                            name='critic_reg_loss')
             critic_loss = mean_square_loss + self.reg_param * critic_reg_loss
             critic_gradients = self.optimizer.compute_gradients(critic_loss, critic_network_variables)
 

@@ -62,8 +62,11 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
                                                                      return_as_list=True)
         return self.predicted_actions, self.action_scores
 
+
+
     def create_reinforcement_training_model(self):
         with tf.name_scope("training_network"):
+            self.discounted_rewards = self.discount_rewards(self.input_rewards)
             with tf.variable_scope("actor_network", reuse=True):
                 self.logprobs = self.actor_network(self.input)
 
