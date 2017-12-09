@@ -46,6 +46,10 @@ class BotManager:
         self.file_number = 1
         self.config_file = config_file
         self.server_manager = server_manager
+        self.input_array = np.array([])
+        self.output_array = np.array([])
+        self.batch_size = 1000
+        self.upload_size = 20
 
     def run(self):
         # Set up shared memory map (offset makes it so bot only writes to its own input!) and map to buffer
@@ -129,8 +133,17 @@ class BotManager:
             current_time = game_tick_packet.gameInfo.TimeSeconds
 
             if self.save_data and game_tick_packet.gameInfo.bRoundActive and not old_time == current_time and not current_time == -10:
-                if self.frames > 20000:
-                    self.frames = 0
+                np_input, _ = self.input_converter.create_input_array(game_tick_packet)
+                np_output = np.array(controller_input, dtype=np.float32)
+                self.input_array = np.append(self.input_array, np_input)
+                self.output_array = np.append(self.output_array, np_output)
+                if self.frames % self.batch_size == 0 and not self.frames == 0:
+                    print('writing big array')
+                    compressor.write_array_to_file(self.game_file, self.input_array)
+                    compressor.write_array_to_file(self.game_file, self.output_array)
+                    self.input_array = np.array([])
+                    self.output_array = np.array([])
+                if self.frames % (self.batch_size * self.upload_size) == 0 and not self.frames == 0:
                     print('adding new file and uploading')
                     self.file_number += 1
                     self.game_file.close()
@@ -139,10 +152,6 @@ class BotManager:
                     filename = self.game_name + '\\' + self.name + '-' + str(self.file_number) + '.bin'
                     self.create_new_file(filename)
                     self.maybe_delete(self.file_number - 3)
-                np_input, _ = self.input_converter.create_input_array(game_tick_packet)
-                np_output = np.array(controller_input, dtype=np.float32)
-                compressor.write_array_to_file(self.game_file, np_input)
-                compressor.write_array_to_file(self.game_file, np_output)
                 self.frames += 1
 
             old_time = current_time
