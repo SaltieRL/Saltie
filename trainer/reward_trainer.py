@@ -78,11 +78,9 @@ class RewardTrainer:
     def end_file(self):
         self.batch_process()
         if self.file_number % 100 == 0:
-            saver = tf.train.Saver()
             file_path = self.agent.get_model_path(self.agent.get_default_file_name() + str(self.file_number) + ".ckpt")
-            saver.save(self.sess, file_path)
+            self.agent.saver.save(self.sess, file_path)
 
     def end_everything(self):
-        saver = tf.train.Saver()
         file_path = self.agent.get_model_path(self.agent.get_default_file_name() + ".ckpt")
-        saver.save(self.sess, file_path)
+        self.agent.saver.save(self.sess, file_path)
