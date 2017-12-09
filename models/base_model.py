@@ -1,6 +1,6 @@
-import tensorflow as tf
+import hashlib
 import os
-import sys
+import tensorflow as tf
 
 MODEL_CONFIGURATION_HEADER = 'Model Configuration'
 
@@ -10,6 +10,7 @@ class BaseModel:
     config_file = None
     is_initialized = False
     model_file = None
+    is_evaluating = False
 
     """"
     This is a base class for all models It has a couple helper methods but is mainly used to provide a standard
@@ -116,7 +117,7 @@ class BaseModel:
         This is used to initialize the model variables
         This will also try to load an existing model if it exists
         """
-        init = tf.global_variables_initializer()
+        init = tf.report_uninitialized_variables(tf.global_variables())
         self.sess.run(init)
         model_file = None
 
@@ -129,9 +130,9 @@ class BaseModel:
         if os.path.isfile(model_file + '.meta'):
             print('loading existing model')
             try:
-                self.saver.restore(self.sess, model_file)
-            except:
-                print("Unexpected error loading model:", sys.exc_info())
+                self.saver.restore(self.sess, os.path.abspath(model_file))
+            except Exception as e:
+                print("Unexpected error loading model:", e)
                 print('unable to load model')
         else:
             print('unable to find model to load')
@@ -166,5 +167,26 @@ class BaseModel:
     def load_config_file(self):
         try:
             self.model_file = self.config_file.get(MODEL_CONFIGURATION_HEADER, 'model_directory')
-        except:
-            print('model directory is not in config')
+        except Exception as e:
+            print('model directory is not in config', e)
+
+        try:
+            self.is_evaluating = self.config_file.getboolean(MODEL_CONFIGURATION_HEADER,
+                                                             'is_evaluating')
+        except Exception as e:
+            print('unable to load if it should be evaluating')
+
+    def create_model_hash(self):
+
+        # BUF_SIZE is totally arbitrary, change for your app!
+        BUF_SIZE = 65536  # lets read stuff in 64kb chunks!
+
+        md5 = hashlib.md5()
+        with open(self.model_file, 'rb') as f:
+            while True:
+                data = f.read(BUF_SIZE)
+                if not data:
+                    break
+                md5.update(data)
+
+        return int(md5.hexdigest(), 16) % 2 ** 64

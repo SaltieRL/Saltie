@@ -69,12 +69,12 @@ class BaseReinforcement(base_model.BaseModel):
                 self.taken_actions = tf.placeholder(tf.int32, (None, 4, ), name="taken_actions")
             else:
                 self.taken_actions = tf.placeholder(tf.int32, (None,), name="taken_actions")
-            self.discounted_rewards = tf.placeholder(tf.float32, (None,), name="discounted_rewards")
+            self.input_rewards = tf.placeholder(tf.float32, (None, 1), name="input_rewards")
 
         self.no_op = tf.no_op()
 
     def store_rollout(self, input_state, last_action, reward):
-        if  not self.is_training:
+        if self.is_training:
             self.action_buffer.append(last_action)
             self.reward_buffer.append(reward)
             self.state_buffer.append(input_state)
@@ -82,6 +82,24 @@ class BaseReinforcement(base_model.BaseModel):
         if len(self.action_buffer) > 10000:
             #just in case we should not have this large of a buffer
             self.clean_up()
+
+    def in_loop(self, counter, input_rewards, discounted_rewards, r):
+        new_r = input_rewards[counter] + self.discount_factor * r
+        index = tf.reshape(counter, [1])
+        update_tensor = tf.scatter_nd(index, new_r, tf.shape(discounted_rewards))
+        new_discounted_rewards = discounted_rewards + update_tensor
+        new_counter = counter - tf.constant(1)
+        return new_counter, input_rewards, new_discounted_rewards, new_r
+
+    def discount_rewards(self, input_rewards):
+        r = tf.Variable(initial_value=tf.reshape(tf.constant(0.0), [1]))
+        length = tf.Variable(tf.size(input_rewards))
+        discounted_rewards = tf.zeros(tf.shape(input_rewards), name='discounted_rewards')
+        counter = tf.Variable(length)
+        tf.while_loop(lambda i, _, __, ___: tf.greater_equal(i, 0), self.in_loop,
+                      (counter, input_rewards, discounted_rewards, r),
+                      parallel_iterations=1, back_prop=False)
+        return discounted_rewards
 
     def update_model(self):
         N = len(self.reward_buffer)
@@ -91,11 +109,11 @@ class BaseReinforcement(base_model.BaseModel):
             return
 
         # compute discounted future rewards
-        discounted_rewards = np.zeros(N)
-        for t in reversed(range(N)):
-            # future discounted reward from now on
-            r = self.reward_buffer[t] + self.discount_factor * r
-            discounted_rewards[t] = r
+        #discounted_rewards = np.zeros(N)
+        #for t in reversed(range(N)):
+        #    # future discounted reward from now on
+        #    r = self.reward_buffer[t] + self.discount_factor * r
+        #    discounted_rewards[t] = r
 
         # whether to calculate summaries
         calculate_summaries = self.summary_writer is not None and self.train_iteration % self.summary_every == 0
@@ -109,7 +127,7 @@ class BaseReinforcement(base_model.BaseModel):
 
         input_states = np.array(self.state_buffer)
         actions = np.array(self.action_buffer)
-        rewards = np.array(discounted_rewards)
+        rewards = np.array(self.reward_buffer).reshape((len(self.reward_buffer), 1))
 
         # perform one update of training
         result, summary_str = self.sess.run([
@@ -118,7 +136,7 @@ class BaseReinforcement(base_model.BaseModel):
         ], feed_dict={
             self.input: input_states,
             self.taken_actions: actions,
-            self.discounted_rewards: rewards
+            self.input_rewards: rewards
         })
 
         # emit summaries

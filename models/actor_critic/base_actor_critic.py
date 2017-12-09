@@ -7,7 +7,6 @@ import random
 
 
 class BaseActorCritic(base_reinforcement.BaseReinforcement):
-    is_evaluating = False
     frames_since_last_random_action = 0
     network_size = 128
     num_layers = 3
@@ -28,13 +27,17 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
 
     def load_config_file(self):
         super().load_config_file()
-        self.num_layers = self.config_file.getint(base_model.MODEL_CONFIGURATION_HEADER,
+        try:
+            self.num_layers = self.config_file.getint(base_model.MODEL_CONFIGURATION_HEADER,
                                              'num_layers')
+        except:
+            print('unable to load num_layers')
 
-        self.is_evaluating = self.config_file.getboolean(base_model.MODEL_CONFIGURATION_HEADER,
-                                                     'is_evaluating')
-        self.forced_frame_action = self.config_file.getint(base_model.MODEL_CONFIGURATION_HEADER,
+        try:
+            self.forced_frame_action = self.config_file.getint(base_model.MODEL_CONFIGURATION_HEADER,
                                                          'exploration_factor')
+        except:
+            print('unable to load exploration_factor')
 
     def create_model(self, input):
         with tf.name_scope("predict_actions"):
@@ -59,8 +62,11 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
                                                                      return_as_list=True)
         return self.predicted_actions, self.action_scores
 
+
+
     def create_reinforcement_training_model(self):
         with tf.name_scope("training_network"):
+            self.discounted_rewards = self.discount_rewards(self.input_rewards)
             with tf.variable_scope("actor_network", reuse=True):
                 self.logprobs = self.actor_network(self.input)
 
@@ -70,12 +76,13 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
             self.train_op = self.action_handler.run_func_on_split_tensors([self.logprobs,
                                                           self.estimated_values,
                                                           self.taken_actions,
+                                                          self.discounted_rewards,
                                                           self.actor_network_variables,
                                                           self.critic_network_variables],
                                                                           self._create_training_op,
                                                                           return_as_list=True)
 
-    def _create_training_op(self, logprobs, estimated_values, taken_actions, actor_network_variables, critic_network_variables):
+    def _create_training_op(self, logprobs, estimated_values, taken_actions, discounted_rewards, actor_network_variables, critic_network_variables):
         if len(taken_actions.get_shape()) == 2:
             taken_actions = tf.squeeze(taken_actions)
 
@@ -89,9 +96,9 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
         if not isinstance(critic_network_variables, collections.Sequence):
             critic_network_variables = [critic_network_variables]
 
-        return self.create_training_op(cross_entropy_loss, estimated_values, actor_network_variables, critic_network_variables)
+        return self.create_training_op(cross_entropy_loss, estimated_values, discounted_rewards, actor_network_variables, critic_network_variables)
 
-    def create_training_op(self, cross_entropy_loss, estimated_values, actor_network_variables, critic_network_variables):
+    def create_training_op(self, cross_entropy_loss, estimated_values, discounted_rewards, actor_network_variables, critic_network_variables):
         return self.optimizer.minimize(cross_entropy_loss)
 
     def sample_action(self, input_state):

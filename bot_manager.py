@@ -1,28 +1,19 @@
 import ctypes
 from datetime import datetime
 import gzip
+import hashlib
 import importlib
 import mmap
 import os
 import shutil
 import time
 
-from conversions import server_converter
-
 import numpy as np
 
 import bot_input_struct as bi
 import game_data_struct as gd
 import rate_limiter
-UPLOAD_SERVER = None
-uploading = False
-try:
-    import config
-    UPLOAD_SERVER = config.UPLOAD_SERVER
-    uploading = True
-except:
-    print('config.py not present, cannot upload replays to collective server')
-    print('Check Discord server for information')
+
 
 from conversions import input_formatter, binary_converter as compressor
 
@@ -36,7 +27,12 @@ MAX_CARS = 10
 
 
 class BotManager:
-    def __init__(self, terminateEvent, callbackEvent, config_file, name, team, index, modulename, gamename, savedata):
+
+    game_file = None
+    model_hash = None
+    is_eval = False
+
+    def __init__(self, terminateEvent, callbackEvent, config_file, name, team, index, modulename, gamename, savedata, server_manager):
         self.terminateEvent = terminateEvent
         self.callbackEvent = callbackEvent
         self.name = name
@@ -49,7 +45,11 @@ class BotManager:
         self.frames = 0
         self.file_number = 1
         self.config_file = config_file
-        self.server_manager = server_converter.ServerConverter(uploading, UPLOAD_SERVER)
+        self.server_manager = server_manager
+        self.input_array = np.array([])
+        self.output_array = np.array([])
+        self.batch_size = 1000
+        self.upload_size = 20
 
     def run(self):
         # Set up shared memory map (offset makes it so bot only writes to its own input!) and map to buffer
@@ -78,16 +78,26 @@ class BotManager:
                 continue
 
         # Create bot from module
-        agent = agent_module.Agent(self.name, self.team, self.index, config_file=self.config_file)
+        try:
+            agent = agent_module.Agent(self.name, self.team, self.index, config_file=self.config_file)
+        except TypeError:
+            agent = agent_module.Agent(self.name, self.team, self.index)
+
+        if hasattr(agent, 'create_model_hash'):
+            self.model_hash = agent.create_model_hash()
+        else:
+            self.model_hash = int(hashlib.sha256(self.name.encode('utf-8')).hexdigest(), 16) % 2 ** 64
+
+        self.server_manager.set_model_hash(self.model_hash)
+
+        if hasattr(agent, 'is_evaluating'):
+            self.is_eval = agent.is_evaluating
 
         if self.save_data:
             filename = self.game_name + '\\' + self.name + '-' + str(self.file_number) + '.bin'
             print('creating file ' + filename)
-            self.game_file = open(filename.replace(" ", ""), 'wb')
-            compressor.write_version_info(self.game_file, compressor.HASHED_NAME_FILE_VERSION)
-            compressor.write_bot_name(self.game_file, self.name)
+            self.create_new_file(filename)
         old_time = 0
-        current_time = -10
         counter = 0
 
         # Run until main process tells to stop
@@ -105,6 +115,9 @@ class BotManager:
                 ctypes.memmove(ctypes.addressof(game_tick_packet),
                                game_data_shared_memory.read(ctypes.sizeof(gd.GameTickPacket)),
                                ctypes.sizeof(gd.GameTickPacket))  # copy shared memory into struct
+            if game_tick_packet.gameInfo.bMatchEnded:
+                print('\n\n\n\n Match has ended so ending bot loop\n\n\n\n\n')
+                break
 
             # Call agent
             controller_input = agent.get_output_vector(game_tick_packet)
@@ -122,21 +135,25 @@ class BotManager:
             current_time = game_tick_packet.gameInfo.TimeSeconds
 
             if self.save_data and game_tick_packet.gameInfo.bRoundActive and not old_time == current_time and not current_time == -10:
-                if self.frames > 20000:
-                    self.frames = 0
+                np_input, _ = self.input_converter.create_input_array(game_tick_packet)
+                np_output = np.array(controller_input, dtype=np.float32)
+                self.input_array = np.append(self.input_array, np_input)
+                self.output_array = np.append(self.output_array, np_output)
+                if self.frames % self.batch_size == 0 and not self.frames == 0:
+                    print('writing big array')
+                    compressor.write_array_to_file(self.game_file, self.input_array)
+                    compressor.write_array_to_file(self.game_file, self.output_array)
+                    self.input_array = np.array([])
+                    self.output_array = np.array([])
+                if self.frames % (self.batch_size * self.upload_size) == 0 and not self.frames == 0:
                     print('adding new file and uploading')
                     self.file_number += 1
                     self.game_file.close()
                     print('creating file ' + filename)
                     self.maybe_compress_and_upload(filename)
                     filename = self.game_name + '\\' + self.name + '-' + str(self.file_number) + '.bin'
-                    self.game_file = open(filename.replace(" ", ""), 'wb')
-                    compressor.write_version_info(self.game_file, compressor.FLIPPED_FILE_VERSION)
+                    self.create_new_file(filename)
                     self.maybe_delete(self.file_number - 3)
-                np_input, _ = self.input_converter.create_input_array(game_tick_packet)
-                np_output = np.array(controller_input, dtype=np.float32)
-                compressor.write_array_to_file(self.game_file, np_input)
-                compressor.write_array_to_file(self.game_file, np_output)
                 self.frames += 1
 
             old_time = current_time
@@ -157,6 +174,7 @@ class BotManager:
         # If terminated, send callback
         print("something ended closing file")
         if self.save_data:
+            self.maybe_compress_and_upload(filename)
             self.server_manager.retry_files()
 
         print('done with bot')
@@ -179,3 +197,9 @@ class BotManager:
         if file_number > 0:
             filename = self.game_name + '\\' + self.name + '-' + str(file_number) + '.bin'
             os.remove(filename)
+
+    def create_new_file(self, filename):
+        self.game_file = open(filename.replace(" ", ""), 'wb')
+        compressor.write_version_info(self.game_file, compressor.get_latest_file_version())
+        compressor.write_bot_hash(self.game_file, self.model_hash)
+        compressor.write_is_eval(self.game_file, self.is_eval)

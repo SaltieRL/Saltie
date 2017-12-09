@@ -3,48 +3,69 @@ import gzip
 import inspect
 import io
 import os
-import random
+
 import sys
 import time
 
-import requests
-
+from conversions.server_converter import ServerConverter
 import config
+from conversions import binary_converter
+from trainer.threaded_trainer import ThreadedFiles
+import importlib
+
 
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
 sys.path.insert(0, parentdir)
 
-from conversions import binary_converter
-import importlib
+
 
 
 MODEL_CONFIGURATION_HEADER = 'Model Configuration'
 TRAINER_CONFIGURATION_HEADER = 'Trainer Configuration'
 
 
-def download_batch(n):
-    server = config.UPLOAD_SERVER
-    r = requests.get(server + '/replays/list')
-    replays = r.json()
-    print('num replays available', len(replays), ' num requested ', n)
-    n = min(n, len(replays))
-    downloads = random.sample(replays, n)
-    files = []
-    download_counter = 0
-    for f in downloads:
-        r = requests.get(server + '/replays/' + f)
-        files.append(io.BytesIO(r.content))
-        if download_counter % 10 == 0:
-            print('downloaded 10 more files')
-        download_counter += 1
-    print('downloaded all files')
-    return files
+def load_config_file(config_file):
+    if config_file is None:
+        return
+    #read file code here
+
+    model_package = config_file.get(MODEL_CONFIGURATION_HEADER,
+                                    'model_package')
+    model_name = config_file.get(MODEL_CONFIGURATION_HEADER,
+                                 'model_name')
+    model_class = get_class(model_package, model_name)
+    trainer_package = config_file.get(TRAINER_CONFIGURATION_HEADER,
+                                      'trainer_package')
+    trainer_name = config_file.get(TRAINER_CONFIGURATION_HEADER,
+                                   'trainer_name')
+    try:
+        download_files = config_file.getboolean(TRAINER_CONFIGURATION_HEADER,
+                                                'download_files')
+    except Exception as e:
+        download_files = True
+
+    trainer_class = get_class(trainer_package, trainer_name)
+    print('getting model from', model_package)
+    print('name of model', model_name)
+
+    if model_class is not None and trainer_class is not None:
+        trainer_class.model_class = model_class
+        model_class.config_file = config_file
+
+    return trainer_class, download_files
 
 
-def get_all_files(download=False, n=5):
-    if download:
-        return download_batch(n)
+def get_class(class_package, class_name):
+    class_package = importlib.import_module(class_package)
+    module_classes = inspect.getmembers(class_package, inspect.isclass)
+    for class_group in module_classes:
+        if class_group[0] == class_name:
+            return class_group[1]
+    return None
+
+
+def get_all_files(max_files, only_eval):
     dir_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
     training_path = dir_path + '\\training'
     files = []
@@ -68,80 +89,76 @@ def get_all_files(download=False, n=5):
     return files
 
 
-def train_on_file(trainer_class, f):
+def train_file(trainer_class, f):
     trainer_class.start_new_file()
-    binary_converter.read_data(f, trainer_class.process_pair)
+    try:
+        binary_converter.read_data(f, trainer_class.process_pair)
+    except Exception as e:
+        print('error training on file ', e)
     trainer_class.end_file()
 
 
-def get_class(class_package, class_name):
-    class_package = importlib.import_module(class_package)
-    module_classes = inspect.getmembers(class_package, inspect.isclass)
-    for class_group in module_classes:
-        if class_group[0] == class_name:
-            return class_group[1]
-    return None
+def train_with_file(input_file, train_object):
+    if isinstance(input_file, io.BytesIO):
+        input_file.seek(0)
+    start = time.time()
+
+    try:
+
+        if isinstance(input_file, io.BytesIO):
+            # file in memory
+            with gzip.GzipFile(fileobj=input_file, mode='rb') as f:
+                train_file(trainer_class=train_object, f=f)
+        else:
+            # file on disk
+            with gzip.open(input_file, 'rb') as f:
+                train_file(trainer_class=train_object, f=f)
+    except FileNotFoundError as e:
+        print('whoops file not found')
+        print(e.filename)
+        print(input_file)
+    except Exception as e:
+        print('error training on file going to next one ', e)
+
+    end = time.time()
+    difference = end - start
+    print('trained file in ' + str(difference) + 's')
+    return difference
 
 
-def load_config_file(config_file):
-    if config_file is None:
-        return
-    #read file code here
+def get_file_get_function(download, input_server):
+    if download:
+        return input_server.download_file
+    else:
+        return lambda input_file: input_file
 
-    model_package = config_file.get(MODEL_CONFIGURATION_HEADER,
-                                         'model_package')
-    model_name = config_file.get(MODEL_CONFIGURATION_HEADER,
-                                      'model_name')
-    model_class = get_class(model_package, model_name)
-    trainer_package = config_file.get(TRAINER_CONFIGURATION_HEADER,
-                                    'trainer_package')
-    trainer_name = config_file.get(TRAINER_CONFIGURATION_HEADER,
-                                 'trainer_name')
-    trainer_class = get_class(trainer_package, trainer_name)
-    print('getting model from', model_package)
-    print('name of model', model_name)
 
-    if model_class is not None and trainer_class is not None:
-        trainer_class.model_class = model_class
-        model_class.config_file = config_file
+def get_file_list_get_function(download, input_server):
+    if download:
+        return input_server.get_replays
+    else:
+        return get_all_files
 
-    return trainer_class
 
 
 if __name__ == '__main__':
     framework_config = configparser.RawConfigParser()
     framework_config.read('trainer.cfg')
-    loaded_class = load_config_file(framework_config)
-    files = get_all_files(download=False, n=500)
-    print('training on ' + str(len(files)) + ' files')
-    trainer_object = loaded_class()
-    counter = 0
-    total_time = 0
-    try:
-        for file in files:
-            if isinstance(file, io.BytesIO):
-                file.seek(0)
-            start = time.time()
-            counter += 1
-            try:
-                print('running file ' + str(counter) + '/' + str(len(files)))
-                if isinstance(file, io.BytesIO):
-                    # file in memory
-                    with gzip.GzipFile(fileobj=file, mode='rb') as f:
-                        train_on_file(trainer_class=trainer_object, f=f)
-                else:
-                    # file on disk
-                    with gzip.open(file, 'rb') as f:
-                        train_on_file(trainer_class=trainer_object, f=f)
-                end = time.time()
-                difference = end - start
-                total_time += difference
-                print('trained file in ' + str(difference) + 's')
-            except FileNotFoundError as e:
-                print('whoops file not found')
-                print(e.filename)
-                print(file)
-    finally:
-        print('ran through all files in ' + str(total_time / 60) + 'm')
-        print('average time: ' + str((total_time / len(files))) + 's')
-        trainer_object.end_everything()
+    loaded_class, should_download_files = load_config_file(framework_config)
+    trainer_instance = loaded_class()
+
+    server = ServerConverter(config.UPLOAD_SERVER, False, False, False)
+
+    max_files = 3000
+    num_download_threads = 5
+    num_train_threads = 1
+
+    file_threader = ThreadedFiles(max_files,
+                                  num_download_threads,
+                                  num_train_threads,
+                                  get_file_list_get_function(should_download_files, server),
+                                  get_file_get_function(should_download_files, server),
+                                  train_with_file,
+                                  trainer_instance)
+
+    file_threader.create_and_run_workers()

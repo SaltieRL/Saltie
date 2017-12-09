@@ -4,14 +4,20 @@ import sys
 import struct
 import hashlib
 
+from conversions.input_formatter import get_state_dim_with_features
 import numpy as np
+import time
 
 EMPTY_FILE = 'empty'
 NON_FLIPPED_FILE_VERSION = 0
 FLIPPED_FILE_VERSION = 1
 HASHED_NAME_FILE_VERSION = 2
+IS_EVAL_FILE_VERSION = 3
+BATCH_ARRAY_FILE_VERSION = 4
 
-#BYTES_OBJECT = io.BytesIO()
+
+def get_latest_file_version():
+    return BATCH_ARRAY_FILE_VERSION
 
 
 def write_array_to_file(game_file, array):
@@ -20,6 +26,7 @@ def write_array_to_file(game_file, array):
     game_file.write(struct.pack('i', size_of_bytes))
     game_file.write(bytes.getvalue())
 
+
 def convert_numpy_array(numpy_array):
     """
     Converts a numpy array into compressed bytes
@@ -27,7 +34,7 @@ def convert_numpy_array(numpy_array):
     :return: A BytesIO object that contains compressed bytes
     """
     compressed_array = io.BytesIO()    # np.savez_compressed() requires a file-like object to write to
-    np.save(compressed_array, numpy_array)
+    np.save(compressed_array, numpy_array, allow_pickle=False, fix_imports=False)
     return compressed_array
 
 
@@ -35,10 +42,12 @@ def write_version_info(file, version_number):
     file.write(struct.pack('i', version_number))
 
 
-def write_bot_name(game_file, name):
-    hashed_name = int(hashlib.sha256(name.encode('utf-8')).hexdigest(), 16) % 2 ** 64
-    print('hashed_name', hashed_name)
+def write_bot_hash(game_file, hashed_name):
     game_file.write(struct.pack('Q', hashed_name))
+
+
+def write_is_eval(game_file, is_eval):
+    game_file.write(struct.pack('?', is_eval))
 
 
 def get_file_version(file):
@@ -46,26 +55,41 @@ def get_file_version(file):
     if not isinstance(file, io.BytesIO):
         file_name = os.path.basename(file.name).split('-')[0]
 
+    result = []
+
     try:
         chunk = file.read(4)
         file_version = struct.unpack('i', chunk)[0]
+        result.append(file_version)
         if file_version < HASHED_NAME_FILE_VERSION:
-            return str(file_version), file_name
+            result.append(file_name)
         else:
             chunk = file.read(8)
             hashed_name = struct.unpack('Q', chunk)[0]
-            return file_version, str(hashed_name)
-    except:
-        print('file was empty', sys.exc_info()[0])
-        return EMPTY_FILE, file_name
+            result.append(hashed_name)
+        if file_version < IS_EVAL_FILE_VERSION:
+            result.append(False)
+        else:
+            chunk = file.read(1)
+            is_eval = struct.unpack('?', chunk)[0]
+            result.append(is_eval)
+    except Exception as e:
+        result = [EMPTY_FILE, file_name, False]
+        print('file version was messed up', e)
+    finally:
+        return tuple(result)
+
 
 def get_file_size(f):
     # f is a file-like object.
-    old_file_position = f.tell()
-    f.seek(0, os.SEEK_END)
-    size = f.tell()
-    f.seek(old_file_position, os.SEEK_SET)
-    return size
+    try:
+        old_file_position = f.tell()
+        f.seek(0, os.SEEK_END)
+        size = f.tell()
+        f.seek(old_file_position, os.SEEK_SET)
+        return size
+    except:
+        return 0
 
 
 def read_data(file, process_pair_function):
@@ -78,7 +102,7 @@ def read_data(file, process_pair_function):
     :return: None
     """
 
-    file_version, hashed_name = get_file_version(file)
+    file_version, hashed_name, is_eval = get_file_version(file)
     if file_version == EMPTY_FILE:
         return
 
@@ -87,8 +111,11 @@ def read_data(file, process_pair_function):
 
     pair_number = 0
     totalbytes = 0
+    total_time = 0
+    counter = 0
     while True:
         try:
+            start = time.time()
             chunk = file.read(4)
             if chunk == '':
                 totalbytes += 4
@@ -100,17 +127,29 @@ def read_data(file, process_pair_function):
                 totalbytes += 4
                 break
             output_array, num_bytes = get_array(file, chunk)
-            process_pair_function(input_array, output_array, pair_number, hashed_name)
-            pair_number += 1
+            total_time += time.time() - start
+            batch_size = int(len(input_array) / get_state_dim_with_features())
+            input_array = np.reshape(input_array, (batch_size, int(get_state_dim_with_features())))
+            output_array = np.reshape(output_array, (batch_size, 8))
+            for i in range(len(input_array)):
+                process_pair_function(input_array[i], output_array[i], pair_number, hashed_name)
+                pair_number += 1
             totalbytes += num_bytes + 4
+            counter += 1
         except EOFError:
             print('reached end of file')
             break
+        except Exception as e:
+            print('error ', e)
+    print(counter)
+    print('total batches', counter)
+    print('total pairs', pair_number)
+    print('time reading', total_time)
     file_size = get_file_size(file)
-    if file_size - totalbytes <= 4:
+    if file_size - totalbytes <= 4 + 4 + 8 + 1:
         print('read: 100% of file')
     else:
-        print('read: ' + str(totalbytes) + '/' + str() + ' bytes')
+        print('read: ' + str(totalbytes) + '/' + str(file_size) + ' bytes')
 
 
 def get_array(file, chunk):
@@ -131,7 +170,7 @@ def get_array(file, chunk):
     numpy_bytes = file.read(starting_byte)
     fake_file = io.BytesIO(numpy_bytes)
     try:
-        result = np.load(fake_file)
+        result = np.load(fake_file, allow_pickle=False, fix_imports=False)
     except OSError:
         print('numpy parse error')
         raise EOFError

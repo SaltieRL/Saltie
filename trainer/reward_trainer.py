@@ -1,14 +1,8 @@
-from conversions import output_formatter
-from conversions.input_formatter import get_state_dim_with_features, InputFormatter
+from conversions.input_formatter import get_state_dim_with_features
 from modelHelpers import action_handler
-from modelHelpers import feature_creator
 from modelHelpers import reward_manager
-from models.atbas import rnn_atba
-from models.actor_critic import base_actor_critic
-from models.actor_critic import policy_gradient
-from models.atbas import nnatba
+import random
 
-import numpy as np
 import tensorflow as tf
 
 
@@ -21,7 +15,7 @@ class RewardTrainer:
     epoch = 0
     display_step = 5
 
-    batch_size = 1000
+    batch_size = 2000
     last_action = None
     reward_manager = None
 
@@ -40,6 +34,9 @@ class RewardTrainer:
         self.num_actions = self.action_handler.get_action_size()
         self.agent = self.get_model()(self.sess, self.state_dim, self.num_actions, self.action_handler, is_training=True)
 
+        self.agent.summary_writer = tf.summary.FileWriter(
+            'training/events/{}-experiment'.format(self.agent.get_model_name()))
+
         self.agent.initialize_model()
 
     def get_model(self):
@@ -54,13 +51,11 @@ class RewardTrainer:
         self.reward_manager = reward_manager.RewardManager()
 
     def process_pair(self, input_array, output_array, pair_number, file_version):
-        extra_features = feature_creator.get_extra_features_from_array(input_array)
-
-        input_state = np.append(input_array, extra_features)
+        # extra_features = feature_creator.get_extra_features_from_array(input_array)
 
         if self.last_action is not None:
-            reward = self.reward_manager.get_reward(input_state)
-            self.agent.store_rollout(input_state=input_state, last_action=self.last_action, reward=reward)
+            reward = self.reward_manager.get_reward(input_array)
+            self.agent.store_rollout(input_state=input_array, last_action=self.last_action, reward=reward)
 
         self.last_action = self.action_handler.create_action_index(output_array)
 
@@ -77,12 +72,10 @@ class RewardTrainer:
 
     def end_file(self):
         self.batch_process()
-        if self.file_number % 3 == 0:
-            saver = tf.train.Saver()
+        if self.file_number % 100 == 0:
             file_path = self.agent.get_model_path(self.agent.get_default_file_name() + str(self.file_number) + ".ckpt")
-            saver.save(self.sess, file_path)
+            self.agent.saver.save(self.sess, file_path)
 
     def end_everything(self):
-        saver = tf.train.Saver()
         file_path = self.agent.get_model_path(self.agent.get_default_file_name() + ".ckpt")
-        saver.save(self.sess, file_path)
+        self.agent.saver.save(self.sess, file_path)

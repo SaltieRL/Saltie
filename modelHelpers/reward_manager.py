@@ -11,6 +11,7 @@ class RewardManager:
     previous_car_location = None
     previous_ball_location = None
     previous_saves = 0
+    has_last_touched_ball = 0
 
     def calculate_save_reward(self, score_info):
         """
@@ -41,7 +42,7 @@ class RewardManager:
         previous_distance = get_distance_location(self.previous_car_location, self.previous_ball_location)
         # moving faster = bigger reward or bigger punishment
         distance_change = (previous_distance - current_distance) / 100.0
-        return min(max(distance_change, 0), .1)
+        return min(max(distance_change, 0), .3)
 
     def calculate_move_fast_reward(self, packet):
         """
@@ -55,6 +56,9 @@ class RewardManager:
         A handcoded control reward so that the closer it gets to the correct output the better for scalers
         """
 
+    def calculate_ball_hit_reward(self, has_last_touched_ball, past_has_last_touched_ball):
+        return max(0, has_last_touched_ball - past_has_last_touched_ball) / 2.0
+
     def get_reward(self, array):
 
         score_info = output_formatter.get_score_info(array, output_formatter.GAME_INFO_OFFSET)
@@ -65,6 +69,9 @@ class RewardManager:
                                                          output_formatter.GAME_INFO_OFFSET +
                                                          output_formatter.SCORE_INFO_OFFSET +
                                                          output_formatter.CAR_INFO_OFFSET)
+        has_last_touched_ball = array[output_formatter.GAME_INFO_OFFSET +
+                                                         output_formatter.SCORE_INFO_OFFSET +
+                                                         output_formatter.CAR_INFO_OFFSET - 1]
 
         # current if you score a goal you will get a reward of 2 that is capped at 1
         # we need some kind of better scaling
@@ -72,12 +79,14 @@ class RewardManager:
                 self.calculate_goal_reward(score_info.FrameScoreDiff) +
                 self.calculate_ball_follow_change_reward(car_location, ball_location) +
                 self.calculate_score_reward(score_info)) +
-                self.calculate_save_reward(score_info))
+                self.calculate_save_reward(score_info) +
+                self.calculate_ball_hit_reward(has_last_touched_ball, self.has_last_touched_ball)) * 2
 
         self.previous_saves = score_info.Saves
         self.previous_score = score_info.Score
         self.previous_ball_location = ball_location
         self.previous_car_location = car_location
         self.previous_reward = reward
+        self.has_last_touched_ball = has_last_touched_ball
 
         return reward
