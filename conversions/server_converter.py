@@ -70,6 +70,7 @@ class ServerConverter:
     def _upload_replay(self, fn, model_hash):
         if not self.uploading:
             self.add_to_local_files(fn)
+            return
         with open(fn, 'rb') as f:
             r = None
             payload = {'username': self.username, 'hash': model_hash, 'num_my_team': self.num_my_team, 'num_players': self.num_players}
