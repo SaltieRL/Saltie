@@ -12,7 +12,8 @@ class ServerConverter:
     download_config = False
     download_model = False
 
-    def __init__(self, server_ip, uploading, download_config, download_model, num_players=2, num_my_team=1, username=''):
+    def __init__(self, server_ip, uploading, download_config, download_model,
+                 num_players=2, num_my_team=1, username='', model_hash=''):
         self.server_ip = server_ip
         self.uploading = uploading
         self.download_config = download_config
@@ -20,6 +21,7 @@ class ServerConverter:
         self.username = username
         self.num_players = num_players
         self.num_my_team = num_my_team
+        self.model_hash = model_hash
 
     def set_player_username(self, username):
         print('setting username', username)
@@ -30,6 +32,10 @@ class ServerConverter:
         print('num on my team', num_my_team)
         self.num_players = num_players
         self.num_my_team = num_my_team
+
+    def set_model_hash(self, model_hash):
+        print('setting model hash', model_hash)
+        self.model_hash = str(model_hash)
 
     def load_config(self):
         if self.download_config:
@@ -61,37 +67,36 @@ class ServerConverter:
                 print('Error downloading model, not writing it:', e)
                 download_model = False
 
-    def maybe_upload_replay(self, fn, model_hash=''):
-        try:
-            self._upload_replay(fn, model_hash)
-        except:
-            print('catching all errors to keep the program going')
-
-    def _upload_replay(self, fn, model_hash):
+    def maybe_upload_replay(self, fn):
         if not self.uploading:
             self.add_to_local_files(fn)
             return
+
+        try:
+            self._upload_replay(fn)
+        except Exception as e:
+            print('catching all errors to keep the program going', e)
+
+    def _upload_replay(self, fn):
         with open(fn, 'rb') as f:
-            r = None
-            payload = {'username': self.username, 'hash': model_hash, 'num_my_team': self.num_my_team, 'num_players': self.num_players}
             try:
-                r = requests.post(self.server_ip, files={'file': f}, data=payload)
+                self._upload_replay_opened_file(f)
+                self.file_status[fn] = True
             except ConnectionRefusedError as error:
                 print('server is down ', error)
                 self.add_to_local_files(fn)
             except ConnectionError as error:
                 print('server is down', error)
                 self.add_to_local_files(fn)
-            except:
-                print('server is down, general error')
+            except Exception as e:
+                print('server is down, general error', e)
                 self.add_to_local_files(fn)
 
-            try:
-                print('Upload', r.json()['status'])
-                self.file_status[fn] = True
-            except:
-                self.add_to_local_files(fn)
-                print('error retrieving status')
+    def _upload_replay_opened_file(self, file):
+        payload = {'username': self.username, 'hash': self.model_hash,
+                   'num_my_team': self.num_my_team, 'num_players': self.num_players}
+        r = requests.post(self.server_ip, files={'file': file}, data=payload)
+        print('Upload:', r.json()['status'])
 
     def add_to_local_files(self, fn):
         if fn not in self.file_status:

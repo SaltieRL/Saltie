@@ -88,6 +88,8 @@ class BotManager:
         else:
             self.model_hash = int(hashlib.sha256(self.name.encode('utf-8')).hexdigest(), 16) % 2 ** 64
 
+        self.server_manager.set_model_hash(self.model_hash)
+
         if hasattr(agent, 'is_evaluating'):
             self.is_eval = agent.is_evaluating
 
