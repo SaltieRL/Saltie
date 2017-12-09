@@ -69,12 +69,12 @@ class BaseReinforcement(base_model.BaseModel):
                 self.taken_actions = tf.placeholder(tf.int32, (None, 4, ), name="taken_actions")
             else:
                 self.taken_actions = tf.placeholder(tf.int32, (None,), name="taken_actions")
-            self.discounted_rewards = tf.placeholder(tf.float32, (None,), name="discounted_rewards")
+            self.discounted_rewards = tf.placeholder(tf.float32, (None, 1), name="discounted_rewards")
 
         self.no_op = tf.no_op()
 
     def store_rollout(self, input_state, last_action, reward):
-        if  not self.is_training:
+        if self.is_training:
             self.action_buffer.append(last_action)
             self.reward_buffer.append(reward)
             self.state_buffer.append(input_state)
@@ -109,7 +109,7 @@ class BaseReinforcement(base_model.BaseModel):
 
         input_states = np.array(self.state_buffer)
         actions = np.array(self.action_buffer)
-        rewards = np.array(discounted_rewards)
+        rewards = np.array(discounted_rewards).reshape((len(discounted_rewards), 1))
 
         # perform one update of training
         result, summary_str = self.sess.run([

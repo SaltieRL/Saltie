@@ -1,3 +1,5 @@
+import time
+
 from conversions import output_formatter
 from conversions.input_formatter import get_state_dim_with_features, InputFormatter
 from modelHelpers import action_handler
@@ -54,13 +56,11 @@ class RewardTrainer:
         self.reward_manager = reward_manager.RewardManager()
 
     def process_pair(self, input_array, output_array, pair_number, file_version):
-        extra_features = feature_creator.get_extra_features_from_array(input_array)
-
-        input_state = np.append(input_array, extra_features)
+        # extra_features = feature_creator.get_extra_features_from_array(input_array)
 
         if self.last_action is not None:
-            reward = self.reward_manager.get_reward(input_state)
-            self.agent.store_rollout(input_state=input_state, last_action=self.last_action, reward=reward)
+            reward = self.reward_manager.get_reward(input_array)
+            self.agent.store_rollout(input_state=input_array, last_action=self.last_action, reward=reward)
 
         self.last_action = self.action_handler.create_action_index(output_array)
 
