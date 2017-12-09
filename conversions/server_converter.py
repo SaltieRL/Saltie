@@ -93,10 +93,14 @@ class ServerConverter:
                 self.add_to_local_files(fn)
 
     def _upload_replay_opened_file(self, file):
-        payload = {'username': self.username, 'hash': self.model_hash,
+        payload = {'username': self.username, 'hash': str(self.model_hash),
                    'num_my_team': self.num_my_team, 'num_players': self.num_players}
         r = requests.post(self.server_ip, files={'file': file}, data=payload)
-        print('Upload:', r.json()['status'])
+        if r.status_code != 200 or r.status_code != 202:
+            print('i=something went wrong in the server ', r.status_code)
+            print(r.content)
+        else:
+            print('Upload:', r.json()['status'])
 
     def add_to_local_files(self, fn):
         if fn not in self.file_status:
