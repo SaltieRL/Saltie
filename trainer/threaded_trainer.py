@@ -66,5 +66,5 @@ class ThreadedFiles:
         self.trainer_object.end_everything()
 
         print('ran through all files in ' + str(self.total_time / 60) + ' minutes')
-        print('ran through all files in ' + str(self.total_time / 360) + ' hours')
+        print('ran through all files in ' + str(self.total_time / 3600) + ' hours')
         print('average time per file: ' + str((self.total_time / self.total_files)) + ' seconds')
