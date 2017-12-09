@@ -21,6 +21,16 @@ class ServerConverter:
         self.num_players = num_players
         self.num_my_team = num_my_team
 
+    def set_player_username(self, username):
+        print('setting username', username)
+        self.username = username
+
+    def set_player_amount(self, num_players, num_my_team):
+        print('setting players', num_players)
+        print('num on my team', num_my_team)
+        self.num_players = num_players
+        self.num_my_team = num_my_team
+
     def load_config(self):
         if self.download_config:
             try:

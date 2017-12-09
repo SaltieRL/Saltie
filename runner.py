@@ -27,11 +27,12 @@ RLBOT_CONFIGURATION_HEADER = 'RLBot Configuration'
 INPUT_SHARED_MEMORY_TAG = 'Local\\RLBotInput'
 BOT_CONFIG_LOADOUT_HEADER = 'Participant Loadout'
 BOT_CONFIG_MODULE_HEADER = 'Bot Location'
+USER_CONFIGURATION_HEADER = 'User Info'
 
 
 try:
     import config
-    server_manager = ServerConverter(config.UPLOAD_SERVER, True, True, True, num_players=2, num_my_team=1, username='Sciguymjm')
+    server_manager = ServerConverter(config.UPLOAD_SERVER, True, True, True, username='Sciguymjm')
 except ImportError:
     server_manager = ServerConverter(config.UPLOAD_SERVER, False, False, False)
     print('config.py not present, cannot upload replays to collective server')
@@ -76,6 +77,12 @@ if __name__ == '__main__':
     # Determine number of participants
     num_participants = framework_config.getint(RLBOT_CONFIGURATION_HEADER, 'num_participants')
 
+    try:
+        server_manager.set_player_username(framework_config.get(USER_CONFIGURATION_HEADER, 'username'))
+    except Exception as e:
+        print('username not set in config', e)
+        print('using default username')
+
     # Retrieve bot config files
     participant_configs = get_bot_config_file_list(num_participants, framework_config)
 
@@ -104,7 +111,7 @@ if __name__ == '__main__':
     server_manager.download_files()
 
 
-
+    num_team_0 = 0
     # Set configuration values for bots and store name and team
     for i in range(num_participants):
         bot_config = configparser.RawConfigParser()
@@ -130,6 +137,8 @@ if __name__ == '__main__':
                                                                                               'name'))
         gameInputPacket.sPlayerConfiguration[i].ucTeam = framework_config.getint(PARTICPANT_CONFIGURATION_HEADER,
                                                                                  PARTICPANT_TEAM_PREFIX + str(i))
+        if gameInputPacket.sPlayerConfiguration[i].ucTeam == 0:
+            num_team_0 += 1
         gameInputPacket.sPlayerConfiguration[i].ucTeamColorID = bot_config.getint(BOT_CONFIG_LOADOUT_HEADER,
                                                                                   'team_color_id')
         gameInputPacket.sPlayerConfiguration[i].ucCustomColorID = bot_config.getint(BOT_CONFIG_LOADOUT_HEADER,
@@ -156,6 +165,8 @@ if __name__ == '__main__':
             bot_modules.append(bot_config.get(BOT_CONFIG_MODULE_HEADER, 'agent_module'))
         else:
             bot_modules.append('NO_MODULE_FOR_PARTICIPANT')
+
+    server_manager.set_player_amount(num_participants, num_team_0)
 
     # Create Quit event
     quit_event = mp.Event()
