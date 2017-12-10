@@ -13,7 +13,7 @@ class ServerConverter:
     download_model = False
 
     def __init__(self, server_ip, uploading, download_config, download_model,
-                 num_players=2, num_my_team=1, username='', model_hash=''):
+                 num_players=2, num_my_team=1, username='', model_hash='', is_eval=False):
         self.server_ip = server_ip
         self.uploading = uploading
         self.download_config = download_config
@@ -22,6 +22,7 @@ class ServerConverter:
         self.num_players = num_players
         self.num_my_team = num_my_team
         self.model_hash = model_hash
+        self.is_eval = is_eval
 
     def set_player_username(self, username):
         print('setting username', username)
@@ -36,6 +37,10 @@ class ServerConverter:
     def set_model_hash(self, model_hash):
         print('setting model hash', model_hash)
         self.model_hash = str(model_hash)
+
+    def set_is_eval(self, is_eval):
+        print('setting is eval', is_eval)
+        self.is_eval = is_eval
 
     def load_config(self):
         if self.download_config:
@@ -93,8 +98,8 @@ class ServerConverter:
                 self.add_to_local_files(fn)
 
     def _upload_replay_opened_file(self, file):
-        payload = {'username': self.username, 'hash': str(self.model_hash),
-                   'num_my_team': self.num_my_team, 'num_players': self.num_players}
+        payload = {'username': self.username, 'hash': self.model_hash,
+                   'num_my_team': self.num_my_team, 'num_players': self.num_players, 'is_eval': self.is_eval}
         r = requests.post(self.server_ip, files={'file': file}, data=payload)
         if r.status_code != 200 and r.status_code != 202:
             print('i=something went wrong in the server ', r.status_code)

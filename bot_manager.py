@@ -92,6 +92,7 @@ class BotManager:
 
         if hasattr(agent, 'is_evaluating'):
             self.is_eval = agent.is_evaluating
+            self.server_manager.set_is_eval(self.is_eval)
 
         if self.save_data:
             filename = self.game_name + '\\' + self.name + '-' + str(self.file_number) + '.bin'
