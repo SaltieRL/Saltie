@@ -96,7 +96,7 @@ class ServerConverter:
         payload = {'username': self.username, 'hash': str(self.model_hash),
                    'num_my_team': self.num_my_team, 'num_players': self.num_players}
         r = requests.post(self.server_ip, files={'file': file}, data=payload)
-        if r.status_code != 200 or r.status_code != 202:
+        if r.status_code != 200 and r.status_code != 202:
             print('i=something went wrong in the server ', r.status_code)
             print(r.content)
         else:
