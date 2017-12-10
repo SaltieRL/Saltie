@@ -1,6 +1,5 @@
 import numpy as np
 import game_data_struct
-from modelHelpers import feature_creator
 
 
 def get_state_dim_with_features():
