@@ -95,3 +95,10 @@ class Agent:
             action = self.actions_handler.get_random_option()
         self.previous_action = action
         return self.actions_handler.create_controller_from_selection(action)
+
+    def create_model_hash(self):
+        try:
+            return self.model.create_model_hash()
+        except Exception as e:
+            print('creating hash exception', e)
+            return 0

@@ -86,7 +86,7 @@ class BotManager:
         if hasattr(agent, 'create_model_hash'):
             self.model_hash = agent.create_model_hash()
         else:
-            self.model_hash = int(hashlib.sha256(self.name.encode('utf-8')).hexdigest(), 16) % 2 ** 64
+            self.model_hash = 0 #int(hashlib.sha256(self.name.encode('utf-8')).hexdigest(), 16) % 2 ** 64
 
         self.server_manager.set_model_hash(self.model_hash)
 
