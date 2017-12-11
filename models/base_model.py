@@ -1,6 +1,7 @@
 import hashlib
 import os
 import tensorflow as tf
+import numpy as np
 
 MODEL_CONFIGURATION_HEADER = 'Model Configuration'
 
@@ -112,13 +113,33 @@ class BaseModel:
         """
         return None, None
 
+    def _set_variables(self):
+        try:
+            init = tf.global_variables_initializer()
+            self.sess.run(init, feed_dict={
+                self.input: np.reshape(np.zeros(206), [1, 206])
+            })
+        except Exception as e:
+            print('failed to initialize')
+            print(e)
+            try:
+                init = tf.global_variables_initializer()
+                self.sess.run(init)
+            except Exception as e2:
+                print('failed to initialize again')
+                print(e2)
+                init = tf.global_variables_initializer()
+                self.sess.run(init, feed_dict={
+                    self.input: np.reshape(np.zeros(206), [1, 206])
+                })
+
+
     def initialize_model(self):
         """
         This is used to initialize the model variables
         This will also try to load an existing model if it exists
         """
-        init = tf.report_uninitialized_variables(tf.global_variables())
-        self.sess.run(init)
+        self._set_variables()
         model_file = None
 
         #file does not exist too lazy to add check
@@ -134,8 +155,10 @@ class BaseModel:
             except Exception as e:
                 print("Unexpected error loading model:", e)
                 print('unable to load model')
+                self._set_variables()
         else:
             print('unable to find model to load')
+            self._set_variables()
 
         self._add_summary_writer()
         self.is_initialized = True
