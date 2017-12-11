@@ -1,6 +1,6 @@
 import tensorflow as tf
 from models.actor_critic.base_actor_critic import BaseActorCritic
-
+from modelHelpers import tensorflow_reward_manager
 
 class PolicyGradient(BaseActorCritic):
 
@@ -17,8 +17,11 @@ class PolicyGradient(BaseActorCritic):
                  summary_every=100,
                  discount_factor=0.99,  # discount future rewards
                  ):
+        self.reward_manager = tensorflow_reward_manager.TensorflowRewardManager()
+
         super().__init__(session, state_dim, num_actions, action_handler, is_training,
                          optimizer, summary_writer, summary_every, discount_factor)
+
 
     def create_training_op(self, cross_entropy_loss, estimated_values, discounted_rewards, actor_network_variables, critic_network_variables):
         with tf.name_scope("compute_pg_gradients"):
@@ -68,6 +71,26 @@ class PolicyGradient(BaseActorCritic):
         with tf.name_scope("train_actor_critic"):
             # apply gradients to update actor network
             return self.optimizer.apply_gradients(gradients)
+
+    def create_reward(self):
+        return None
+
+    def discount_rewards(self, input_rewards):
+        return self.reward_manager.create_reward_graph(self.input)
+
+    def run_train_step(self, calculate_summaries, input_states, actions, rewards):
+        # perform one update of training
+
+        feed = {
+            self.input: input_states,
+            self.taken_actions: actions
+        }
+
+        result, summary_str = self.sess.run([
+            self.train_op,
+            self.summarize if calculate_summaries else self.no_op
+        ], feed_dict=feed)
+        return result, summary_str
 
     def get_model_name(self):
         return 'a_c_policy_gradient' + ('_split' if self.action_handler.is_split_mode else '') + str(self.num_layers) + '-layers'

@@ -85,7 +85,7 @@ def get_all_files(max_files, only_eval):
 def train_file(trainer_class, f):
     trainer_class.start_new_file()
     try:
-        binary_converter.read_data(f, trainer_class.process_pair)
+        binary_converter.read_data(f, trainer_class.process_pair, batching=False)
     except Exception as e:
         print('error training on file ', e)
     trainer_class.end_file()

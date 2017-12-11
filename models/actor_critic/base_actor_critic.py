@@ -138,7 +138,7 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
         W = tf.get_variable("W" + str(layer_number), [input_size, output_size],
                              initializer=tf.random_normal_initializer())
         b = tf.get_variable("b" + str(layer_number), [output_size],
-                             initializer=tf.constant_initializer(0))
+                             initializer=tf.constant_initializer(0.0))
         h = activation_function(tf.matmul(input, W) + b)
         return h
 

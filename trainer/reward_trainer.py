@@ -34,10 +34,14 @@ class RewardTrainer:
         self.num_actions = self.action_handler.get_action_size()
         self.agent = self.get_model()(self.sess, self.state_dim, self.num_actions, self.action_handler, is_training=True)
 
-        self.agent.summary_writer = tf.summary.FileWriter(
-            'training/events/{}-experiment'.format(self.agent.get_model_name()))
+     #   self.agent.summary_writer = tf.summary.FileWriter(
+     #       'training/events/{}-experiment'.format(self.agent.get_model_name()))
 
         self.agent.initialize_model()
+
+        self.agent.create_reinforcement_training_model()
+
+
 
     def get_model(self):
         #return rnn_atba.RNNAtba
@@ -54,8 +58,18 @@ class RewardTrainer:
         # extra_features = feature_creator.get_extra_features_from_array(input_array)
 
         if self.last_action is not None:
-            reward = self.reward_manager.get_reward(input_array)
+            reward = 0  # self.reward_manager.get_reward(input_array)
             self.agent.store_rollout(input_state=input_array, last_action=self.last_action, reward=reward)
+
+        self.last_action = self.action_handler.create_action_index(output_array)
+
+        if pair_number % self.batch_size == 0 and pair_number != 0:
+            self.batch_process()
+
+    def process_pair_batch(self, input_array, output_array, pair_number, file_version):
+        # extra_features = feature_creator.get_extra_features_from_array(input_array)
+
+        self.agent.store_rollout_batch(input_state=input_array, last_action=self.last_action)
 
         self.last_action = self.action_handler.create_action_index(output_array)
 

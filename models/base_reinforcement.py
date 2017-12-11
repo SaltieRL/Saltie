@@ -40,9 +40,6 @@ class BaseReinforcement(base_model.BaseModel):
         self.final_exp = final_exp
         self.anneal_steps = anneal_steps
 
-        if self.is_training:
-            self.create_reinforcement_training_model()
-
     def create_copy_training_model(self, batch_size):
         self.labels = tf.placeholder(tf.int64, shape=(None, self.num_actions))
 
@@ -69,9 +66,7 @@ class BaseReinforcement(base_model.BaseModel):
                 self.taken_actions = tf.placeholder(tf.int32, (None, 4, ), name="taken_actions")
             else:
                 self.taken_actions = tf.placeholder(tf.int32, (None,), name="taken_actions")
-            self.input_rewards = tf.placeholder(tf.float32, (None, 1), name="input_rewards")
-
-        self.no_op = tf.no_op()
+            self.input_rewards = self.create_reward()
 
     def store_rollout(self, input_state, last_action, reward):
         if self.is_training:
@@ -82,6 +77,11 @@ class BaseReinforcement(base_model.BaseModel):
         if len(self.action_buffer) > 10000:
             #just in case we should not have this large of a buffer
             self.clean_up()
+
+    def store_rollout_batch(self, input_state, last_action):
+        if self.is_training:
+            self.action_buffer = np.concatenate((self.action_buffer, last_action), axis=0)
+            self.state_buffer = np.concatenate((self.state_buffer, input_state), axis=0)
 
     def in_loop(self, counter, input_rewards, discounted_rewards, r):
         new_r = input_rewards[counter] + self.discount_factor * r
@@ -116,7 +116,7 @@ class BaseReinforcement(base_model.BaseModel):
         #    discounted_rewards[t] = r
 
         # whether to calculate summaries
-        calculate_summaries = self.summary_writer is not None and self.train_iteration % self.summary_every == 0
+        calculate_summaries = self.summarize is not None and self.summary_writer is not None and self.train_iteration % self.summary_every == 0
 
         # update policy network with the rollout in batches
 
@@ -129,15 +129,7 @@ class BaseReinforcement(base_model.BaseModel):
         actions = np.array(self.action_buffer)
         rewards = np.array(self.reward_buffer).reshape((len(self.reward_buffer), 1))
 
-        # perform one update of training
-        result, summary_str = self.sess.run([
-            self.train_op,
-            self.summarize if calculate_summaries else self.no_op
-        ], feed_dict={
-            self.input: input_states,
-            self.taken_actions: actions,
-            self.input_rewards: rewards
-        })
+        result, summary_str = self.run_train_step(calculate_summaries, input_states, actions, rewards)
 
         # emit summaries
         if calculate_summaries:
@@ -150,6 +142,18 @@ class BaseReinforcement(base_model.BaseModel):
 
         # clean up
         self.clean_up()
+
+    def run_train_step(self, calculate_summaries, input_states, actions, rewards):
+        # perform one update of training
+        result, summary_str = self.sess.run([
+            self.train_op,
+            self.summarize if calculate_summaries else self.no_op
+        ], feed_dict={
+            self.input: input_states,
+            self.taken_actions: actions,
+            self.input_rewards: rewards
+        })
+        return result, summary_str
 
     def anneal_exploration(self, stategy='linear'):
         ratio = max((self.anneal_steps - self.train_iteration) / float(self.anneal_steps), 0)
@@ -168,3 +172,6 @@ class BaseReinforcement(base_model.BaseModel):
 
     def get_model_name(self):
         return 'base_reinforcement'
+
+    def create_reward(self):
+        return tf.placeholder(tf.float32, (None, 1), name="input_rewards")

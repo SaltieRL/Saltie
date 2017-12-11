@@ -11,6 +11,7 @@ class BaseModel:
     is_initialized = False
     model_file = None
     is_evaluating = False
+    no_op = tf.no_op()
 
     """"
     This is a base class for all models It has a couple helper methods but is mainly used to provide a standard
@@ -66,6 +67,16 @@ class BaseModel:
         :param input_state: The input state array
         :param last_action: The last action that the bot performed
         :param reward: The reward for performing that action
+        :return:
+        """
+        print(' i do nothing!')
+
+    def store_rollout_batch(self, input_states, last_actions):
+        """
+        Used for reinforcment learning this is used to store the last action taken, its state at that point
+        and the reward for that action.
+        :param input_state: The input state array can contain multiple states
+        :param last_action: The last set of actions that the bot performed
         :return:
         """
         print(' i do nothing!')
@@ -132,9 +143,13 @@ class BaseModel:
             try:
                 self.saver.restore(self.sess, os.path.abspath(model_file))
             except Exception as e:
+                init = tf.global_variables_initializer()
+                self.sess.run(init)
                 print("Unexpected error loading model:", e)
                 print('unable to load model')
         else:
+            init = tf.global_variables_initializer()
+            self.sess.run(init)
             print('unable to find model to load')
 
         self._add_summary_writer()
@@ -163,6 +178,8 @@ class BaseModel:
             self.summarize = tf.summary.merge_all()
             # graph was not available when journalist was created
             self.summary_writer.add_graph(self.sess.graph)
+        else:
+            self.summarize = self.no_op
 
     def load_config_file(self):
         try:
