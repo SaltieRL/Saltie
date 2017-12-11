@@ -34,6 +34,13 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
             print('unable to load num_layers')
 
         try:
+            self.network_size = self.config_file.getint(base_model.MODEL_CONFIGURATION_HEADER,
+                                                      'num_width')
+        except:
+            print('unable to load the width of each layer')
+
+
+        try:
             self.forced_frame_action = self.config_file.getint(base_model.MODEL_CONFIGURATION_HEADER,
                                                          'exploration_factor')
         except:

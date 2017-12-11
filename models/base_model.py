@@ -182,7 +182,7 @@ class BaseModel:
         BUF_SIZE = 65536  # lets read stuff in 64kb chunks!
 
         md5 = hashlib.md5()
-        with open(self.model_file, 'rb') as f:
+        with open(self.model_file + '.data-00000-of-00001', 'rb') as f:
             while True:
                 data = f.read(BUF_SIZE)
                 if not data:
