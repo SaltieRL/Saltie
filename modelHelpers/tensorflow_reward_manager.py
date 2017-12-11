@@ -135,7 +135,7 @@ class TensorflowRewardManager(reward_manager.RewardManager):
                                 lambda: self.zero_reward)
         new_r = newest_reward + tf.multiply(self.discount_factor, previous_reward)
         index = tf.reshape(counter, [1])
-        reward = tf.reshape(tf.reduce_sum(new_r), [1])
+        reward = new_r[0] + new_r[1]
         update_tensor = tf.scatter_nd(index, reward, tf.shape(discounted_rewards))
         new_discounted_rewards = discounted_rewards + update_tensor
         new_counter = counter - tf.constant(1)
