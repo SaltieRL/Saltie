@@ -5,7 +5,6 @@ import tensorflow as tf
 
 
 class TensorflowRewardManager(reward_manager.RewardManager):
-    discount_factor = 0
     last_state = None
     zero_reward = tf.Variable(initial_value=tf.reshape(tf.constant(0.0), [1]))
 
