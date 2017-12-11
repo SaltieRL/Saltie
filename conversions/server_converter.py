@@ -44,17 +44,21 @@ class ServerConverter:
 
     def load_config(self):
         if self.download_config:
+            print('downloading config')
             try:
-                self.config_response = requests.get(self.server_ip + '/config/get')
+                self.config_response = requests.get(self.server_ip + '/config/get', timeout=10)
+                print('config downloaded')
             except Exception as e:
                 print('Error downloading config, reverting to file on disk:', e)
                 self.download_config = False
 
     def load_model(self):
         if self.download_model:
+            print('downloading model')
             folder = 'training\\saltie\\'
             try:
-                b = requests.get(self.server_ip + '/model/get')
+                b = requests.get(self.server_ip + '/model/get', timeout=10)
+                print('model downloaded')
                 bytes = io.BytesIO()
                 for chunk in b.iter_content(chunk_size=1024):
                     if chunk:
