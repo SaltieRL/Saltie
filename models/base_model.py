@@ -139,6 +139,7 @@ class BaseModel:
         #file does not exist too lazy to add check
         if self.model_file is None:
             model_file = self.get_model_path(self.get_default_file_name() + '.ckpt')
+            self.model_file = model_file
         else:
             model_file = self.model_file
         print(model_file)

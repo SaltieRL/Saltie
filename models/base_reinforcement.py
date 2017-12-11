@@ -81,7 +81,7 @@ class BaseReinforcement(base_model.BaseModel):
         if len(self.action_buffer) >= 1000 and self.is_online_training and not self.is_evaluating:
             print('running online trainer!')
             self.update_model()
-        if len(self.action_buffer) >= 10000:
+        if self.action_buffer is not None and len(self.action_buffer) >= 10000:
             self.clean_up()
 
     def store_rollout_batch(self, input_state, last_action):
