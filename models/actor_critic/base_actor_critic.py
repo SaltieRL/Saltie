@@ -80,9 +80,11 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
             with tf.variable_scope("critic_network", reuse=True):
                 self.estimated_values = self.critic_network(self.input)
 
+            taken_actions = self.parse_actions(self.taken_actions)
+
             self.train_op = self.action_handler.run_func_on_split_tensors([self.logprobs,
                                                           self.estimated_values,
-                                                          self.taken_actions,
+                                                                           taken_actions,
                                                           self.discounted_rewards,
                                                           self.actor_network_variables,
                                                           self.critic_network_variables],
@@ -133,6 +135,7 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
 
     def _create_variables(self):
         super()._create_variables()
+        # self.taken_actions = tf.placeholder(tf.float32, (None, 8), name="taken_actions")
 
     def create_layer(self, activation_function, input, layer_number, input_size, output_size):
         W = tf.get_variable("W" + str(layer_number), [input_size, output_size],
@@ -164,3 +167,6 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
 
     def get_model_name(self):
         return 'base_actor_critic-' + str(self.num_layers) + '-layers'
+
+    def parse_actions(self, taken_actions):
+        return taken_actions

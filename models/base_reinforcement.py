@@ -27,9 +27,9 @@ class BaseReinforcement(base_model.BaseModel):
         self.train_iteration = 0
 
         # rollout buffer
-        self.state_buffer = []
+        self.state_buffer = None
         self.reward_buffer = []
-        self.action_buffer = []
+        self.action_buffer = None
 
         #training parameters
         self.discount_factor = discount_factor
@@ -63,25 +63,35 @@ class BaseReinforcement(base_model.BaseModel):
         # reinforcement variables
         with tf.name_scope("compute_pg_gradients"):
             if self.action_handler.is_split_mode():
-                self.taken_actions = tf.placeholder(tf.int32, (None, 4, ), name="taken_actions")
+                self.taken_actions = tf.placeholder(tf.int32, (None, 4), name="taken_actions")
             else:
                 self.taken_actions = tf.placeholder(tf.int32, (None,), name="taken_actions")
             self.input_rewards = self.create_reward()
 
     def store_rollout(self, input_state, last_action, reward):
         if self.is_training:
+            if self.action_buffer is None:
+                self.action_buffer = []
+                self.state_buffer = []
+                self.reward_buffer = []
             self.action_buffer.append(last_action)
             self.reward_buffer.append(reward)
             self.state_buffer.append(input_state)
 
-        if len(self.action_buffer) > 10000:
-            #just in case we should not have this large of a buffer
+        if len(self.action_buffer) >= 1000 and self.is_online_training and not self.is_evaluating:
+            print('running online trainer!')
+            self.update_model()
+        if len(self.action_buffer) >= 10000:
             self.clean_up()
 
     def store_rollout_batch(self, input_state, last_action):
         if self.is_training:
-            self.action_buffer = np.concatenate((self.action_buffer, last_action), axis=0)
-            self.state_buffer = np.concatenate((self.state_buffer, input_state), axis=0)
+            if self.action_buffer is None:
+                self.action_buffer = last_action
+                self.state_buffer = input_state
+            else:
+                self.action_buffer = np.concatenate((self.action_buffer, last_action), axis=0)
+                self.state_buffer = np.concatenate((self.state_buffer, input_state), axis=0)
 
     def in_loop(self, counter, input_rewards, discounted_rewards, r):
         new_r = input_rewards[counter] + self.discount_factor * r
@@ -102,7 +112,7 @@ class BaseReinforcement(base_model.BaseModel):
         return discounted_rewards
 
     def update_model(self):
-        N = len(self.reward_buffer)
+        N = len(self.state_buffer)
         r = 0  # use discounted reward to approximate Q value
 
         if N == 0:
@@ -127,8 +137,8 @@ class BaseReinforcement(base_model.BaseModel):
 
         input_states = np.array(self.state_buffer)
         actions = np.array(self.action_buffer)
-        rewards = np.array(self.reward_buffer).reshape((len(self.reward_buffer), 1))
-
+        #rewards = np.array(self.reward_buffer).reshape((len(self.reward_buffer), 1))
+        rewards = None
         result, summary_str = self.run_train_step(calculate_summaries, input_states, actions, rewards)
 
         # emit summaries
@@ -160,9 +170,9 @@ class BaseReinforcement(base_model.BaseModel):
         self.exploration = (self.init_exp - self.final_exp) * ratio + self.final_exp
 
     def clean_up(self):
-        self.state_buffer = []
+        self.state_buffer = None
         self.reward_buffer = []
-        self.action_buffer = []
+        self.action_buffer = None
 
     def reset_model(self):
         self.clean_up()

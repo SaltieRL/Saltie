@@ -79,6 +79,8 @@ def get_all_files(max_files, only_eval):
             if skip_file:
                 continue
             files.append(dirpath + '/' + file)
+            if len(files) >= max_files:
+                return files
     return files
 
 

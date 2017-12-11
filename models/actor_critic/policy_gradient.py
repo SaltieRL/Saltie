@@ -78,6 +78,9 @@ class PolicyGradient(BaseActorCritic):
     def discount_rewards(self, input_rewards):
         return self.reward_manager.create_reward_graph(self.input)
 
+    #def parse_actions(self, taken_actions):
+    #    return tf.cast(self.action_handler.create_indexes_graph(taken_actions), tf.int32)
+
     def run_train_step(self, calculate_summaries, input_states, actions, rewards):
         # perform one update of training
 

@@ -1,6 +1,7 @@
 import hashlib
 import os
 import tensorflow as tf
+import numpy as np
 
 MODEL_CONFIGURATION_HEADER = 'Model Configuration'
 
@@ -11,6 +12,7 @@ class BaseModel:
     is_initialized = False
     model_file = None
     is_evaluating = False
+    is_online_training = False
     no_op = tf.no_op()
 
     """"
@@ -128,8 +130,10 @@ class BaseModel:
         This is used to initialize the model variables
         This will also try to load an existing model if it exists
         """
-        init = tf.report_uninitialized_variables(tf.global_variables())
-        self.sess.run(init)
+        init = tf.global_variables_initializer()
+        self.sess.run(init, feed_dict={
+            self.input: np.reshape(np.zeros(206), [1, 206])
+        })
         model_file = None
 
         #file does not exist too lazy to add check

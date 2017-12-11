@@ -2,6 +2,7 @@ from conversions.input_formatter import get_state_dim_with_features
 from modelHelpers import action_handler
 from modelHelpers import reward_manager
 import random
+import time
 
 import tensorflow as tf
 
@@ -18,6 +19,9 @@ class RewardTrainer:
     batch_size = 2000
     last_action = None
     reward_manager = None
+    local_pair_number = 0
+    last_pair_number = 0
+    time_difference = 0
 
     def __init__(self):
         #config = tf.ConfigProto(
@@ -37,9 +41,9 @@ class RewardTrainer:
      #   self.agent.summary_writer = tf.summary.FileWriter(
      #       'training/events/{}-experiment'.format(self.agent.get_model_name()))
 
-        self.agent.initialize_model()
-
         self.agent.create_reinforcement_training_model()
+
+        self.agent.initialize_model()
 
 
 
@@ -69,23 +73,43 @@ class RewardTrainer:
     def process_pair_batch(self, input_array, output_array, pair_number, file_version):
         # extra_features = feature_creator.get_extra_features_from_array(input_array)
 
-        self.agent.store_rollout_batch(input_state=input_array, last_action=self.last_action)
+        if len(input_array) > self.batch_size:
+            print('splitting up!')
+            counter = 0
+            for i in range(int(len(input_array) / self.batch_size)):
+                self.process_pair_batch(
+                    input_array[i * self.batch_size: (i + 1) * self.batch_size],
+                    output_array[i * self.batch_size: (i + 1) * self.batch_size])
+                counter = i
+            if counter * self.batch_size < len(input_array):
+                self.process_pair_batch(
+                    input_array[counter * self.batch_size:],
+                    output_array[counter * self.batch_size:])
+            return
 
-        self.last_action = self.action_handler.create_action_index(output_array)
+        self.agent.store_rollout(input_state=input_array, last_action=output_array, reward=[])
+        #self.agent.store_rollout_batch(input_state=input_array, last_action=output_array)
+        self.local_pair_number += (pair_number - self.last_pair_number)
+        self.last_pair_number = pair_number
 
-        if pair_number % self.batch_size == 0 and pair_number != 0:
+        if self.local_pair_number >= self.batch_size:
+            self.local_pair_number = 0
             self.batch_process()
 
 
     def batch_process(self):
+        start = time.time()
         self.agent.update_model()
+        self.time_difference += time.time() - start
         # Display logs per step
-        if self.epoch % self.display_step == 0:
-            print("File:", '%04d' % self.file_number, "Epoch:", '%04d' % (self.epoch+1))
+    #    if self.epoch % self.display_step == 0:
+    #        print("File:", '%04d' % self.file_number, "Epoch:", '%04d' % (self.epoch+1))
         self.epoch += 1
 
     def end_file(self):
         self.batch_process()
+        print('\ntraining time\n', self.time_difference)
+        self.time_difference = 0
         if self.file_number % 100 == 0:
             file_path = self.agent.get_model_path(self.agent.get_default_file_name() + str(self.file_number) + ".ckpt")
             self.agent.saver.save(self.sess, file_path)
