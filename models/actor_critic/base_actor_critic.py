@@ -37,6 +37,7 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
             self.network_size = self.config_file.getint(base_model.MODEL_CONFIGURATION_HEADER,
                                                       'num_width')
         except:
+            print('unable to load the width of each layer')
 
 
         try:
