@@ -67,6 +67,7 @@ class BaseReinforcement(base_model.BaseModel):
             else:
                 self.taken_actions = tf.placeholder(tf.int32, (None,), name="taken_actions")
             self.input_rewards = self.create_reward()
+        return {}
 
     def store_rollout(self, input_state, last_action, reward):
         if self.is_training:

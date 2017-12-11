@@ -51,16 +51,17 @@ class BaseModel:
             self.load_config_file()
 
         # create variables
-        self._create_variables()
+        self.stored_variables = self._create_variables()
 
         # create model
         self.model, self.logits = self.create_model(self.input)
 
-        self.saver = tf.train.Saver()
+        self.saver = tf.train.Saver(self.stored_variables)
 
     def _create_variables(self):
         with tf.name_scope("model_inputs"):
             self.input = tf.placeholder(tf.float32, shape=(None, self.state_dim), name="state_input")
+        return {}
 
     def store_rollout(self, input_state, last_action, reward):
         """
@@ -125,15 +126,19 @@ class BaseModel:
         """
         return None, None
 
+    def _set_variables(self):
+        init = tf.global_variables_initializer()
+        self.sess.run(init, feed_dict={
+            self.input: np.reshape(np.zeros(206), [1, 206])
+        })
+
     def initialize_model(self):
         """
         This is used to initialize the model variables
         This will also try to load an existing model if it exists
         """
-        init = tf.global_variables_initializer()
-        self.sess.run(init, feed_dict={
-            self.input: np.reshape(np.zeros(206), [1, 206])
-        })
+        self._set_variables()
+
         model_file = None
 
         #file does not exist too lazy to add check
@@ -148,13 +153,11 @@ class BaseModel:
             try:
                 self.saver.restore(self.sess, os.path.abspath(model_file))
             except Exception as e:
-                init = tf.global_variables_initializer()
-                self.sess.run(init)
+                self._set_variables()
                 print("Unexpected error loading model:", e)
                 print('unable to load model')
         else:
-            init = tf.global_variables_initializer()
-            self.sess.run(init)
+            self._set_variables()
             print('unable to find model to load')
 
         self._add_summary_writer()

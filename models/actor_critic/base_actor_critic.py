@@ -133,36 +133,42 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
 
             return action
 
-    def _create_variables(self):
-        super()._create_variables()
-        # self.taken_actions = tf.placeholder(tf.float32, (None, 8), name="taken_actions")
-
-    def create_layer(self, activation_function, input, layer_number, input_size, output_size):
-        W = tf.get_variable("W" + str(layer_number), [input_size, output_size],
+    def create_layer(self, activation_function, input, layer_number, input_size, output_size, network_prefix):
+        weight_name = network_prefix + "W" + str(layer_number)
+        bias_name = network_prefix + "b" + str(layer_number)
+        W = tf.get_variable(weight_name, [input_size, output_size],
                              initializer=tf.random_normal_initializer())
-        b = tf.get_variable("b" + str(layer_number), [output_size],
+        b = tf.get_variable(bias_name, [output_size],
                              initializer=tf.constant_initializer(0.0))
         h = activation_function(tf.matmul(input, W) + b)
+        self.stored_variables[weight_name] = W
+        self.stored_variables[bias_name] = b
         return h
 
     def actor_network(self, input_states):
         # define policy neural network
-        layer1 = self.create_layer(tf.nn.relu6, input_states, 1, self.state_dim, self.network_size)
+        actor_prefix = 'actor'
+        layer1 = self.create_layer(tf.nn.relu6, input_states, 1, self.state_dim, self.network_size, actor_prefix)
         inner_layer = layer1
         print('num layers', self.num_layers)
         for i in range(0, self.num_layers - 2):
-            inner_layer = self.create_layer(tf.nn.relu6, inner_layer, i + 2, self.network_size, self.network_size)
-        output_layer = self.create_layer(tf.nn.sigmoid, inner_layer, self.num_layers, self.network_size, self.num_actions)
+            inner_layer = self.create_layer(tf.nn.relu6, inner_layer, i + 2, self.network_size,
+                                            self.network_size, actor_prefix)
+        output_layer = self.create_layer(tf.nn.sigmoid, inner_layer, self.num_layers,self.network_size,
+                                         self.num_actions, actor_prefix)
 
         return output_layer
 
     def critic_network(self, input_states):
         # define policy neural network
-        layer1 = self.create_layer(tf.nn.relu6, input_states, 1, self.state_dim, self.network_size)
+        critic_prefix = 'critic'
+        layer1 = self.create_layer(tf.nn.relu6, input_states, 1, self.state_dim, self.network_size, critic_prefix)
         inner_layer = layer1
         for i in range(0, self.num_layers - 2):
-            inner_layer = self.create_layer(tf.nn.relu6, inner_layer, i + 2, self.network_size, self.network_size)
-        output_layer = self.create_layer(tf.nn.sigmoid, inner_layer, self.num_layers, self.network_size, self.num_actions)
+            inner_layer = self.create_layer(tf.nn.relu6, inner_layer, i + 2, self.network_size,
+                                            self.network_size, critic_prefix)
+        output_layer = self.create_layer(tf.nn.sigmoid, inner_layer, self.num_layers,
+                                         self.network_size, self.num_actions, critic_prefix)
         return output_layer
 
     def get_model_name(self):
