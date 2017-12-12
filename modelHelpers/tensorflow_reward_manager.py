@@ -86,7 +86,7 @@ class TensorflowRewardManager(reward_manager.RewardManager):
         with tf.name_scope("rewards"):
             resulant_shape = tf.stack([tf.shape(game_input)[0], tf.constant(1)])
             discounted_rewards = tf.fill(resulant_shape, 0.0)
-            self.no_previous_state = tf.Variable(tf.constant(True), trainable=False)
+            self.no_previous_state = tf.Variable(tf.constant(False), trainable=False)
             self.last_state = tf.Variable(tf.zeros([get_state_dim_with_features(),]), dtype=tf.float32, trainable=False)
 
             discounted_reward = self.zero_reward
@@ -114,7 +114,6 @@ class TensorflowRewardManager(reward_manager.RewardManager):
         # if counter == len(game_input)
         #     result_new_last_state = current_state
         #     result_new_no_previous_state = True
-
         used_last_state = tf.cond(tf.greater_equal(new_counter, 0),
                                   lambda: game_input[new_counter],
                                   lambda: last_state)
