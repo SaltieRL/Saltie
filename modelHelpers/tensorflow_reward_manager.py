@@ -5,9 +5,9 @@ import tensorflow as tf
 
 
 class TensorflowRewardManager(reward_manager.RewardManager):
-    discount_factor = tf.Variable(initial_value=tf.reshape(tf.constant([0.988, 0.3]), [2, 1]))
+    discount_factor = tf.Variable(initial_value=tf.reshape(tf.constant([0.988, 0.3]), [2,]))
     last_state = None
-    zero_reward = tf.Variable(initial_value=tf.reshape(tf.constant([0.0, 0.0]), [2, 1]))
+    zero_reward = tf.Variable(initial_value=tf.reshape(tf.constant([0.0, 0.0]), [2,]))
 
     def calculate_save_reward(self, current_score_info, previous_score_info):
         """
@@ -79,69 +79,65 @@ class TensorflowRewardManager(reward_manager.RewardManager):
              self.calculate_ball_hit_reward(current_info.has_last_touched_ball, previous_info.has_last_touched_ball)) * 2
         ball_reward = self.calculate_ball_follow_change_reward(current_info, previous_info)
         reward = tf.stack([reward, ball_reward])
-        printed_reward = tf.Print(reward, [reward], message='rewards ', first_n=1000)
-        return printed_reward
+        # printed_reward = tf.Print(reward, [reward], message='rewards ', first_n=1000)
+        return reward
 
     def create_reward_graph(self, game_input):
-        if self.last_state is None:
+        with tf.name_scope("rewards"):
+            resulant_shape = tf.stack([tf.shape(game_input)[0], tf.constant(1)])
+            discounted_rewards = tf.fill(resulant_shape, 0.0)
             self.no_previous_state = tf.Variable(tf.constant(True))
-            self.last_state = tf.Variable(tf.zeros([get_state_dim_with_features(), 1]), dtype=tf.float32)
+            self.last_state = tf.Variable(tf.zeros([get_state_dim_with_features(),]), dtype=tf.float32)
 
-        discounted_reward = tf.Variable(self.zero_reward)
+            self.result_new_last_state = self.last_state
+            discounted_reward = tf.Variable(self.zero_reward)
 
-        new_no_previous_state = tf.Variable(tf.constant(False))
-        new_last_state = tf.Variable(tf.zeros([get_state_dim_with_features(), 1]), dtype=tf.float32)
-        length = tf.Variable(tf.size(game_input))
-        discounted_rewards = tf.zeros((tf.shape(game_input)[0], tf.constant(1)), name='discounted_rewards')
-        counter = tf.Variable(length)
-        tf.while_loop(lambda counter, _, _1, _2, _3, _4, _5, _6 : tf.greater_equal(counter, 0), self.in_loop,
-                      (counter, self.no_previous_state, self.last_state,
-                       game_input, discounted_rewards, discounted_reward,
-                       new_last_state, new_no_previous_state),
-                      parallel_iterations=1, back_prop=False)
+            length = tf.Variable(tf.size(game_input))
+            counter = tf.Variable(length)
 
-        # reset the values
-        tf.assign(self.no_previous_state, new_no_previous_state)
-        tf.assign(self.last_state, new_last_state)
-        tf.assign(new_no_previous_state, tf.constant(False))
-        tf.assign(new_last_state, tf.Variable(tf.zeros([get_state_dim_with_features(), 1]), dtype=tf.float32))
-        discounted_reward.assign(self.zero_reward)
-        return discounted_rewards
+            tf.while_loop(lambda counter, _, _1, _2, _3, _4: tf.greater_equal(counter, 0), self.in_loop,
+                          (counter, self.no_previous_state, self.last_state,
+                           game_input, discounted_reward, discounted_rewards),
+                          parallel_iterations=10, back_prop=False)
+
+            # set the values to be after the first run
+            tf.assign(self.no_previous_state, tf.constant(True))
+            tf.assign(self.last_state, self.result_new_last_state)
+            discounted_reward.assign(self.zero_reward)
+            return discounted_rewards
 
     def convert_slice_to_state(self, game_input):
         return game_input
 
     def in_loop(self, counter, has_previous_state, last_state,
-                game_input, discounted_rewards, previous_reward,
-                new_last_state, new_no_previous_state):
+                game_input, previous_reward, discounted_rewards):
 
-        current_state = self.convert_slice_to_state(tf.slice(game_input, [counter, 0], [1, -1]))
+        new_counter = counter - tf.constant(1)
+        counter2 = tf.identity(counter, name='counter')
 
-        current_state = tf.reshape(current_state, shape=tf.shape(new_last_state))
+        current_state = game_input[counter2]
 
         # if counter == len(game_input)
         #     result_new_last_state = current_state
         #     result_new_no_previous_state = True
-        result_new_last_state = tf.cond(tf.equal(counter, tf.shape(game_input)[0]), lambda: current_state, lambda: new_last_state)
-        result_new_no_previous_state = tf.cond(tf.equal(counter, tf.shape(game_input)[0]), lambda: tf.constant(True), lambda: new_no_previous_state)
+        #self.result_new_last_state = tf.cond(tf.equal(counter2, tf.shape(game_input)[0]),
+        #                                lambda: self.result_new_last_state,
+        #                                lambda: current_state)
 
-        used_last_state = tf.cond(tf.greater(counter, 0),
-                                  lambda: self.convert_slice_to_state(tf.slice(game_input, [(counter - 1), 0], [1, -1])),
+        used_last_state = tf.cond(tf.greater_equal(new_counter, 0),
+                                  lambda: game_input[new_counter],
                                   lambda: last_state)
-        used_last_state = tf.reshape(current_state, shape=tf.shape(last_state))
 
         # if used_last_state is valid
-        newest_reward = tf.cond(tf.logical_or(tf.greater(counter, 0), has_previous_state), lambda: self.calculate_reward(used_last_state, current_state),
+        newest_reward = tf.cond(tf.logical_or(tf.greater_equal(new_counter, 0), has_previous_state),
+                                lambda: self.calculate_reward(used_last_state, current_state),
                                 lambda: self.zero_reward)
         new_r = newest_reward + tf.multiply(self.discount_factor, previous_reward)
-        index = tf.reshape(counter, [1])
+
         reward = new_r[0] + new_r[1]
-        update_tensor = tf.scatter_nd(index, reward, tf.shape(discounted_rewards))
-        new_discounted_rewards = discounted_rewards + update_tensor
-        new_counter = counter - tf.constant(1)
+        update_tensor = tf.scatter_nd([counter2], [reward], tf.shape(discounted_rewards))
 
         return (new_counter, has_previous_state, last_state,
-                game_input, new_discounted_rewards, new_r,
-                result_new_last_state, result_new_no_previous_state)
+                game_input, new_r, update_tensor)
 
 
