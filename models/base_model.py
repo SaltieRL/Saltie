@@ -129,9 +129,7 @@ class BaseModel:
     def _set_variables(self):
         try:
             init = tf.global_variables_initializer()
-            self.sess.run(init, feed_dict={
-                self.input: np.reshape(np.zeros(206), [1, 206])
-            })
+            self.sess.run(init)
         except Exception as e:
             print('failed to initialize')
             print(e)
