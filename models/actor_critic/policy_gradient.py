@@ -10,6 +10,7 @@ class PolicyGradient(BaseActorCritic):
     def __init__(self, session,
                  state_dim,
                  num_actions,
+                 player_index,
                  action_handler,
                  is_training=False,
                  optimizer=tf.train.GradientDescentOptimizer(learning_rate=0.1),
@@ -19,7 +20,7 @@ class PolicyGradient(BaseActorCritic):
                  ):
         self.reward_manager = tensorflow_reward_manager.TensorflowRewardManager()
 
-        super().__init__(session, state_dim, num_actions, action_handler, is_training,
+        super().__init__(session, state_dim, num_actions, player_index, action_handler, is_training,
                          optimizer, summary_writer, summary_every, discount_factor)
 
 

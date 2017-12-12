@@ -41,6 +41,7 @@ class Agent:
         self.model = self.get_model_class()(self.sess,
                                             self.state_dim,
                                             self.num_actions,
+                                            self.index,
                                             action_handler=self.actions_handler,
                                             summary_writer=writer,
                                             is_training=True)

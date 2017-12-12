@@ -4,6 +4,7 @@ from models import base_model
 import numpy as np
 import tensorflow as tf
 import random
+import livedata.live_data_util as live_data_util
 
 
 class BaseActorCritic(base_reinforcement.BaseReinforcement):
@@ -15,6 +16,7 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
     def __init__(self, session,
                  state_dim,
                  num_actions,
+                 player_index,
                  action_handler,
                  is_training=False,
                  optimizer=tf.train.GradientDescentOptimizer(learning_rate=0.1),
@@ -22,8 +24,9 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
                  summary_every=100,
                  discount_factor=0.99,  # discount future rewards
                  ):
-        super().__init__(session, state_dim, num_actions, action_handler, is_training,
+        super().__init__(session, state_dim, num_actions, player_index, action_handler, is_training,
                          optimizer, summary_writer, summary_every, discount_factor)
+        self.rotating_expected_reward_buffer = live_data_util.RotatingBuffer(player_index)
 
     def load_config_file(self):
         super().load_config_file()
@@ -124,7 +127,11 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
         else:
             self.frames_since_last_random_action += 1
 
-            action_scores = self.sess.run(self.softmax, {self.input: input_state})
+            estimated_reward, action_scores = self.sess.run([self.estimated_values, self.softmax],
+                                                            {self.input: input_state})
+            #self.rotating_expected_reward_buffer += np.max(estimated_reward)
+            # using random because can't max is always 1 with untrained model and can't see live updates
+            self.rotating_expected_reward_buffer += np.random.rand()
 
             action = self.action_handler.\
                 optionally_split_numpy_arrays(action_scores,
