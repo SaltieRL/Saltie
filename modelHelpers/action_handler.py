@@ -117,24 +117,16 @@ class ActionHandler:
         return self._find_matching_action(real_action)
 
     def _create_split_indexes(self, real_action):
-        throttle = real_action[0]
         steer = real_action[1]
-        pitch = real_action[2]
         yaw = real_action[3]
-        roll = real_action[4]
-        jump = real_action[5]
-        boost = real_action[6]
-        handbrake = real_action[7]
-        if steer != yaw:
+        if steer != yaw and abs(steer) < abs(yaw):
             # only take the larger magnitude number
-            if abs(steer) < abs(yaw):
-                steer = yaw
+            steer = yaw
 
         steer_index = self._find_closet_real_number(steer)
-        pitch_index = self._find_closet_real_number(pitch)
-        roll_index = self._find_closet_real_number(roll)
-        throttle = round(throttle)
-        button_combo = self.action_map_split.get_key([throttle, jump, boost, handbrake])
+        pitch_index = self._find_closet_real_number(real_action[2])
+        roll_index = self._find_closet_real_number(real_action[4])
+        button_combo = self.action_map_split.get_key([round(real_action[0]), real_action[5], real_action[6], real_action[7]])
 
         return [steer_index, pitch_index, roll_index, button_combo]
 
