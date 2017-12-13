@@ -151,7 +151,6 @@ class BaseModel:
         This will also try to load an existing model if it exists
         """
         self._set_variables()
-
         model_file = None
 
         #file does not exist too lazy to add check
@@ -169,9 +168,11 @@ class BaseModel:
                 self._set_variables()
                 print("Unexpected error loading model:", e)
                 print('unable to load model')
+                self._set_variables()
         else:
             self._set_variables()
             print('unable to find model to load')
+            self._set_variables()
 
         self._add_summary_writer()
         self.is_initialized = True
