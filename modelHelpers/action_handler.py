@@ -139,15 +139,18 @@ class ActionHandler:
         return encoding
 
     def _find_closet_real_number(self, number):
-        if number <= -0.75:
-            return 0
-        elif number <= -.25:
-            return 1
-        elif number < 0.25:
-            return 2
+        if number <= -0.25:
+            if number <= -0.75:
+                return 0
+            else:
+                return 1
         elif number < 0.75:
-            return 3
-        return 4
+            if number < 0.25:
+                return 2
+            else:
+                return 3
+        else:
+            return 4
 
     def _compare_actions(self, action1, action2):
         loss = 0
