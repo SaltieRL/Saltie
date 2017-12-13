@@ -92,13 +92,15 @@ def get_file_size(f):
         return 0
 
 
-def read_data(file, process_pair_function):
+def read_data(file, process_pair_function, batching=False):
     """
     Reads a file.  Quits if anything breaks.
     :param file: A simple python file object that will be read
     :param process_pair_function: A function that takes in an input array and an output array.
     There is also an optional number saying how many times this has been called for a single file.
     It always starts at 0
+    :param batching: If more than one item in an array is read at the same time then we will batch
+    them instead of doing them one at a time
     :return: None
     """
 
@@ -131,16 +133,21 @@ def read_data(file, process_pair_function):
             batch_size = int(len(input_array) / get_state_dim_with_features())
             input_array = np.reshape(input_array, (batch_size, int(get_state_dim_with_features())))
             output_array = np.reshape(output_array, (batch_size, 8))
-            for i in range(len(input_array)):
-                process_pair_function(input_array[i], output_array[i], pair_number, hashed_name)
-                pair_number += 1
+            if not batching:
+                for i in range(len(input_array)):
+                    process_pair_function(input_array[i], output_array[i], pair_number, hashed_name)
+                    pair_number += 1
+            else:
+                process_pair_function(input_array, output_array, pair_number, hashed_name)
+                pair_number += batch_size
             totalbytes += num_bytes + 4
             counter += 1
         except EOFError:
             print('reached end of file')
             break
         except Exception as e:
-            print('error ', e)
+            print('error occured but because of reading but something else')
+            print(e)
     print(counter)
     print('total batches', counter)
     print('total pairs', pair_number)

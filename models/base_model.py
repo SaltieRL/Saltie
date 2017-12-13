@@ -12,6 +12,8 @@ class BaseModel:
     is_initialized = False
     model_file = None
     is_evaluating = False
+    is_online_training = False
+    no_op = tf.no_op()
 
     """"
     This is a base class for all models It has a couple helper methods but is mainly used to provide a standard
@@ -49,16 +51,17 @@ class BaseModel:
             self.load_config_file()
 
         # create variables
-        self._create_variables()
+        self.stored_variables = self._create_variables()
 
         # create model
         self.model, self.logits = self.create_model(self.input)
 
-        self.saver = tf.train.Saver()
+        self.saver = tf.train.Saver(self.stored_variables)
 
     def _create_variables(self):
         with tf.name_scope("model_inputs"):
             self.input = tf.placeholder(tf.float32, shape=(None, self.state_dim), name="state_input")
+        return {}
 
     def store_rollout(self, input_state, last_action, reward):
         """
@@ -67,6 +70,16 @@ class BaseModel:
         :param input_state: The input state array
         :param last_action: The last action that the bot performed
         :param reward: The reward for performing that action
+        :return:
+        """
+        print(' i do nothing!')
+
+    def store_rollout_batch(self, input_states, last_actions):
+        """
+        Used for reinforcment learning this is used to store the last action taken, its state at that point
+        and the reward for that action.
+        :param input_state: The input state array can contain multiple states
+        :param last_action: The last set of actions that the bot performed
         :return:
         """
         print(' i do nothing!')
@@ -116,9 +129,7 @@ class BaseModel:
     def _set_variables(self):
         try:
             init = tf.global_variables_initializer()
-            self.sess.run(init, feed_dict={
-                self.input: np.reshape(np.zeros(206), [1, 206])
-            })
+            self.sess.run(init)
         except Exception as e:
             print('failed to initialize')
             print(e)
@@ -145,6 +156,7 @@ class BaseModel:
         #file does not exist too lazy to add check
         if self.model_file is None:
             model_file = self.get_model_path(self.get_default_file_name() + '.ckpt')
+            self.model_file = model_file
         else:
             model_file = self.model_file
         print(model_file)
@@ -153,10 +165,12 @@ class BaseModel:
             try:
                 self.saver.restore(self.sess, os.path.abspath(model_file))
             except Exception as e:
+                self._set_variables()
                 print("Unexpected error loading model:", e)
                 print('unable to load model')
                 self._set_variables()
         else:
+            self._set_variables()
             print('unable to find model to load')
             self._set_variables()
 
@@ -186,6 +200,8 @@ class BaseModel:
             self.summarize = tf.summary.merge_all()
             # graph was not available when journalist was created
             self.summary_writer.add_graph(self.sess.graph)
+        else:
+            self.summarize = self.no_op
 
     def load_config_file(self):
         try:

@@ -1,10 +1,10 @@
+import os
+import inspect
+
 import configparser
 import gzip
-import inspect
-import io
-import os
 
-import sys
+import io
 import time
 
 from conversions.server_converter import ServerConverter
@@ -12,13 +12,6 @@ import config
 from conversions import binary_converter
 from trainer.threaded_trainer import ThreadedFiles
 import importlib
-
-
-currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-parentdir = os.path.dirname(currentdir)
-sys.path.insert(0, parentdir)
-
-
 
 
 MODEL_CONFIGURATION_HEADER = 'Model Configuration'
@@ -67,7 +60,7 @@ def get_class(class_package, class_name):
 
 def get_all_files(max_files, only_eval):
     dir_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-    training_path = dir_path + '\\training'
+    training_path = dir_path + '/training'
     files = []
     include_extensions = {'gz'}
     exclude_paths = {'data', 'ignore'}
@@ -85,14 +78,16 @@ def get_all_files(max_files, only_eval):
                     break
             if skip_file:
                 continue
-            files.append(dirpath + '\\' + file)
+            files.append(dirpath + '/' + file)
+            if len(files) >= max_files:
+                return files
     return files
 
 
 def train_file(trainer_class, f):
     trainer_class.start_new_file()
     try:
-        binary_converter.read_data(f, trainer_class.process_pair)
+        binary_converter.read_data(f, trainer_class.process_pair, batching=False)
     except Exception as e:
         print('error training on file ', e)
     trainer_class.end_file()

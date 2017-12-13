@@ -20,6 +20,7 @@ class Agent:
     previous_score = 0
     previous_enemy_goals = 0
     previous_owngoals = 0
+    is_online_training = True
 
     def __init__(self, name, team, index, config_file=None):
         self.config_file = config_file
@@ -41,7 +42,14 @@ class Agent:
                                             self.state_dim,
                                             self.num_actions,
                                             action_handler=self.actions_handler,
-                                            summary_writer=writer)
+                                            summary_writer=writer,
+                                            is_training=True)
+
+        self.model.is_online_training = self.is_online_training
+
+        if self.model.is_training and self.model.is_online_training:
+            self.model.create_reinforcement_training_model()
+
         self.model.initialize_model()
 
     def load_config_file(self):
@@ -49,10 +57,14 @@ class Agent:
             return
         #read file code here
 
-        model_package = self.config_file.get(MODEL_CONFIGURATION_HEADER,
-                                                   'model_package')
-        model_name = self.config_file.get(MODEL_CONFIGURATION_HEADER,
-                                                 'model_name')
+        model_package = self.config_file.get(MODEL_CONFIGURATION_HEADER, 'model_package')
+        model_name = self.config_file.get(MODEL_CONFIGURATION_HEADER, 'model_name')
+
+        try:
+            self.is_online_training = self.config_file.getboolean(MODEL_CONFIGURATION_HEADER, 'train_online')
+        except:
+            print('not training online')
+
         print('getting model from', model_package)
         print('name of model', model_name)
         model_package = importlib.import_module(model_package)
@@ -83,11 +95,11 @@ class Agent:
             return self.actions_handler.create_controller_from_selection(
                 self.actions_handler.get_random_option()) # do not return anything
 
-        if self.model.is_training:
-            reward = self.get_reward(input_state)
+        if self.model.is_training and self.is_online_training :
+            # reward = self.get_reward(input_state)
 
             if self.previous_action is not None:
-                self.model.store_rollout(input_state, self.previous_action, reward)
+                self.model.store_rollout(input_state, self.previous_action, 0)
 
         action = self.model.sample_action(np.array(input_state).reshape((1, -1)))
         if action is None:
