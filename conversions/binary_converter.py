@@ -9,6 +9,7 @@ import numpy as np
 import time
 
 EMPTY_FILE = 'empty'
+NO_FILE_VERSION = 0
 NON_FLIPPED_FILE_VERSION = 0
 FLIPPED_FILE_VERSION = 1
 HASHED_NAME_FILE_VERSION = 2
@@ -51,9 +52,10 @@ def write_is_eval(game_file, is_eval):
 
 
 def get_file_version(file):
-    file_name = 0
     if not isinstance(file, io.BytesIO):
         file_name = os.path.basename(file.name).split('-')[0]
+    else:
+        file_name = 'ram'
 
     result = []
 
@@ -61,6 +63,9 @@ def get_file_version(file):
         chunk = file.read(4)
         file_version = struct.unpack('i', chunk)[0]
         result.append(file_version)
+        if file_version > get_latest_file_version():
+            file.seek(0, 0)
+            file_version = NO_FILE_VERSION
         if file_version < HASHED_NAME_FILE_VERSION:
             result.append(file_name)
         else:
@@ -109,7 +114,7 @@ def read_data(file, process_pair_function, batching=False):
         return
 
     print('replay version:', file_version)
-    print('hashed name:', hashed_name)
+    # print('hashed name:', hashed_name)
 
     pair_number = 0
     totalbytes = 0
@@ -143,7 +148,7 @@ def read_data(file, process_pair_function, batching=False):
             totalbytes += num_bytes + 4
             counter += 1
         except EOFError:
-            print('reached end of file')
+            #print('reached end of file')
             break
         except Exception as e:
             print('error occured but because of reading but something else')
@@ -177,7 +182,7 @@ def get_array(file, chunk):
     numpy_bytes = file.read(starting_byte)
     fake_file = io.BytesIO(numpy_bytes)
     try:
-        result = np.load(fake_file, allow_pickle=False, fix_imports=False)
+        result = np.load(fake_file, fix_imports=False)
     except OSError:
         print('numpy parse error')
         raise EOFError
