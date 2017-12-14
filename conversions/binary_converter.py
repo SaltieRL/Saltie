@@ -9,7 +9,7 @@ import numpy as np
 import time
 
 EMPTY_FILE = 'empty'
-NO_FILE_VERSION = 0
+NO_FILE_VERSION = -1
 NON_FLIPPED_FILE_VERSION = 0
 FLIPPED_FILE_VERSION = 1
 HASHED_NAME_FILE_VERSION = 2
@@ -62,10 +62,12 @@ def get_file_version(file):
     try:
         chunk = file.read(4)
         file_version = struct.unpack('i', chunk)[0]
-        result.append(file_version)
         if file_version > get_latest_file_version():
             file.seek(0, 0)
             file_version = NO_FILE_VERSION
+
+        result.append(file_version)
+
         if file_version < HASHED_NAME_FILE_VERSION:
             result.append(file_name)
         else:
