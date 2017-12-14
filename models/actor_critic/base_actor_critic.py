@@ -129,9 +129,8 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
 
             estimated_reward, action_scores = self.sess.run([self.estimated_values, self.softmax],
                                                             {self.input: input_state})
-            #self.rotating_expected_reward_buffer += np.max(estimated_reward)
-            # using random because can't max is always 1 with untrained model and can't see live updates
-            self.rotating_expected_reward_buffer += np.random.rand()
+            # Average is bad metric but max is always 1 right now so using a more interesting graph
+            self.rotating_expected_reward_buffer += np.max(estimated_reward)
 
             action = self.action_handler.\
                 optionally_split_numpy_arrays(action_scores,
