@@ -21,7 +21,8 @@ class RewardTrainer:
     reward_manager = None
     local_pair_number = 0
     last_pair_number = 0
-    time_difference = 0
+    train_time_difference = 0
+    action_time_difference = 0
 
     def __init__(self):
         #config = tf.ConfigProto(
@@ -65,7 +66,9 @@ class RewardTrainer:
             reward = 0  # self.reward_manager.get_reward(input_array)
             self.agent.store_rollout(input_state=input_array, last_action=self.last_action, reward=reward)
 
+        start = time.time()
         self.last_action = self.action_handler.create_action_index(output_array)
+        self.action_time_difference += time.time() - start
 
         if pair_number % self.batch_size == 0 and pair_number != 0:
             self.batch_process()
@@ -100,7 +103,7 @@ class RewardTrainer:
     def batch_process(self):
         start = time.time()
         self.agent.update_model()
-        self.time_difference += time.time() - start
+        self.train_time_difference += time.time() - start
         # Display logs per step
     #    if self.epoch % self.display_step == 0:
     #        print("File:", '%04d' % self.file_number, "Epoch:", '%04d' % (self.epoch+1))
@@ -108,8 +111,11 @@ class RewardTrainer:
 
     def end_file(self):
         self.batch_process()
-        print('\ntraining time\n', self.time_difference)
-        self.time_difference = 0
+        print('\naction conversion time', self.action_time_difference)
+        print('training time', self.train_time_difference)
+        print('\n')
+        self.action_time_difference = 0
+        self.train_time_difference = 0
         if self.file_number % 100 == 0:
             file_path = self.agent.get_model_path(self.agent.get_default_file_name() + str(self.file_number) + ".ckpt")
             self.agent.saver.save(self.sess, file_path)
