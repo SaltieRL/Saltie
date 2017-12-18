@@ -99,7 +99,6 @@ def train_with_file(input_file, train_object):
     start = time.time()
 
     try:
-
         if isinstance(input_file, io.BytesIO):
             # file in memory
             with gzip.GzipFile(fileobj=input_file, mode='rb') as f:
@@ -144,8 +143,8 @@ if __name__ == '__main__':
 
     server = ServerConverter(config.UPLOAD_SERVER, False, False, False)
 
-    max_files = 3000
-    num_download_threads = 5
+    max_files = 6000
+    num_download_threads = 10
     num_train_threads = 1
 
     file_threader = ThreadedFiles(max_files,

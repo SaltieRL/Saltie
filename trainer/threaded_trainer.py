@@ -24,6 +24,8 @@ class ThreadedFiles:
             file = self.downloaded_files.get()
             if file is None and self.files_to_download.empty() and self.downloaded_files.empty():
                 break
+            if file is None:
+                continue
             print('running file', self.counter, '/', self.counter + self.downloaded_files.qsize())
             self.total_time += self.train_function(file, self.trainer_object)
             self.counter += 1
