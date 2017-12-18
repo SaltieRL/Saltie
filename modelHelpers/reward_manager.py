@@ -34,8 +34,23 @@ class RewardManager:
         current_distance = self.get_distance_location(current_info.car_location, current_info.ball_location)
         previous_distance = self.get_distance_location(previous_info.car_location, previous_info.ball_location)
         # moving faster = bigger reward or bigger punishment
-        distance_change = (previous_distance - current_distance) / 100.0
-        return self.clip_reward(distance_change, 0, .3)
+        distance_change = (previous_distance - current_distance) / 500.0
+        return self.clip_reward(distance_change, -0.001, .2)
+
+    def calculate_ball_closeness_reward(self, current_info, previous_info):
+        """
+        When the car is within a certain distance of the ball it gets a reward for being that close
+        """
+        current_distance = self.get_distance_location(current_info.car_location, current_info.ball_location)
+
+        # += does not work on tensorflow objects
+        # prevents a distance of 0
+        current_distance = current_distance + 0.000001
+        divided_value = 100.0 / current_distance
+        divided_value = divided_value * divided_value
+        clipped_value = self.clip_reward(divided_value, 0, .2)
+        return clipped_value
+
 
     def get_distance_location(self, location1, location2):
         return get_distance_location(location1, location2)
@@ -82,7 +97,8 @@ class RewardManager:
                 self.calculate_ball_hit_reward(current_info.has_last_touched_ball,
                     previous_info.has_last_touched_ball)),
             -1, 1)
-        ball_reward = self.calculate_ball_follow_change_reward(current_info, previous_info)
+        ball_reward = self.calculate_ball_follow_change_reward(current_info, previous_info) +\
+                      self.calculate_ball_closeness_reward(current_info, previous_info)
         return [reward, ball_reward]
 
     def get_reward(self, array):
