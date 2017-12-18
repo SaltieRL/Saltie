@@ -23,6 +23,7 @@ class Agent:
     previous_enemy_goals = 0
     previous_owngoals = 0
     is_online_training = True
+    is_graphing = False
 
     def __init__(self, name, team, index, config_file=None):
         self.config_file = config_file
@@ -65,6 +66,12 @@ class Agent:
         model_name = self.config_file.get(MODEL_CONFIGURATION_HEADER, 'model_name')
 
         try:
+            self.is_graphing = self.config_file.getboolean(MODEL_CONFIGURATION_HEADER, 'should_graph')
+        except:
+            print('not generating graph data')
+
+
+        try:
             self.is_online_training = self.config_file.getboolean(MODEL_CONFIGURATION_HEADER, 'train_online')
         except:
             print('not training online')
@@ -100,11 +107,12 @@ class Agent:
                 self.actions_handler.get_random_option()) # do not return anything
 
         if self.model.is_training and self.is_online_training:
-            reward = self.get_reward(input_state)
-            self.rotating_real_reward_buffer += reward
 
             if self.previous_action is not None:
                 self.model.store_rollout(input_state, self.previous_action, 0)
+        if self.is_graphing:
+            reward = self.get_reward(input_state)
+            self.rotating_real_reward_buffer += reward
 
         action = self.model.sample_action(np.array(input_state).reshape((1, -1)))
         if action is None:

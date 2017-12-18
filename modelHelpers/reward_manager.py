@@ -38,7 +38,7 @@ class RewardManager:
         return self.clip_reward(distance_change, 0, .3)
 
     def get_distance_location(self, location1, location2):
-        get_distance_location(location1, location2)
+        return get_distance_location(location1, location2)
 
     def calculate_move_fast_reward(self, packet):
         """
