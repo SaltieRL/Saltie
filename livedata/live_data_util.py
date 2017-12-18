@@ -31,9 +31,9 @@ class RotatingBuffer:
 
     def get_current_buffer(self):
         buffer = np.array(self.rot_buf.expected_rewards)
-        first_slice = np.flipud(buffer[max(0,self.rot_buf.cur_index - USED_BUFFER_FOR_GRAPHING):self.rot_buf.cur_index])
-        second_slice = np.flipud(buffer[(-1 * (USED_BUFFER_FOR_GRAPHING - first_slice.size)):])
-        return np.append(first_slice,second_slice)
+        first_slice = buffer[max(0,self.rot_buf.cur_index - USED_BUFFER_FOR_GRAPHING):self.rot_buf.cur_index]
+        second_slice = buffer[(-1 * (USED_BUFFER_FOR_GRAPHING - first_slice.size)):]
+        return np.append(second_slice,first_slice)
 
 # Testing
 if __name__ == '__main__':
