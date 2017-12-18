@@ -54,7 +54,9 @@ class BaseModel:
         self.stored_variables = self._create_variables()
 
         # create model
-        self.model, self.logits = self.create_model(self.input)
+        self.input_batch = tf.train.batch(tensors=[self.input], batch_size=100, num_threads=4, enqueue_many=True,
+                                          capacity=10000)
+        self.model, self.logits = self.create_model(self.input_batch)
 
         self.saver = tf.train.Saver(self.stored_variables)
 
