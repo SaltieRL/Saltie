@@ -13,11 +13,11 @@ class RewardManager:
     previous_saves = 0
     has_last_touched_ball = 0
 
-    def calculate_save_reward(self, score_info):
+    def calculate_save_reward(self, current_score_info, previous_score_info):
         """
-        :return: change in score.  More score = more reward
+        :return: gets reward for saving! :) more saving more reward
         """
-        return (score_info.Saves - self.previous_saves) / 2.2
+        return (current_score_info.Saves - previous_score_info.Saves) / 2.2
 
     def calculate_goal_reward(self, fame_score_diff):
         """
@@ -25,24 +25,28 @@ class RewardManager:
         """
         return fame_score_diff
 
-    def calculate_score_reward(self, score_info):
+    def calculate_score_reward(self, score_info, previous_score_info):
         """
         :return: change in score.  More score = more reward
         """
-        return (score_info.Score - self.previous_score) / 100.0
+        return (score_info.Score - previous_score_info.Score) / 100.0
 
-    def calculate_ball_follow_change_reward(self, car_location, ball_location):
+    def clip_reward(self, reward, lower_bound, upper_bound):
+        return min(upper_bound, max(lower_bound, reward))
+
+    def calculate_ball_follow_change_reward(self, current_info, previous_info):
         """
         When the car moves closer to the ball it gets a reward
         When it moves further it gets punished
         """
-        if self.previous_car_location is None or self.previous_ball_location is None:
-            return 0
-        current_distance = get_distance_location(car_location, ball_location)
-        previous_distance = get_distance_location(self.previous_car_location, self.previous_ball_location)
+        current_distance = self.get_distance_location(current_info.car_location, current_info.ball_location)
+        previous_distance = self.get_distance_location(previous_info.car_location, previous_info.ball_location)
         # moving faster = bigger reward or bigger punishment
         distance_change = (previous_distance - current_distance) / 100.0
-        return min(max(distance_change, 0), .3)
+        return self.clip_reward(distance_change, 0, .3)
+
+    def get_distance_location(self, location1, location2):
+        get_distance_location(location1, location2)
 
     def calculate_move_fast_reward(self, packet):
         """
@@ -58,6 +62,28 @@ class RewardManager:
 
     def calculate_ball_hit_reward(self, has_last_touched_ball, past_has_last_touched_ball):
         return max(0, has_last_touched_ball - past_has_last_touched_ball) / 2.0
+
+    def get_state(self, array):
+        #array = tf.reshape(array, [tf.shape(array)[0], tf.shape(array)[1]])
+
+        score_info = output_formatter.get_score_info(array, output_formatter.GAME_INFO_OFFSET)
+        car_location = output_formatter.create_3D_point(array,
+                                                        output_formatter.GAME_INFO_OFFSET + output_formatter.SCORE_INFO_OFFSET)
+
+        ball_location = output_formatter.create_3D_point(array,
+                                                         output_formatter.GAME_INFO_OFFSET +
+                                                         output_formatter.SCORE_INFO_OFFSET +
+                                                         output_formatter.CAR_INFO_OFFSET)
+        has_last_touched_ball = array[output_formatter.GAME_INFO_OFFSET +
+                                      output_formatter.SCORE_INFO_OFFSET +
+                                      output_formatter.CAR_INFO_OFFSET - 1]
+        result = output_formatter.create_object()
+        result.score_info = score_info
+        result.car_location = car_location
+        result.ball_location = ball_location
+        result.has_last_touched_ball = has_last_touched_ball
+        return result
+
 
     def get_reward(self, array):
 
