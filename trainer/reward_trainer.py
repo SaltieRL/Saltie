@@ -37,7 +37,7 @@ class RewardTrainer:
         self.state_dim = get_state_dim_with_features()
         print('state size ' + str(self.state_dim))
         self.num_actions = self.action_handler.get_action_size()
-        self.agent = self.get_model()(self.sess, self.state_dim, self.num_actions, self.action_handler, is_training=True)
+        self.agent = self.get_model()(self.sess, self.state_dim, self.num_actions, action_handler=self.action_handler, is_training=True)
 
      #   self.agent.summary_writer = tf.summary.FileWriter(
      #       'training/events/{}-experiment'.format(self.agent.get_model_name()))
