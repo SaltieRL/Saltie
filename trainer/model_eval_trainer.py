@@ -35,7 +35,8 @@ class EvalTrainer:
         if self.current_file is None:
             print(file_version)
             self.current_file = file_version
-        reward = self.reward_manager.get_reward(input_array)
+        rewards = self.reward_manager.get_reward(input_array)
+        reward = rewards[0] + rewards[1]
         # print (input_array[8], reward, self.file_frame_count)
         self.total_reward += reward
         self.file_reward += reward

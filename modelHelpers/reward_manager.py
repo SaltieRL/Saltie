@@ -3,15 +3,7 @@ from conversions import output_formatter
 
 
 class RewardManager:
-    previous_reward = 0
-    previous_score = 0
-    previous_enemy_goals = 0
-    previous_team_goals = 0
-    previous_game_score = [0, 0]
-    previous_car_location = None
-    previous_ball_location = None
-    previous_saves = 0
-    has_last_touched_ball = 0
+    previous_info = None
 
     def calculate_save_reward(self, current_score_info, previous_score_info):
         """
@@ -64,8 +56,6 @@ class RewardManager:
         return max(0, has_last_touched_ball - past_has_last_touched_ball) / 2.0
 
     def get_state(self, array):
-        #array = tf.reshape(array, [tf.shape(array)[0], tf.shape(array)[1]])
-
         score_info = output_formatter.get_score_info(array, output_formatter.GAME_INFO_OFFSET)
         car_location = output_formatter.create_3D_point(array,
                                                         output_formatter.GAME_INFO_OFFSET + output_formatter.SCORE_INFO_OFFSET)
@@ -84,35 +74,22 @@ class RewardManager:
         result.has_last_touched_ball = has_last_touched_ball
         return result
 
+    def calculate_rewards(self, current_info, previous_info):
+        reward = self.clip_reward(((
+                self.calculate_goal_reward(current_info.score_info.FrameScoreDiff) +
+                self.calculate_score_reward(current_info.score_info, previous_info.score_info)) +
+                self.calculate_save_reward(current_info.score_info, previous_info.score_info) +
+                self.calculate_ball_hit_reward(current_info.has_last_touched_ball,
+                    previous_info.has_last_touched_ball)),
+            -1, 1)
+        ball_reward = self.calculate_ball_follow_change_reward(current_info, previous_info)
+        return [reward, ball_reward]
 
     def get_reward(self, array):
+        current_info = self.get_state(array)
+        rewards = [0.0, 0.0]
+        if self.previous_info is not None:
+            rewards = self.calculate_rewards(current_info, self.previous_info)
+        self.previous_info = current_info
+        return rewards
 
-        score_info = output_formatter.get_score_info(array, output_formatter.GAME_INFO_OFFSET)
-        car_location = output_formatter.create_3D_point(array,
-                                                        output_formatter.GAME_INFO_OFFSET + output_formatter.SCORE_INFO_OFFSET)
-
-        ball_location = output_formatter.create_3D_point(array,
-                                                         output_formatter.GAME_INFO_OFFSET +
-                                                         output_formatter.SCORE_INFO_OFFSET +
-                                                         output_formatter.CAR_INFO_OFFSET)
-        has_last_touched_ball = array[output_formatter.GAME_INFO_OFFSET +
-                                                         output_formatter.SCORE_INFO_OFFSET +
-                                                         output_formatter.CAR_INFO_OFFSET - 1]
-
-        # current if you score a goal you will get a reward of 2 that is capped at 1
-        # we need some kind of better scaling
-        reward = max(-1.0, min(1.0,
-                self.calculate_goal_reward(score_info.FrameScoreDiff) +
-                self.calculate_ball_follow_change_reward(car_location, ball_location) +
-                self.calculate_score_reward(score_info)) +
-                self.calculate_save_reward(score_info) +
-                self.calculate_ball_hit_reward(has_last_touched_ball, self.has_last_touched_ball)) * 2
-
-        self.previous_saves = score_info.Saves
-        self.previous_score = score_info.Score
-        self.previous_ball_location = ball_location
-        self.previous_car_location = car_location
-        self.previous_reward = reward
-        self.has_last_touched_ball = has_last_touched_ball
-
-        return reward

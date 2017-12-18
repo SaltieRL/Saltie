@@ -86,7 +86,7 @@ class Agent:
 
     def get_reward(self, input_state):
         reward = self.reward_manager.get_reward(input_state)
-        return reward
+        return reward[0] + reward[1]
 
     def get_output_vector(self, game_tick_packet):
         input_state, features = self.inp.create_input_array(game_tick_packet)
