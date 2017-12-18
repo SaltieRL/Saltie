@@ -26,6 +26,7 @@ real_reward_blue_0 = live_data_util.RotatingBuffer(10)
 real_reward_orange_0 = live_data_util.RotatingBuffer(11)
 
 p6 = win.addPlot(title="RLBot Expected Rewards")
+p6.setYRange(-1.5, 1.5)
 blue_curve = p6.plot(pen='b')
 orng_curve = p6.plot(pen='y')
 green_curve = p6.plot(pen='g')
