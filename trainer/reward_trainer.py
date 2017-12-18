@@ -39,8 +39,8 @@ class RewardTrainer:
         self.num_actions = self.action_handler.get_action_size()
         self.agent = self.get_model()(self.sess, self.state_dim, self.num_actions, action_handler=self.action_handler, is_training=True)
 
-     #   self.agent.summary_writer = tf.summary.FileWriter(
-     #       'training/events/{}-experiment'.format(self.agent.get_model_name()))
+        self.agent.summary_writer = tf.summary.FileWriter(
+            'training/events/{}-experiment'.format(self.agent.get_model_name()))
 
         self.agent.create_reinforcement_training_model()
 
