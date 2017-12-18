@@ -193,7 +193,7 @@ class BaseModel:
         :return: The path of the file
         """
         dir_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-        return dir_path + "\\training\\data\\" + self.get_model_name() + "\\" + filename
+        return dir_path + "/training/data/" + self.get_model_name() + "/" + filename
 
     def _add_summary_writer(self):
         if self.summary_writer is not None:
