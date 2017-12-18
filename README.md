@@ -20,9 +20,15 @@ https://github.com/drssoccer55/RLBot/wiki/Setup-Instructions-%28current%29
 After installing tensorflow (which we recommend via pip3)
 You most install a library called requests
 
-pip3 install requests
+`pip3 install requests`
 
 
 If you only want to help train and can not generate data you must have an Nvidia GPU and Ubuntu/linux
 
 To upload data to our server you must grab a config file from the discord
+
+For streamers of the bot to get the fancy graphs you must install pyqtgraph
+
+`pip3 install pyqtgraph`
+
+`pip3 install PyQt5`

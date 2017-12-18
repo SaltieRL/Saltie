@@ -10,7 +10,8 @@ class BaseReinforcement(base_model.BaseModel):
     def __init__(self, session,
                  state_dim,
                  num_actions,
-                 action_handler,
+                 player_index=-1,
+                 action_handler=None,
                  is_training=False,
                  optimizer=tf.train.GradientDescentOptimizer(learning_rate=0.1),
                  summary_writer=None,
@@ -20,7 +21,7 @@ class BaseReinforcement(base_model.BaseModel):
                  anneal_steps=1000,  # N steps for annealing exploration
                  discount_factor=0.99,  # discount future rewards
                  ):
-        super().__init__(session, state_dim, num_actions, action_handler, is_training,
+        super().__init__(session, state_dim, num_actions, player_index, action_handler, is_training,
                          optimizer, summary_writer, summary_every)
 
         # counters
