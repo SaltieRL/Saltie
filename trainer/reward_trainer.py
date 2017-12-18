@@ -120,11 +120,15 @@ class RewardTrainer:
         self.train_time_difference = 0
         if self.file_number % 100 == 0:
             file_path = self.agent.get_model_path(self.agent.get_default_file_name() + str(self.file_number) + ".ckpt")
-            self.agent.saver.save(self.sess, file_path)
+            self.save_replay(file_path)
 
     def end_everything(self):
         file_path = self.agent.get_model_path(self.agent.get_default_file_name() + ".ckpt")
+        self.save_replay(file_path)
+
+    def save_replay(self, file_path):
         dirname = os.path.dirname(file_path)
         if not os.path.isdir(dirname):
             os.makedirs(dirname)
         self.agent.saver.save(self.sess, file_path)
+
