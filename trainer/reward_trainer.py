@@ -1,3 +1,5 @@
+import os
+
 from conversions.input_formatter import get_state_dim_with_features
 from modelHelpers import action_handler
 from modelHelpers import reward_manager
@@ -122,4 +124,7 @@ class RewardTrainer:
 
     def end_everything(self):
         file_path = self.agent.get_model_path(self.agent.get_default_file_name() + ".ckpt")
+        dirname = os.path.dirname(file_path)
+        if not os.path.isdir(dirname):
+            os.makedirs(dirname)
         self.agent.saver.save(self.sess, file_path)
