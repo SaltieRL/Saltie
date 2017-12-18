@@ -13,7 +13,7 @@ app = QtGui.QApplication([])
 #mw.resize(800,800)
 
 win = pg.GraphicsWindow(title="RLBot Live Plotting")
-win.resize(500,300)
+win.resize(500, 300)
 win.setWindowTitle('RLBot Live Plotting')
 
 # Enable antialiasing for prettier plots
