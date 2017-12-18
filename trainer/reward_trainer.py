@@ -1,3 +1,5 @@
+import os
+
 from conversions.input_formatter import get_state_dim_with_features
 from modelHelpers import action_handler
 from modelHelpers import reward_manager
@@ -39,8 +41,8 @@ class RewardTrainer:
         self.num_actions = self.action_handler.get_action_size()
         self.agent = self.get_model()(self.sess, self.state_dim, self.num_actions, self.action_handler, is_training=True)
 
-     #   self.agent.summary_writer = tf.summary.FileWriter(
-     #       'training/events/{}-experiment'.format(self.agent.get_model_name()))
+        self.agent.summary_writer = tf.summary.FileWriter(
+            'training/events/{}-experiment'.format(self.agent.get_model_name()))
 
         self.agent.create_reinforcement_training_model()
 
@@ -122,4 +124,7 @@ class RewardTrainer:
 
     def end_everything(self):
         file_path = self.agent.get_model_path(self.agent.get_default_file_name() + ".ckpt")
+        dirname = os.path.dirname(file_path)
+        if not os.path.isdir(dirname):
+            os.makedirs(dirname)
         self.agent.saver.save(self.sess, file_path)
