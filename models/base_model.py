@@ -22,6 +22,7 @@ class BaseModel:
     def __init__(self, session,
                  state_dim,
                  num_actions,
+                 player_index,
                  action_handler,
                  is_training=False,
                  optimizer=tf.train.GradientDescentOptimizer(learning_rate=0.1),
@@ -38,6 +39,9 @@ class BaseModel:
 
         # for interfacing with the rest of the world
         self.action_handler = action_handler
+
+        # player index used for live graphing
+        self.player_index = player_index
 
         # output space
         self.num_actions = num_actions
@@ -151,7 +155,6 @@ class BaseModel:
         This will also try to load an existing model if it exists
         """
         self._set_variables()
-
         model_file = None
 
         #file does not exist too lazy to add check
@@ -169,9 +172,11 @@ class BaseModel:
                 self._set_variables()
                 print("Unexpected error loading model:", e)
                 print('unable to load model')
+                self._set_variables()
         else:
             self._set_variables()
             print('unable to find model to load')
+            self._set_variables()
 
         self._add_summary_writer()
         self.is_initialized = True
