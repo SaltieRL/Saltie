@@ -69,22 +69,20 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
                                                                      return_as_list=True)
         return self.predicted_actions, self.action_scores
 
-
-
     def create_reinforcement_training_model(self):
-        ds = tf.data.Dataset.from_tensor_slices((self.input, self.taken_actions)).batch(100)
+
+        ds = tf.data.Dataset.from_tensor_slices((self.input, self.taken_actions)).batch(500)
         self.iterator = ds.make_initializable_iterator()
-        self.input = self.iterator.get_next()
-        self.sess.run(self.iterator.initializer)
+        batched_input, batched_taken_actions = self.iterator.get_next()
         with tf.name_scope("training_network"):
-            self.discounted_rewards = self.discount_rewards(self.input_rewards)
+            self.discounted_rewards = self.discount_rewards(self.input_rewards, batched_input)
             with tf.variable_scope("actor_network", reuse=True):
-                self.logprobs = self.actor_network(self.input)
+                self.logprobs = self.actor_network(batched_input)
 
             with tf.variable_scope("critic_network", reuse=True):
-                self.estimated_values = self.critic_network(self.input)
+                self.estimated_values = self.critic_network(batched_input)
 
-            taken_actions = self.parse_actions(self.taken_actions)
+            taken_actions = self.parse_actions(batched_taken_actions)
 
             self.train_op = self.action_handler.run_func_on_split_tensors([self.logprobs,
                                                           self.estimated_values,

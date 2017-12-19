@@ -75,14 +75,16 @@ class PolicyGradient(BaseActorCritic):
     def create_reward(self):
         return None
 
-    def discount_rewards(self, input_rewards):
-        return self.reward_manager.create_reward_graph(self.input)
+    def discount_rewards(self, input_rewards, input):
+        return self.reward_manager.create_reward_graph(input)
 
     #def parse_actions(self, taken_actions):
     #    return tf.cast(self.action_handler.create_indexes_graph(taken_actions), tf.int32)
 
     def run_train_step(self, calculate_summaries, input_states, actions, rewards):
         # perform one update of training
+        self.sess.run([self.input, self.taken_actions, self.iterator.initializer],
+                      feed_dict={self.input_placeholder:input_states, self.taken_actions_placeholder: actions})
 
         while True:
             try:
@@ -90,9 +92,13 @@ class PolicyGradient(BaseActorCritic):
                     self.train_op,
                     self.summarize if calculate_summaries else self.no_op
                 ])
+                # emit summaries
+                if calculate_summaries:
+                    self.summary_writer.add_summary(summary_str, self.train_iteration)
             except tf.errors.OutOfRangeError:
-                print("End of training dataset.")
+                #print("End of training dataset.")
                 break
+        return None, None
 
 
     def get_model_name(self):

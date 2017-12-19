@@ -89,11 +89,13 @@ class BaseReinforcement(base_model.BaseModel):
         # reinforcement variables
         with tf.name_scope("compute_pg_gradients"):
             if self.action_handler.is_split_mode():
-                self.taken_actions_placeholder = tf.placeholder(tf.int32, (2000, 4), name="taken_actions_phd")
-                self.taken_actions = tf.Variable(self.taken_actions_placeholder)
+                self.taken_actions_placeholder = tf.placeholder(tf.int32, (None, 4), name="taken_actions_phd")
+                self.taken_actions = tf.Variable(self.taken_actions_placeholder, validate_shape=False, trainable=False)
+                self.taken_actions.set_shape([None, 4])
             else:
-                self.taken_actions_placeholder = tf.placeholder(tf.int32, (2000,), name="taken_actions_phd")
-                self.taken_actions = tf.Variable(self.taken_actions_placeholder)
+                self.taken_actions_placeholder = tf.placeholder(tf.int32, (None,), name="taken_actions_phd")
+                self.taken_actions = tf.Variable(self.taken_actions_placeholder, validate_shape=False, trainable=False)
+                self.taken_actions.set_shape([None,])
             self.input_rewards = self.create_reward()
         return {}
 
@@ -130,7 +132,7 @@ class BaseReinforcement(base_model.BaseModel):
         new_counter = counter - tf.constant(1)
         return new_counter, input_rewards, new_discounted_rewards, new_r
 
-    def discount_rewards(self, input_rewards):
+    def discount_rewards(self, input_rewards, input):
         r = tf.Variable(initial_value=tf.reshape(tf.constant(0.0), [1]))
         length = tf.Variable(tf.size(input_rewards))
         discounted_rewards = tf.zeros(tf.shape(input_rewards), name='discounted_rewards')
@@ -170,10 +172,6 @@ class BaseReinforcement(base_model.BaseModel):
         rewards = None
         result, summary_str = self.run_train_step(calculate_summaries, input_states, actions, rewards)
 
-        # emit summaries
-        if calculate_summaries:
-            self.summary_writer.add_summary(summary_str, self.train_iteration)
-
         self.anneal_exploration()
         self.train_iteration += 1
 
@@ -192,6 +190,9 @@ class BaseReinforcement(base_model.BaseModel):
             self.taken_actions_placeholder: actions,
             self.input_rewards: rewards
         })
+
+
+
         return result, summary_str
 
     def anneal_exploration(self, stategy='linear'):
