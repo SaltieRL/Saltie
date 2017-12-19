@@ -30,10 +30,7 @@ class ActionHandler:
 
     def __init__(self, split_mode=False):
         self.split_mode = split_mode
-        if split_mode:
-            self.actions = self.create_actions()
-        else:
-            self.actions = self.create_actions_split()
+        self.actions = self.create_actions()
         self.action_map = ActionMap(self.actions)
 
         self.actions_split = self.create_actions_split()
@@ -44,10 +41,15 @@ class ActionHandler:
 
     def get_action_size(self):
         """
-        :param split_mode: True if we should use the reduced action size
         :return: the size of the logits layer in a model
         """
-        return len(self.actions)
+        if not self.split_mode:
+            return len(self.actions)
+
+        counter = 0
+        for action in self.actions_split:
+            counter += len(action)
+        return counter
 
     def create_actions(self):
         """

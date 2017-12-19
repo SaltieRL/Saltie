@@ -6,12 +6,14 @@ import inspect
 from modelHelpers import action_handler
 from modelHelpers import reward_manager
 from models.actor_critic import policy_gradient
+import livedata.live_data_util as live_data_util
 
 import numpy as np
 import random
 import tensorflow as tf
 
 MODEL_CONFIGURATION_HEADER = 'Model Configuration'
+
 
 class Agent:
     model_class = None
@@ -21,6 +23,7 @@ class Agent:
     previous_enemy_goals = 0
     previous_owngoals = 0
     is_online_training = True
+    is_graphing = False
 
     def __init__(self, name, team, index, config_file=None):
         self.config_file = config_file
@@ -41,6 +44,7 @@ class Agent:
         self.model = self.get_model_class()(self.sess,
                                             self.state_dim,
                                             self.num_actions,
+                                            player_index=self.index,
                                             action_handler=self.actions_handler,
                                             summary_writer=writer,
                                             is_training=True)
@@ -51,6 +55,7 @@ class Agent:
             self.model.create_reinforcement_training_model()
 
         self.model.initialize_model()
+        self.rotating_real_reward_buffer = live_data_util.RotatingBuffer(self.index + 10)
 
     def load_config_file(self):
         if self.config_file is None:
@@ -59,6 +64,12 @@ class Agent:
 
         model_package = self.config_file.get(MODEL_CONFIGURATION_HEADER, 'model_package')
         model_name = self.config_file.get(MODEL_CONFIGURATION_HEADER, 'model_name')
+
+        try:
+            self.is_graphing = self.config_file.getboolean(MODEL_CONFIGURATION_HEADER, 'should_graph')
+        except:
+            print('not generating graph data')
+
 
         try:
             self.is_online_training = self.config_file.getboolean(MODEL_CONFIGURATION_HEADER, 'train_online')
@@ -85,7 +96,7 @@ class Agent:
 
     def get_reward(self, input_state):
         reward = self.reward_manager.get_reward(input_state)
-        return reward
+        return reward[0] + reward[1]
 
     def get_output_vector(self, game_tick_packet):
         input_state, features = self.inp.create_input_array(game_tick_packet)
@@ -95,11 +106,13 @@ class Agent:
             return self.actions_handler.create_controller_from_selection(
                 self.actions_handler.get_random_option()) # do not return anything
 
-        if self.model.is_training and self.is_online_training :
-            # reward = self.get_reward(input_state)
+        if self.model.is_training and self.is_online_training:
 
             if self.previous_action is not None:
                 self.model.store_rollout(input_state, self.previous_action, 0)
+        if self.is_graphing:
+            reward = self.get_reward(input_state)
+            self.rotating_real_reward_buffer += reward
 
         action = self.model.sample_action(np.array(input_state).reshape((1, -1)))
         if action is None:

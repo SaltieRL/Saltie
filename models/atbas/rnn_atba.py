@@ -24,13 +24,14 @@ class RNNAtba(nnatba.NNAtba):
     def __init__(self, session,
                  state_dim,
                  num_actions,
-                 action_handler,
+                 player_index=-1,
+                 action_handler=None,
                  is_training=False,
                  optimizer=None,
                  summary_writer=None,
                  summary_every=100):
 
-        super().__init__(session, state_dim, num_actions, action_handler, is_training,
+        super().__init__(session, state_dim, num_actions, player_index, action_handler, is_training,
                          optimizer, summary_writer, summary_every)
 
     def create_copy_training_model(self, batch_size):

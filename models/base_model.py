@@ -22,7 +22,8 @@ class BaseModel:
     def __init__(self, session,
                  state_dim,
                  num_actions,
-                 action_handler,
+                 player_index=-1,
+                 action_handler=None,
                  is_training=False,
                  optimizer=tf.train.GradientDescentOptimizer(learning_rate=0.1),
                  summary_writer=None,
@@ -38,6 +39,9 @@ class BaseModel:
 
         # for interfacing with the rest of the world
         self.action_handler = action_handler
+
+        # player index used for live graphing
+        self.player_index = player_index
 
         # output space
         self.num_actions = num_actions
