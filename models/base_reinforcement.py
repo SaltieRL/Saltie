@@ -109,10 +109,10 @@ class BaseReinforcement(base_model.BaseModel):
             self.reward_buffer.append(reward)
             self.state_buffer.append(input_state)
 
-        if len(self.action_buffer) >= 1000 and self.is_online_training and not self.is_evaluating:
+        if len(self.action_buffer) >= self.batch_size and self.is_online_training and not self.is_evaluating:
             print('running online trainer!')
             self.update_model()
-        if self.action_buffer is not None and len(self.action_buffer) >= 10000:
+        if self.action_buffer is not None and len(self.action_buffer) >= self.batch_size * 10:
             self.clean_up()
 
     def store_rollout_batch(self, input_state, last_action):

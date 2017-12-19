@@ -75,12 +75,14 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
                                                                      return_as_list=True)
         return self.predicted_actions, self.action_scores
 
-
     def create_reinforcement_training_model(self):
-
-        ds = tf.data.Dataset.from_tensor_slices((self.input, self.taken_actions)).batch(500)
-        self.iterator = ds.make_initializable_iterator()
-        batched_input, batched_taken_actions = self.iterator.get_next()
+        if self.batch_size > self.mini_batch_size:
+            ds = tf.data.Dataset.from_tensor_slices((self.input, self.taken_actions)).batch(self.mini_batch_size)
+            self.iterator = ds.make_initializable_iterator()
+            batched_input, batched_taken_actions = self.iterator.get_next()
+        else:
+            batched_input = self.input
+            batched_taken_actions = self.taken_actions
         with tf.name_scope("training_network"):
             self.discounted_rewards = self.discount_rewards(self.input_rewards, batched_input)
             with tf.variable_scope("actor_network", reuse=True):
@@ -88,7 +90,6 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
 
             with tf.variable_scope("critic_network", reuse=True):
                 self.estimated_values = self.critic_network(batched_input)
-
 
             taken_actions = self.parse_actions(batched_taken_actions)
 

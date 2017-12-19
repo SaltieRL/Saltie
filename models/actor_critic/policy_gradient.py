@@ -74,7 +74,7 @@ class PolicyGradient(BaseActorCritic):
 
     def create_split_actor_loss(self, logprobs, taken_actions, actor_reg_loss, advantages, actor_network_variables):
         if len(taken_actions.get_shape()) == 2:
-            taken_actions = tf.squeeze(taken_actions)
+            taken_actions = tf.squeeze(taken_actions, axis=[1])
 
         # calculates the entropy loss from getting the label wrong
         cross_entropy_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logprobs,
@@ -147,24 +147,41 @@ class PolicyGradient(BaseActorCritic):
 
     def run_train_step(self, calculate_summaries, input_states, actions, rewards):
         # perform one update of training
-        self.sess.run([self.input, self.taken_actions, self.iterator.initializer],
-                      feed_dict={self.input_placeholder:input_states, self.taken_actions_placeholder: actions})
+        if self.batch_size > self.mini_batch_size:
+            self.sess.run([self.input, self.taken_actions, self.iterator.initializer],
+                          feed_dict={self.input_placeholder:input_states, self.taken_actions_placeholder: actions})
 
-        counter = 0
-        while True:
-            try:
-                result, summary_str = self.sess.run([
+            counter = 0
+            while True:
+                try:
+                    result, summary_str = self.sess.run([
+                        self.train_op,
+                        self.summarize if calculate_summaries else self.no_op
+                    ])
+                    # emit summaries
+                    if calculate_summaries:
+                        self.summary_writer.add_summary(summary_str, self.train_iteration)
+                        self.train_iteration += 1
+                    counter += 1
+                except tf.errors.OutOfRangeError:
+                    #print("End of training dataset.")
+                    break
+            print('batch amount:', counter)
+        else:
+            result, summary_str = self.sess.run([
                     self.train_op,
                     self.summarize if calculate_summaries else self.no_op
-                ])
-                # emit summaries
-                if calculate_summaries:
-                    self.summary_writer.add_summary(summary_str, self.train_iteration)
-                counter += 1
-            except tf.errors.OutOfRangeError:
-                #print("End of training dataset.")
-                break
-        print('batch amount:', counter)
+                ],
+                feed_dict={
+                    self.input_placeholder:input_states,
+                    self.taken_actions_placeholder: actions
+                })
+            # emit summaries
+            if calculate_summaries:
+                self.summary_writer.add_summary(summary_str, self.train_iteration,
+                    )
+                self.train_iteration += 1
+
         return None, None
 
 
