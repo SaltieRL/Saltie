@@ -54,14 +54,14 @@ class BaseModel:
         self.stored_variables = self._create_variables()
 
         # create model
-        self.model, self.logits = self.create_model(self.input)
+        self.model, self.logits = self.create_model(self.input_var)
 
         self.saver = tf.train.Saver(self.stored_variables)
 
     def _create_variables(self):
         with tf.name_scope("model_inputs"):
             self.input_placeholder = tf.placeholder(tf.float32, shape=(2000, self.state_dim), name="state_input")
-            self.input = tf.Variable(self.input_placeholder, trainable=False)
+            self.input_var = tf.Variable(self.input_placeholder, trainable=False)
         return {}
 
     def store_rollout(self, input_state, last_action, reward):

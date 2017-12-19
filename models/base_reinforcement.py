@@ -62,7 +62,7 @@ class BaseReinforcement(base_model.BaseModel):
                 print(e2)
                 init = tf.global_variables_initializer()
                 self.sess.run(init, feed_dict={
-                    self.input: np.reshape(np.zeros(206), [1, 206])
+                    self.input_placeholder: np.reshape(np.zeros(206), [1, 206])
                 })
 
 
@@ -95,9 +95,6 @@ class BaseReinforcement(base_model.BaseModel):
                 self.taken_actions_placeholder = tf.placeholder(tf.int32, (2000,), name="taken_actions_phd")
                 self.taken_actions = tf.Variable(self.taken_actions_placeholder)
             self.input_rewards = self.create_reward()
-
-        ds = tf.data.Dataset.from_tensor_slices((self.input, self.taken_actions)).batch(100)
-        self.iterator = ds.make_initializable_iterator()
         return {}
 
     def store_rollout(self, input_state, last_action, reward):

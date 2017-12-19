@@ -84,16 +84,12 @@ class PolicyGradient(BaseActorCritic):
     def run_train_step(self, calculate_summaries, input_states, actions, rewards):
         # perform one update of training
 
-        self.sess.run(self.iterator.initializer)
         while True:
             try:
-                elem = self.sess.run(self.iterator.get_next())
-                print(elem)
-                # result, summary_str = self.sess.run([
-                #     self.train_op,
-                #     self.summarize if calculate_summaries else self.no_op
-                # ], feed_dict=feed)
-                # return result, summary_str
+                result, summary_str = self.sess.run([
+                    self.train_op,
+                    self.summarize if calculate_summaries else self.no_op
+                ])
             except tf.errors.OutOfRangeError:
                 print("End of training dataset.")
                 break

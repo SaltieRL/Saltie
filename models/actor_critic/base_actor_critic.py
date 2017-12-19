@@ -72,6 +72,10 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
 
 
     def create_reinforcement_training_model(self):
+        ds = tf.data.Dataset.from_tensor_slices((self.input, self.taken_actions)).batch(100)
+        self.iterator = ds.make_initializable_iterator()
+        self.input = self.iterator.get_next()
+        self.sess.run(self.iterator.initializer)
         with tf.name_scope("training_network"):
             self.discounted_rewards = self.discount_rewards(self.input_rewards)
             with tf.variable_scope("actor_network", reuse=True):
