@@ -14,6 +14,7 @@ class BaseModel:
     is_evaluating = False
     is_online_training = False
     no_op = tf.no_op()
+    train_op = no_op
 
     """"
     This is a base class for all models It has a couple helper methods but is mainly used to provide a standard

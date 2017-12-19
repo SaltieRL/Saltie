@@ -23,7 +23,7 @@ class Agent:
     previous_enemy_goals = 0
     previous_owngoals = 0
     is_online_training = True
-    is_graphing = False
+    is_graphing = True
 
     def __init__(self, name, team, index, config_file=None):
         self.config_file = config_file
