@@ -33,9 +33,9 @@ green_curve = p6.plot(pen='g')
 red_curve = p6.plot(pen='r')
 def update():
     global blue_curve, orng_curve, green_curve, red_curve, p6
-    blue_curve.setData(expected_reward_blue_0.get_current_buffer())
+  #  blue_curve.setData(expected_reward_blue_0.get_current_buffer())
     orng_curve.setData(expected_reward_orange_0.get_current_buffer())
-    green_curve.setData(real_reward_blue_0.get_current_buffer())
+  #  green_curve.setData(real_reward_blue_0.get_current_buffer())
     red_curve.setData(real_reward_orange_0.get_current_buffer())
 timer = QtCore.QTimer()
 timer.timeout.connect(update)
