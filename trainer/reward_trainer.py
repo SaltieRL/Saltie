@@ -18,7 +18,7 @@ class RewardTrainer:
     epoch = 0
     display_step = 5
 
-    batch_size = 100
+    batch_size = 2000
     last_action = None
     reward_manager = None
     local_pair_number = 0

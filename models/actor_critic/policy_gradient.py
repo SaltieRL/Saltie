@@ -26,8 +26,10 @@ class PolicyGradient(BaseActorCritic):
 
 
     def create_training_op(self, logprobs, taken_actions):
-        critic_gradients, critic_loss = self.create_critic_gadients()
-        actor_gradients, actor_loss = self.create_actor_gradients(logprobs, taken_actions)
+        critic_gradients, critic_loss, critic_reg_loss = self.create_critic_gadients()
+        actor_gradients, actor_loss, actor_reg_loss = self.create_actor_gradients(logprobs, taken_actions)
+
+        tf.summary.scalar("total_reg_loss", critic_reg_loss + actor_reg_loss)
 
         return self._compute_training_op(actor_gradients, critic_gradients)
 
@@ -38,6 +40,8 @@ class PolicyGradient(BaseActorCritic):
 
         actor_reg_loss = tf.reduce_sum([tf.reduce_sum(tf.square(x)) for x in all_actor_variables],
                                        name='actor_reg_loss')
+
+        tf.summary.scalar("actor_reg_loss", actor_reg_loss)
 
 
         result = self.action_handler.run_func_on_split_tensors([logprobs,
@@ -65,7 +69,7 @@ class PolicyGradient(BaseActorCritic):
 
         tf.summary.scalar("toal_actor_loss", total_loss)
 
-        return merged_gradient_list, total_loss
+        return merged_gradient_list, total_loss, actor_reg_loss
 
 
     def create_split_actor_loss(self, logprobs, taken_actions, actor_reg_loss, advantages, actor_network_variables):
@@ -97,13 +101,15 @@ class PolicyGradient(BaseActorCritic):
         critic_reg_loss = tf.reduce_sum([tf.reduce_sum(tf.square(x)) for x in self.critic_network_variables],
                                         name='critic_reg_loss')
 
+        tf.summary.scalar("critic_reg_loss", critic_reg_loss)
+
         # compute critic gradients
         mean_square_loss = tf.reduce_mean(tf.square(self.discounted_rewards - self.estimated_values), name='mean_square_loss')
 
         critic_loss = mean_square_loss + self.reg_param * critic_reg_loss
         tf.summary.scalar("critic_loss", critic_loss)
         critic_gradients = self.optimizer.compute_gradients(critic_loss, self.critic_network_variables)
-        return (critic_gradients, critic_loss)
+        return (critic_gradients, critic_loss, critic_reg_loss)
 
     def _compute_training_op(self, actor_gradients, critic_gradients):
 

@@ -151,13 +151,16 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
     def critic_network(self, input_states):
         # define policy neural network
         critic_prefix = 'critic'
-        layer1 = self.create_layer(tf.nn.relu6, input_states, 1, self.state_dim, self.network_size, critic_prefix)
+        critic_size = self.network_size
+        # four sets of actions why not! :)
+        output_size = self.num_actions #4
+        layer1 = self.create_layer(tf.nn.relu6, input_states, 1, self.state_dim, critic_size, critic_prefix)
         inner_layer = layer1
         for i in range(0, self.num_layers - 2):
-            inner_layer = self.create_layer(tf.nn.relu6, inner_layer, i + 2, self.network_size,
-                                            self.network_size, critic_prefix)
+            inner_layer = self.create_layer(tf.nn.relu6, inner_layer, i + 2, critic_size,
+                                            critic_size, critic_prefix)
         output_layer = self.create_layer(tf.nn.sigmoid, inner_layer, self.num_layers,
-                                         self.network_size, self.num_actions, critic_prefix)
+                                         critic_size, output_size, critic_prefix)
         return output_layer
 
     def get_model_name(self):
@@ -167,16 +170,16 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
         return taken_actions
 
     def create_last_layer(self, activation_function, inner_layer, num_layers, network_size, num_actions, actor_prefix):
-
+        last_layer_name = 'last'
         if not self.action_handler.is_split_mode():
-            self.actor_last_row_layer = (self.create_layer(activation_function, inner_layer, num_layers,
+            self.actor_last_row_layer = (self.create_layer(activation_function, inner_layer, last_layer_name,
                                                            network_size, num_actions, actor_prefix))
             return self.actor_last_row_layer
 
 
         self.actor_last_row_layer = []
         for i, item in enumerate(self.action_handler.get_split_sizes()):
-            self.actor_last_row_layer.append(self.create_layer(activation_function, inner_layer, num_layers, network_size, item, actor_prefix + str(i)))
+            self.actor_last_row_layer.append(self.create_layer(activation_function, inner_layer, last_layer_name, network_size, item, actor_prefix + str(i)))
 
         last_row_variables = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope="actor_network/last_layer")
         reshaped_list = np.reshape(np.array(last_row_variables), [int(len(last_row_variables) / 2), 2])
