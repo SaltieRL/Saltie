@@ -18,7 +18,6 @@ class RewardTrainer:
     epoch = 0
     display_step = 5
 
-    batch_size = 2000
     last_action = None
     reward_manager = None
     local_pair_number = 0
@@ -48,6 +47,7 @@ class RewardTrainer:
 
         self.agent.initialize_model()
 
+        self.batch_size = self.agent.batch_size
 
 
     def get_model(self):
@@ -115,7 +115,6 @@ class RewardTrainer:
         self.batch_process()
         print('\naction conversion time', self.action_time_difference)
         print('training time', self.train_time_difference)
-        print('\n')
         self.action_time_difference = 0
         self.train_time_difference = 0
         if self.file_number % 100 == 0:

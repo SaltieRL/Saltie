@@ -8,6 +8,8 @@ MODEL_CONFIGURATION_HEADER = 'Model Configuration'
 
 class BaseModel:
 
+    batch_size = 20000
+    mini_batch_size = 500
     config_file = None
     is_initialized = False
     model_file = None
@@ -101,7 +103,7 @@ class BaseModel:
         #always return an integer
         return 10
 
-    def create_copy_training_model(self, batch_size):
+    def create_copy_training_model(self):
         """
         Creates a model used for training a bot that will copy the labeled data
 
@@ -134,8 +136,22 @@ class BaseModel:
         return None, None
 
     def _set_variables(self):
-        pass
-
+        try:
+            init = tf.global_variables_initializer()
+            self.sess.run(init, feed_dict={self.input_placeholder: np.zeros((self.batch_size, self.state_dim))})
+        except Exception as e:
+            print('failed to initialize')
+            print(e)
+            try:
+                init = tf.global_variables_initializer()
+                self.sess.run(init)
+            except Exception as e2:
+                print('failed to initialize again')
+                print(e2)
+                init = tf.global_variables_initializer()
+                self.sess.run(init, feed_dict={
+                    self.input_placeholder: np.reshape(np.zeros(206), [1, 206])
+                })
 
     def initialize_model(self):
         """
@@ -200,6 +216,16 @@ class BaseModel:
             self.model_file = self.config_file.get(MODEL_CONFIGURATION_HEADER, 'model_directory')
         except Exception as e:
             print('model directory is not in config', e)
+
+        try:
+            self.batch_size = self.config_file.getint(MODEL_CONFIGURATION_HEADER, 'batch_size')
+        except Exception:
+            print('batch size is not in config')
+
+        try:
+            self.mini_batch_size = self.config_file.getint(MODEL_CONFIGURATION_HEADER, 'mini_batch_size')
+        except Exception:
+            print('mini batch size is not in config')
 
         try:
             self.is_evaluating = self.config_file.getboolean(MODEL_CONFIGURATION_HEADER,

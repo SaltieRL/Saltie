@@ -47,11 +47,11 @@ class BaseReinforcement(base_model.BaseModel):
         try:
             init = tf.global_variables_initializer()
             if self.action_handler.is_split_mode():
-                actions_null = np.zeros((2000, 4))
+                actions_null = np.zeros((self.batch_size, 4))
             else:
-                actions_null = np.zeros((2000,))
-            self.sess.run(init, feed_dict={self.input_placeholder: np.zeros((2000, 206)), self.taken_actions_placeholder: actions_null})
-            print ('done initializing')
+                actions_null = np.zeros((self.batch_size,))
+            self.sess.run(init, feed_dict={self.input_placeholder: np.zeros((self.batch_size, self.state_dim)),
+                                           self.taken_actions_placeholder: actions_null})
         except Exception as e:
             print('failed to initialize')
             print(e)
@@ -66,8 +66,7 @@ class BaseReinforcement(base_model.BaseModel):
                     self.input_placeholder: np.reshape(np.zeros(206), [1, 206])
                 })
 
-
-    def create_copy_training_model(self, batch_size):
+    def create_copy_training_model(self):
         self.labels = tf.placeholder(tf.int64, shape=(None, self.num_actions))
 
         cross_entropy = self.action_handler.get_cross_entropy_with_logits(

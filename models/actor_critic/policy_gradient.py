@@ -150,6 +150,7 @@ class PolicyGradient(BaseActorCritic):
         self.sess.run([self.input, self.taken_actions, self.iterator.initializer],
                       feed_dict={self.input_placeholder:input_states, self.taken_actions_placeholder: actions})
 
+        counter = 0
         while True:
             try:
                 result, summary_str = self.sess.run([
@@ -159,9 +160,11 @@ class PolicyGradient(BaseActorCritic):
                 # emit summaries
                 if calculate_summaries:
                     self.summary_writer.add_summary(summary_str, self.train_iteration)
+                counter += 1
             except tf.errors.OutOfRangeError:
                 #print("End of training dataset.")
                 break
+        print('batch amount:', counter)
         return None, None
 
 

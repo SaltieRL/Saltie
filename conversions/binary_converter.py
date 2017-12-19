@@ -1,12 +1,11 @@
 import io
 import os
-import sys
 import struct
-import hashlib
 
 from conversions.input_formatter import get_state_dim_with_features
 import numpy as np
 import time
+import logging
 
 EMPTY_FILE = 'empty'
 NO_FILE_VERSION = -1
@@ -153,15 +152,13 @@ def read_data(file, process_pair_function, batching=False):
             #print('reached end of file')
             break
         except Exception as e:
-            print('error occured but because of reading but something else')
-            print(e)
-    print(counter)
-    print('total batches', counter)
-    print('total pairs', pair_number)
+            logging.exception('error occurred but not because of reading but something else')
+    print('total batches [', counter, '] total pairs [', pair_number, ']')
     print('time reading', total_time)
     file_size = get_file_size(file)
     if file_size - totalbytes <= 4 + 4 + 8 + 1:
-        print('read: 100% of file')
+        pass
+        # print('read: 100% of file')
     else:
         print('read: ' + str(totalbytes) + '/' + str(file_size) + ' bytes')
 
@@ -179,7 +176,7 @@ def get_array(file, chunk):
     try:
         starting_byte = struct.unpack('i', chunk)[0]
     except struct.error:
-        print('struct error')
+        #print('struct error')
         raise EOFError
     numpy_bytes = file.read(starting_byte)
     fake_file = io.BytesIO(numpy_bytes)

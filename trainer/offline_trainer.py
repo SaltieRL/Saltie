@@ -116,7 +116,7 @@ def train_with_file(input_file, train_object):
 
     end = time.time()
     difference = end - start
-    print('trained file in ' + str(difference) + 's')
+    print('trained file in', str(difference), '\bs\n\n')
     return difference
 
 
