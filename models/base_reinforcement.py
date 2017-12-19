@@ -1,6 +1,8 @@
-from models import base_model
 import numpy as np
 import tensorflow as tf
+
+from models import base_model
+
 
 class BaseReinforcement(base_model.BaseModel):
     """"
@@ -31,7 +33,7 @@ class BaseReinforcement(base_model.BaseModel):
         self.reward_buffer = []
         self.action_buffer = None
 
-        #training parameters
+        # training parameters
         self.discount_factor = discount_factor
 
         # exploration parameters
@@ -39,6 +41,30 @@ class BaseReinforcement(base_model.BaseModel):
         self.init_exp = init_exp
         self.final_exp = final_exp
         self.anneal_steps = anneal_steps
+
+    def _set_variables(self):
+        try:
+            init = tf.global_variables_initializer()
+            if self.action_handler.is_split_mode():
+                actions_null = np.zeros((2000, 4))
+            else:
+                actions_null = np.zeros((2000,))
+            self.sess.run(init, feed_dict={self.input_placeholder: np.zeros((2000, 206)), self.taken_actions_placeholder: actions_null})
+            print ('done initializing')
+        except Exception as e:
+            print('failed to initialize')
+            print(e)
+            try:
+                init = tf.global_variables_initializer()
+                self.sess.run(init)
+            except Exception as e2:
+                print('failed to initialize again')
+                print(e2)
+                init = tf.global_variables_initializer()
+                self.sess.run(init, feed_dict={
+                    self.input: np.reshape(np.zeros(206), [1, 206])
+                })
+
 
     def create_copy_training_model(self, batch_size):
         self.labels = tf.placeholder(tf.int64, shape=(None, self.num_actions))
@@ -63,12 +89,15 @@ class BaseReinforcement(base_model.BaseModel):
         # reinforcement variables
         with tf.name_scope("compute_pg_gradients"):
             if self.action_handler.is_split_mode():
-                self.taken_actions_placeholder = tf.placeholder(tf.int32, (None, 4), name="taken_actions")
+                self.taken_actions_placeholder = tf.placeholder(tf.int32, (2000, 4), name="taken_actions_phd")
                 self.taken_actions = tf.Variable(self.taken_actions_placeholder)
             else:
-                self.taken_actions_placeholder = tf.placeholder(tf.int32, (None,), name="taken_actions")
+                self.taken_actions_placeholder = tf.placeholder(tf.int32, (2000,), name="taken_actions_phd")
                 self.taken_actions = tf.Variable(self.taken_actions_placeholder)
             self.input_rewards = self.create_reward()
+
+        ds = tf.data.Dataset.from_tensor_slices((self.input, self.taken_actions)).batch(100)
+        self.iterator = ds.make_initializable_iterator()
         return {}
 
     def store_rollout(self, input_state, last_action, reward):
@@ -122,8 +151,8 @@ class BaseReinforcement(base_model.BaseModel):
             return
 
         # compute discounted future rewards
-        #discounted_rewards = np.zeros(N)
-        #for t in reversed(range(N)):
+        # discounted_rewards = np.zeros(N)
+        # for t in reversed(range(N)):
         #    # future discounted reward from now on
         #    r = self.reward_buffer[t] + self.discount_factor * r
         #    discounted_rewards[t] = r
@@ -140,7 +169,7 @@ class BaseReinforcement(base_model.BaseModel):
 
         input_states = np.array(self.state_buffer)
         actions = np.array(self.action_buffer)
-        #rewards = np.array(self.reward_buffer).reshape((len(self.reward_buffer), 1))
+        # rewards = np.array(self.reward_buffer).reshape((len(self.reward_buffer), 1))
         rewards = None
         result, summary_str = self.run_train_step(calculate_summaries, input_states, actions, rewards)
 
@@ -151,7 +180,7 @@ class BaseReinforcement(base_model.BaseModel):
         self.anneal_exploration()
         self.train_iteration += 1
 
-        #print(self.train_iteration)
+        # print(self.train_iteration)
 
         # clean up
         self.clean_up()

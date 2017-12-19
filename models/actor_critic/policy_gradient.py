@@ -84,16 +84,20 @@ class PolicyGradient(BaseActorCritic):
     def run_train_step(self, calculate_summaries, input_states, actions, rewards):
         # perform one update of training
 
-        feed = {
-            self.input_placeholder: input_states,
-            self.taken_actions_placeholder: actions
-        }
+        self.sess.run(self.iterator.initializer)
+        while True:
+            try:
+                elem = self.sess.run(self.iterator.get_next())
+                print(elem)
+                # result, summary_str = self.sess.run([
+                #     self.train_op,
+                #     self.summarize if calculate_summaries else self.no_op
+                # ], feed_dict=feed)
+                # return result, summary_str
+            except tf.errors.OutOfRangeError:
+                print("End of training dataset.")
+                break
 
-        result, summary_str = self.sess.run([
-            self.train_op,
-            self.summarize if calculate_summaries else self.no_op
-        ], feed_dict=feed)
-        return result, summary_str
 
     def get_model_name(self):
         return 'a_c_policy_gradient' + ('_split' if self.action_handler.is_split_mode else '') + str(self.num_layers) + '-layers'

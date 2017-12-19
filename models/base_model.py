@@ -60,8 +60,8 @@ class BaseModel:
 
     def _create_variables(self):
         with tf.name_scope("model_inputs"):
-            self.input_placeholder = tf.placeholder(tf.float32, shape=(None, self.state_dim), name="state_input")
-            self.input = tf.Variable(self.input_placeholder)
+            self.input_placeholder = tf.placeholder(tf.float32, shape=(2000, self.state_dim), name="state_input")
+            self.input = tf.Variable(self.input_placeholder, trainable=False)
         return {}
 
     def store_rollout(self, input_state, last_action, reward):
@@ -128,22 +128,7 @@ class BaseModel:
         return None, None
 
     def _set_variables(self):
-        try:
-            init = tf.global_variables_initializer()
-            self.sess.run(init)
-        except Exception as e:
-            print('failed to initialize')
-            print(e)
-            try:
-                init = tf.global_variables_initializer()
-                self.sess.run(init)
-            except Exception as e2:
-                print('failed to initialize again')
-                print(e2)
-                init = tf.global_variables_initializer()
-                self.sess.run(init, feed_dict={
-                    self.input: np.reshape(np.zeros(206), [1, 206])
-                })
+        pass
 
 
     def initialize_model(self):

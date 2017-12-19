@@ -124,7 +124,7 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
         else:
             self.frames_since_last_random_action += 1
 
-            action_scores = self.sess.run(self.softmax, {self.input: input_state})
+            action_scores = self.sess.run(self.softmax, {self.input_placeholder: input_state})
 
             action = self.action_handler.\
                 optionally_split_numpy_arrays(action_scores,
@@ -156,7 +156,7 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
                                             self.network_size, actor_prefix)
         output_layer = self.create_layer(tf.nn.sigmoid, inner_layer, self.num_layers,self.network_size,
                                          self.num_actions, actor_prefix)
-
+        print ("done creating layers")
         return output_layer
 
     def critic_network(self, input_states):
