@@ -85,8 +85,8 @@ class PolicyGradient(BaseActorCritic):
         # perform one update of training
 
         feed = {
-            self.input: input_states,
-            self.taken_actions: actions
+            self.input_placeholder: input_states,
+            self.taken_actions_placeholder: actions
         }
 
         result, summary_str = self.sess.run([

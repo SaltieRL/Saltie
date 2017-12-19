@@ -54,15 +54,14 @@ class BaseModel:
         self.stored_variables = self._create_variables()
 
         # create model
-        self.input_batch = tf.train.batch(tensors=[self.input], batch_size=100, num_threads=4, enqueue_many=True,
-                                          capacity=10000)
-        self.model, self.logits = self.create_model(self.input_batch)
+        self.model, self.logits = self.create_model(self.input)
 
         self.saver = tf.train.Saver(self.stored_variables)
 
     def _create_variables(self):
         with tf.name_scope("model_inputs"):
-            self.input = tf.placeholder(tf.float32, shape=(None, self.state_dim), name="state_input")
+            self.input_placeholder = tf.placeholder(tf.float32, shape=(None, self.state_dim), name="state_input")
+            self.input = tf.Variable(self.input_placeholder)
         return {}
 
     def store_rollout(self, input_state, last_action, reward):
