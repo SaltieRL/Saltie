@@ -21,6 +21,10 @@ def get_latest_file_version():
 
 
 def write_array_to_file(game_file, array):
+    """
+    :param game_file: This is the file that the array will be written to.
+    :param array: A numpy array of any size.
+    """
     bytes = convert_numpy_array(array)
     size_of_bytes = len(bytes.getvalue())
     game_file.write(struct.pack('i', size_of_bytes))
@@ -51,6 +55,14 @@ def write_is_eval(game_file, is_eval):
 
 
 def get_file_version(file):
+    """
+    Gets file info from the file
+    :param file:
+    :return: a tuple containing
+            file_version:  This is the version of a file represented as a number.
+            hashed_name: This is the hash of the model that was used to create this file.  If it is a least version 2
+            is_eval: This is used to decide if the file was created in eval mode
+    """
     if not isinstance(file, io.BytesIO):
         file_name = os.path.basename(file.name).split('-')[0]
     else:
@@ -87,6 +99,10 @@ def get_file_version(file):
 
 
 def get_file_size(f):
+    """
+    :param f: The file
+    :return: The size of the file in bytes.
+    """
     # f is a file-like object.
     try:
         old_file_position = f.tell()
@@ -189,5 +205,12 @@ def get_array(file, chunk):
 
 
 def default_process_pair(input_array, output_array, pair_number):
+    """
+    Default method for processing a pair of inputs this does nothing
+    :param input_array:  This is the input state to the bot
+    :param output_array:  This is the output state to the bot
+    :param pair_number:  This is the pair_number.  How many pairs it has gone through.
+    :return: None
+    """
     pass
 
