@@ -115,15 +115,16 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
             return self.action_handler.get_random_option()
         else:
             self.frames_since_last_random_action += 1
+            if hasattr(self, 'is_graphing') and self.is_graphing and hasattr(self, 'estimated_values'):
+                estimated_reward, action_scores = self.sess.run([self.estimated_values, self.softmax],
+                                                                {self.input_placeholder: input_state})
+                # Average is bad metric but max is always 1 right now so using a more interesting graph
+                self.rotating_expected_reward_buffer += np.average(estimated_reward)
+            else:
+                action_scores = self.sess.run([self.softmax],
+                                              {self.input_placeholder: input_state})[0]
 
-            estimated_reward, action_scores = self.sess.run([self.estimated_values, self.softmax],
-                                                            {self.input_placeholder: input_state})
-            # Average is bad metric but max is always 1 right now so using a more interesting graph
-            self.rotating_expected_reward_buffer += np.average(estimated_reward)
-
-
-            action = self.action_handler.\
-                optionally_split_numpy_arrays(action_scores,
+            action = self.action_handler.optionally_split_numpy_arrays(action_scores,
                                               lambda input_array: np.argmax(np.random.multinomial(1, input_array[0])),
                                               is_already_split=True)
 

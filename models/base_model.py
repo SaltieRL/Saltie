@@ -61,7 +61,7 @@ class BaseModel:
         self.stored_variables = self._create_variables()
 
         # create model
-        self.model, self.logits = self.create_model(self.input)
+        self.model, self.logits = self.create_model(self.input_placeholder)
 
         self.saver = tf.train.Saver(self.stored_variables)
 
