@@ -49,6 +49,8 @@ class Agent:
                                             summary_writer=writer,
                                             is_training=True)
 
+        self.model.is_graphing = self.is_graphing
+
         self.model.is_online_training = self.is_online_training
 
         if self.model.is_training and self.model.is_online_training:
@@ -107,7 +109,6 @@ class Agent:
                 self.actions_handler.get_random_option()) # do not return anything
 
         if self.model.is_training and self.is_online_training:
-
             if self.previous_action is not None:
                 self.model.store_rollout(input_state, self.previous_action, 0)
         if self.is_graphing:
