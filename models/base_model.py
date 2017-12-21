@@ -8,12 +8,15 @@ MODEL_CONFIGURATION_HEADER = 'Model Configuration'
 
 class BaseModel:
 
+    batch_size = 20000
+    mini_batch_size = 500
     config_file = None
     is_initialized = False
     model_file = None
     is_evaluating = False
     is_online_training = False
     no_op = tf.no_op()
+    train_op = no_op
 
     """"
     This is a base class for all models It has a couple helper methods but is mainly used to provide a standard
@@ -58,13 +61,15 @@ class BaseModel:
         self.stored_variables = self._create_variables()
 
         # create model
-        self.model, self.logits = self.create_model(self.input)
+        self.model, self.logits = self.create_model(self.input_placeholder)
 
         self.saver = tf.train.Saver(self.stored_variables)
 
     def _create_variables(self):
         with tf.name_scope("model_inputs"):
-            self.input = tf.placeholder(tf.float32, shape=(None, self.state_dim), name="state_input")
+            self.input_placeholder = tf.placeholder(tf.float32, shape=(None, self.state_dim), name="state_input")
+            self.input = tf.Variable(self.input_placeholder, validate_shape=False, trainable=False)
+            self.input.set_shape([None, self.state_dim])
         return {}
 
     def store_rollout(self, input_state, last_action, reward):
@@ -98,7 +103,7 @@ class BaseModel:
         #always return an integer
         return 10
 
-    def create_copy_training_model(self, batch_size):
+    def create_copy_training_model(self):
         """
         Creates a model used for training a bot that will copy the labeled data
 
@@ -133,7 +138,7 @@ class BaseModel:
     def _set_variables(self):
         try:
             init = tf.global_variables_initializer()
-            self.sess.run(init)
+            self.sess.run(init, feed_dict={self.input_placeholder: np.zeros((self.batch_size, self.state_dim))})
         except Exception as e:
             print('failed to initialize')
             print(e)
@@ -145,9 +150,8 @@ class BaseModel:
                 print(e2)
                 init = tf.global_variables_initializer()
                 self.sess.run(init, feed_dict={
-                    self.input: np.reshape(np.zeros(206), [1, 206])
+                    self.input_placeholder: np.reshape(np.zeros(206), [1, 206])
                 })
-
 
     def initialize_model(self):
         """
@@ -212,6 +216,16 @@ class BaseModel:
             self.model_file = self.config_file.get(MODEL_CONFIGURATION_HEADER, 'model_directory')
         except Exception as e:
             print('model directory is not in config', e)
+
+        try:
+            self.batch_size = self.config_file.getint(MODEL_CONFIGURATION_HEADER, 'batch_size')
+        except Exception:
+            print('batch size is not in config')
+
+        try:
+            self.mini_batch_size = self.config_file.getint(MODEL_CONFIGURATION_HEADER, 'mini_batch_size')
+        except Exception:
+            print('mini batch size is not in config')
 
         try:
             self.is_evaluating = self.config_file.getboolean(MODEL_CONFIGURATION_HEADER,

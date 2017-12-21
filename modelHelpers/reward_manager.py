@@ -35,7 +35,7 @@ class RewardManager:
         previous_distance = self.get_distance_location(previous_info.car_location, previous_info.ball_location)
         # moving faster = bigger reward or bigger punishment
         distance_change = (previous_distance - current_distance) / 500.0
-        return self.clip_reward(distance_change, -0.001, .2)
+        return self.clip_reward(distance_change, -0.1, .2)
 
     def calculate_ball_closeness_reward(self, current_info, previous_info):
         """
@@ -46,7 +46,7 @@ class RewardManager:
         # += does not work on tensorflow objects
         # prevents a distance of 0
         current_distance = current_distance + 0.000001
-        divided_value = 100.0 / current_distance
+        divided_value = 500.0 / current_distance
         divided_value = divided_value * divided_value
         clipped_value = self.clip_reward(divided_value, 0, .2)
         return clipped_value

@@ -22,8 +22,8 @@ class Agent:
     previous_score = 0
     previous_enemy_goals = 0
     previous_owngoals = 0
-    is_online_training = True
-    is_graphing = False
+    is_online_training = False
+    is_graphing = True
 
     def __init__(self, name, team, index, config_file=None):
         self.config_file = config_file
@@ -49,13 +49,16 @@ class Agent:
                                             summary_writer=writer,
                                             is_training=True)
 
+        self.model.is_graphing = self.is_graphing
+
         self.model.is_online_training = self.is_online_training
 
         if self.model.is_training and self.model.is_online_training:
             self.model.create_reinforcement_training_model()
 
         self.model.initialize_model()
-        self.rotating_real_reward_buffer = live_data_util.RotatingBuffer(self.index + 10)
+        if self.is_graphing:
+            self.rotating_real_reward_buffer = live_data_util.RotatingBuffer(self.index + 10)
 
     def load_config_file(self):
         if self.config_file is None:
@@ -107,7 +110,6 @@ class Agent:
                 self.actions_handler.get_random_option()) # do not return anything
 
         if self.model.is_training and self.is_online_training:
-
             if self.previous_action is not None:
                 self.model.store_rollout(input_state, self.previous_action, 0)
         if self.is_graphing:
