@@ -57,7 +57,8 @@ class Agent:
             self.model.create_reinforcement_training_model()
 
         self.model.initialize_model()
-        self.rotating_real_reward_buffer = live_data_util.RotatingBuffer(self.index + 10)
+        if self.is_graphing:
+            self.rotating_real_reward_buffer = live_data_util.RotatingBuffer(self.index + 10)
 
     def load_config_file(self):
         if self.config_file is None:
