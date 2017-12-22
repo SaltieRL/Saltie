@@ -15,6 +15,7 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
     actor_last_row_layer = None
     forced_frame_action = 500
     is_graphing = False
+    keep_prob = 0.5
 
     def __init__(self, session,
                  state_dim,
@@ -59,7 +60,7 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
             with tf.variable_scope("actor_network"):
                 self.policy_outputs = self.actor_network(self.input)
             with tf.variable_scope("critic_network"):
-                self.value_outputs = self.critic_network(self.input)
+                self.value_outputs = tf.reduce_mean(self.critic_network(self.input), name="Value_estimation")
 
             # predict actions from policy network
             self.action_scores = tf.identity(self.policy_outputs, name="action_scores")
@@ -120,7 +121,7 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
                 estimated_reward, action_scores = self.sess.run([self.value_outputs, self.softmax],
                                                                 {self.input_placeholder: input_state})
                 # Average is bad metric but max is always 1 right now so using a more interesting graph
-                self.rotating_expected_reward_buffer += np.average(estimated_reward)
+                self.rotating_expected_reward_buffer += estimated_reward
             else:
                 action_scores = self.sess.run([self.softmax],
                                               {self.input_placeholder: input_state})[0]
@@ -138,10 +139,12 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
                              initializer=tf.random_normal_initializer())
         b = tf.get_variable(bias_name, [output_size],
                              initializer=tf.constant_initializer(0.0))
-        h = activation_function(tf.matmul(input, W) + b)
+        layer_output = activation_function(tf.matmul(input, W) + b)
+        if self.is_training:
+            layer_output = tf.nn.dropout(layer_output, self.keep_prob)
         self.stored_variables[weight_name] = W
         self.stored_variables[bias_name] = b
-        return h
+        return layer_output
 
     def actor_network(self, input_states):
         # define policy neural network
@@ -153,7 +156,7 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
             inner_layer = self.create_layer(tf.nn.relu6, inner_layer, i + 2, self.network_size,
                                             self.network_size, actor_prefix)
         with tf.variable_scope("last_layer"):
-            output_layer = self.create_last_layer(tf.nn.sigmoid, inner_layer, self.num_layers,self.network_size,
+            output_layer = self.create_last_layer(tf.nn.sigmoid, inner_layer, self.network_size,
                                                   self.num_actions, actor_prefix)
 
         return output_layer
@@ -163,13 +166,15 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
         critic_prefix = 'critic'
         critic_size = self.network_size
         # four sets of actions why not! :)
-        output_size = self.num_actions #4
+        critic_layers = self.num_layers
+        output_size = 1
         layer1 = self.create_layer(tf.nn.relu6, input_states, 1, self.state_dim, critic_size, critic_prefix)
         inner_layer = layer1
-        for i in range(0, self.num_layers - 2):
+        for i in range(0, critic_layers - 2):
             inner_layer = self.create_layer(tf.nn.relu6, inner_layer, i + 2, critic_size,
                                             critic_size, critic_prefix)
-        output_layer = self.create_layer(tf.nn.sigmoid, inner_layer, self.num_layers,
+        with tf.variable_scope("last_layer"):
+            output_layer = self.create_layer(tf.nn.sigmoid, inner_layer, 'last_layer',
                                          critic_size, output_size, critic_prefix)
         return output_layer
 
@@ -179,7 +184,7 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
     def parse_actions(self, taken_actions):
         return taken_actions
 
-    def create_last_layer(self, activation_function, inner_layer, num_layers, network_size, num_actions, actor_prefix):
+    def create_last_layer(self, activation_function, inner_layer, network_size, num_actions, actor_prefix):
         last_layer_name = 'last'
         if not self.action_handler.is_split_mode():
             self.actor_last_row_layer = (self.create_layer(activation_function, inner_layer, last_layer_name,
