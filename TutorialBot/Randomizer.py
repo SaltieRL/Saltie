@@ -18,31 +18,65 @@ class PacketGenerator:
     def get_car_info(self, num_cars):
         car_objects = []
         for i in range(num_cars):
-            car = self.create_object()
-            car.Location = self.create_3D_point(-4050 + 8100 * r.random(),
-                                                -5900 + 11800 * r.random(),
-                                                2000 * r.random())
-            car.Rotation = self.create_3D_rotation(-16384 + 32768 * r.random(),
-                                                   -32768 + 65536 * r.random(),
-                                                   -32768 + 65536 * r.random())
-            car.Velocity = self.create_3D_point(-2300 + 4600 * r.random(),
-                                                -2300 + 4600 * r.random(),
-                                                -2300 + 4600 * r.random())
-            car.AngularVelocity = self.create_3D_point(-5.5 + 11 * r.random(),
-                                                       -5.5 + 11 * r.random(),
-                                                       -5.5 + 11 * r.random())
-            car.Score = self.get_car_score_info()
-            car.bDemolished = False
-            car.bOnGround = False  # Should be more precise
-            car.bSuperSonic = False  # Should be a precise method through velocities
-            car.bBot = True
-            car.bJumped = bool(round(0.6 * r.random()))
-            car.bDoubleJumped = bool(round(0.55 * r.random()))
-            car.wName = "RandomizedBotData" + str(i)
-            car.Team = i
-            car.Boost = r.randint(0, 100)
-            car_objects.append(car)
+            if r.randrange(0, 1) == 0:
+                car_objects.append(self.get_car_on_ground(i))
+            else:
+                car_objects.append(self.get_car_off_ground(i))
         return car_objects
+
+    def get_car_on_ground(self, index):
+        car = self.create_object()
+        car.Location = self.create_3D_point(-3800 + 7600 * r.random(),
+                                            -5600 + 11200 * r.random(),
+                                            20 * r.random())
+        car.Rotation = self.create_3D_rotation(-16384 + 32768 * r.random(),
+                                               -32768 + 65536 * r.random(),
+                                               -32768 + 65536 * r.random())
+        car.Velocity = self.create_3D_point(-2300 + 4600 * r.random(),
+                                            -2300 + 4600 * r.random(),
+                                            -2300 + 4600 * r.random())
+        car.AngularVelocity = self.create_3D_point(-5.5 + 11 * r.random(),
+                                                   -5.5 + 11 * r.random(),
+                                                   -5.5 + 11 * r.random())
+        car.Score = self.get_car_score_info()
+        car.bDemolished = False
+        car.bOnGround = True
+        car.bSuperSonic = False  # Should be a precise method through velocities
+        car.bBot = True
+        car.bJumped = bool(round(0.6 * r.random()))
+        car.bDoubleJumped = bool(round(0.55 * r.random()))
+        car.wName = "RandomizedBotData" + str(index)
+        car.Team = index
+        car.Boost = r.randint(0, 100)
+        return car
+
+    def get_car_off_ground(self, index):
+        car = self.create_object()
+        car.Location = self.create_3D_point(-3800 + 7600 * r.random(),
+                                            -5600 + 11200 * r.random(),
+                                            20 + 1980 * r.random())
+        car.Rotation = self.create_3D_rotation(-16384 + 32768 * r.random(),
+                                               -32768 + 65536 * r.random(),
+                                               -32768 + 65536 * r.random())
+        car.Velocity = self.create_3D_point(-2300 + 4600 * r.random(),
+                                            -2300 + 4600 * r.random(),
+                                            -2300 + 4600 * r.random())
+        car.AngularVelocity = self.create_3D_point(-5.5 + 11 * r.random(),
+                                                   -5.5 + 11 * r.random(),
+                                                   -5.5 + 11 * r.random())
+        car.Score = self.get_car_score_info()
+        car.bDemolished = False
+        car.bOnGround = False  # Should be more precise
+        car.bSuperSonic = False  # Should be a precise method through velocities
+        car.bBot = True
+        car.bJumped = bool(round(0.6 * r.random()))
+        car.bDoubleJumped = bool(round(0.55 * r.random()))
+        car.wName = "RandomizedBotData" + str(i)
+        car.Team = index
+        car.Boost = r.randint(0, 100)
+        return car
+
+
 
     def get_car_score_info(self):
         score = self.create_object()

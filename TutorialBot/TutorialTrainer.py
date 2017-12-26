@@ -1,45 +1,39 @@
 import tensorflow as tf
-import TutorialBot
 import time
-import Randomizer as r
-import input_formatter
-
-b = TutorialBot.Agent("TestBot", 0, 0)
+from TutorialBot import TutorialBotOutput
+from TutorialBot import Randomizer as r
+from conversions import input_formatter_no_rewards
 
 start_time = time.time()
 
 rand = r.PacketGenerator()
 
-form = input_formatter.InputFormatter(0, 0)
+form = input_formatter_no_rewards.InputFormatter(0, 0)
+
+TutorialBotOutput.get_output_vector(rand.get_random_packet(), [1, 1, 1, 1, 1, 1, 1, 1])
 
 for n in range(1):
-    # X = input_of_game_in_vector
-    # Y1 = tf.nn.relu(tf.matmul(X, W1) + B1)
-    # Y = tf.nn.softmax(tf.matmul(Y1, W2) + B2)
-    # Parameters
     learning_rate = 0.3
-    total_batches = 15
-    batch_size = 1000
+    total_batches = 1
+    batch_size = 1
     display_step = 1
 
     # Network Parameters
     n_neurons_hidden = 128  # every layer of neurons
     n_input = 198  # data input
-    n_classes = 8  # total classes
+    n_output = 8  # total outputs
 
-    # tf Graph input
-    X = tf.placeholder(tf.float32, [None, n_input])
-    Y = tf.placeholder(tf.float32, [None, n_classes])
+    input_state = tf.placeholder(tf.float32, [None, n_input])
+    calculated_loss = tf.placeholder(tf.float32, [None, n_output])
 
     # Store layers weight & bias
     weights = {
         'h1': tf.Variable(tf.random_normal([n_input, n_neurons_hidden])),
-        # tf.truncated_normal([n_input, n_neurons_hidden], stddev=0.1)),
         'h2': tf.Variable(tf.random_normal([n_neurons_hidden, n_neurons_hidden])),
         'h3': tf.Variable(tf.random_normal([n_neurons_hidden, n_neurons_hidden])),
         'h4': tf.Variable(tf.random_normal([n_neurons_hidden, n_neurons_hidden])),
         'h5': tf.Variable(tf.random_normal([n_neurons_hidden, n_neurons_hidden])),
-        'out': tf.Variable(tf.random_normal([n_neurons_hidden, n_classes]))
+        'out': tf.Variable(tf.random_normal([n_neurons_hidden, n_output]))
     }
     biases = {
         'b1': tf.Variable(tf.random_normal([n_neurons_hidden])),
@@ -47,14 +41,13 @@ for n in range(1):
         'b3': tf.Variable(tf.random_normal([n_neurons_hidden])),
         'b4': tf.Variable(tf.random_normal([n_neurons_hidden])),
         'b5': tf.Variable(tf.random_normal([n_neurons_hidden])),
-        'out': tf.Variable(tf.random_normal([n_classes]))
+        'out': tf.Variable(tf.random_normal([n_output]))
     }
 
     # Create model
     def multilayer_perceptron(x):
-        # Hidden fully connected layer with 48 neurons
+        # 5 hidden layers with 128 neurons each
         layer_1 = tf.add(tf.matmul(x, weights['h1']), biases['b1'])
-        # Hidden fully connected layer with 24 neurons
         layer_2 = tf.add(tf.matmul(layer_1, weights['h2']), biases['b2'])
         layer_3 = tf.add(tf.matmul(layer_2, weights['h3']), biases['b3'])
         layer_4 = tf.add(tf.matmul(layer_3, weights['h4']), biases['b4'])
@@ -65,11 +58,10 @@ for n in range(1):
 
 
     # Construct model
-    logits = multilayer_perceptron(X)
+    logits = multilayer_perceptron(input_state)
 
     # Define loss and optimizer
-    loss_op = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(
-        logits=logits, labels=Y))
+    loss_op = tf.reduce_mean(calculated_loss)
     optimizer = tf.train.GradientDescentOptimizer(learning_rate=learning_rate)
     train_op = optimizer.minimize(loss_op)
     # Initializing the variables
@@ -84,11 +76,12 @@ for n in range(1):
             batch_y = []
             for m in range(batch_size):
                 packet = rand.get_random_packet()
-                batch_x.append(form.create_input_array(packet)[0])
-                batch_y.append(b.get_output_vector(packet))
-            # Run optimization op (backprop) and cost op (to get loss value)
-            _, c = sess.run([train_op, loss_op], feed_dict={X: batch_x,
-                                                            Y: batch_y})
+                x = form.create_input_array(packet)[0]
+                batch_x.append(x)
+                batch_y.append(TutorialBotOutput.get_output_vector(packet, multilayer_perceptron(x)))
+
+            _, c = sess.run([train_op, loss_op], feed_dict={input_state: batch_x,
+                                                            calculated_loss: batch_y})
             # Compute average loss
             avg_cost += c / batch_size
             # Display logs per epoch step
