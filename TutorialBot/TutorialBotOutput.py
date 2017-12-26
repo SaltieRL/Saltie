@@ -132,12 +132,24 @@ def get_output_vector(values, given_output):
         else:
             output[1] = -1
 
-        # Boost
+        # Powerslide
         if powerslide == given_output[7]:
             output[7] = 1
         else:
             output[7] = -1
+        
+        # Pitch
+        output[2] = 0
     else:
+        # Throttle
+        output[0] = 0
+
+        # Steer
+        output[1] = 0
+
+        # Powerslide
+        output[7] = 0
+
         # Pitch
         if pitch == given_output[2]:
             output[2] = 1
