@@ -147,6 +147,9 @@ class ServerConverter:
                 self.Error = True
         catch Exception as e:
             self.Error = True
+        if (self.server_ip.endswith('/'):
+            self.warn_server('Server IP Ends with / when it should not')
+            self.Error = True
 
     def warn_server(self, issue_string):
         print(issue_string)
