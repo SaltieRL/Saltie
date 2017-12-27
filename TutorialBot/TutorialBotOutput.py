@@ -10,9 +10,7 @@ def get_output_vector(values, given_output):
         return radians * 180 / math.pi
 
     def aim(target_x, target_y):
-        angle_between_bot_and_target = math.degrees(math.atan2(target_y - bot_pos.Y,
-                                                               target_x - bot_pos.X))
-        to_degrees(tf.atan2(tf.subtract(target_y, bot_pos.Y), tf.subtract(target_x, bot_pos.X)))
+        angle_between_bot_and_target = to_degrees(tf.atan2(tf.subtract(target_y, bot_pos.Y), tf.subtract(target_x, bot_pos.X)))
         angle_front_to_target = angle_between_bot_and_target - bot_yaw
 
         # Correct the values
@@ -29,7 +27,7 @@ def get_output_vector(values, given_output):
 
     index = 0
 
-    # Contants
+    # Constants
     distance_from_ball_to_boost = tf.constant(1500)  # Minimum distance to ball for using boost
     powerslide_angle = tf.constant(170)  # The angle (from the front of the bot to the ball) to start to powerslide.
 
@@ -67,39 +65,41 @@ def get_output_vector(values, given_output):
     # - Orange is behind the ball if the ball's Y axis is smaller than orange's Y axis
     throttle = 1
 
-    [steer, powerslide] = tf.cond(tf.logical_or(tf.logical_and(tf.equal(index, 0), tf.less(bot_pos.Y, ball_pos.Y)),
+    steer, powerslide = tf.cond(tf.logical_or(tf.logical_and(tf.equal(index, 0), tf.less(bot_pos.Y, ball_pos.Y)),
                                                 tf.logical_and(tf.equal(index, 1), tf.greater(bot_pos.Y, ball_pos.Y))),
                                   lambda: aim(ball_pos.X, ball_pos.Y),
-                                  lambda: tf.cond(tf.equal(index, 0), lambda: aim(0, -5000), lambda: aim(0, 5000)))
+                                  lambda: lambda: aim(0, -5000))
 
     # Boost on kickoff
+    
+    is_kickoff = tf.logical_and(tf.equal(ball_pos.X, 0.0), tf.equal(ball_pos.Y, 0.0))
 
-    boost = tf.cond(tf.logical_and(tf.equal(ball_pos.X, 0), tf.equal(ball_pos.Y, 0)), lambda: 1, lambda: boost)
-    throttle = tf.cond(tf.logical_and(tf.equal(ball_pos.X, 0), tf.equal(ball_pos.Y, 0)), lambda: 1, lambda: throttle)
-    [steer, powerslide] = tf.cond(tf.logical_and(tf.equal(ball_pos.X, 0), tf.equal(ball_pos.Y, 0)),
+    boost = tf.cond(is_kickoff, lambda: 1, lambda: boost)
+    throttle = tf.cond(is_kickoff, lambda: 1, lambda: throttle)
+    steer, powerslide = tf.cond(is_kickoff,
                                   lambda: aim(ball_pos.X, ball_pos.Y), lambda: [steer, powerslide])
 
     def output_on_ground():
         # Throttle
-        output = tf.cond(tf.less(tf.abs(throttle - given_output[0]), tf.constant(0.5)), lambda: 1, lambda: -1)
+        output = tf.cond(tf.less(tf.abs(throttle - given_output[0]), 0.5), lambda: 1, lambda: -1)
 
         # Steer
-        output += tf.cond(tf.less_equal(tf.abs(steer - given_output[1]), tf.constant(0.5)), lambda: 1, lambda: -1)
+        output += tf.cond(tf.less_equal(tf.abs(steer - given_output[1]), 0.5), lambda: 1, lambda: -1)
 
         # Powerslide
-        output += tf.cond(tf.equal(powerslide, given_output[7]), lambda: 1, lambda: -1)
+        output += tf.cond(tf.equal(tf.cast(powerslide, tf.Float32), given_output[7]), lambda: 1, lambda: -1)
         return output
 
     def output_off_ground():
         # Pitch
-        output += tf.cond(tf.equal(pitch, given_output[2]), lambda: 1, lambda: -1)
+        output += tf.cond(tf.less_equal(tf.abs(pitch - given_output[2]), 0.5), lambda: 1, lambda: -1)
         return output
 
     output = tf.cond(values.gamecars[index].bOnGround, output_on_ground(), output_off_ground())
 
     # Jump
-    output += tf.cond(tf.equal(jump, given_output[5]), lambda: 1, lambda: -1)
+    output += tf.cond(tf.equal(tf.cast(jump, tf.Float32), given_output[5]), lambda: 1, lambda: -1)
 
     # Boost
-    output += tf.cond(tf.equal(boost, given_output[6]), lambda: 1, lambda: -1)
+    output += tf.cond(tf.equal(tf.cast(boost, tf.Float32), given_output[6]), lambda: 1, lambda: -1)
     return output
