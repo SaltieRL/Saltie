@@ -136,3 +136,7 @@ class ServerConverter:
     def download_file(self, file):
         response = requests.get(self.server_ip + '/replays/' + file)
         return io.BytesIO(response.content)
+    
+    def warn_server():
+        print('not able to upload files')
+        popup_warning('not able to upload files')
