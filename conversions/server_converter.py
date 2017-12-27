@@ -145,7 +145,7 @@ class ServerConverter:
             response = requests.head(self.server_ip, timeout=10)
             if response.statuse_code != 200 and response.status_code != 202:
                 self.Error = True
-        catch Exception as e:
+        except Exception as e:
             self.Error = True
         if (self.server_ip.endswith('/'):
             self.warn_server('Server IP Ends with / when it should not')
