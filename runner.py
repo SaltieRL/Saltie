@@ -39,6 +39,10 @@ except ImportError:
     print('Check Discord server for information')
 
 
+if server_manager.error:
+    server_manager.warn_server('unable to connect to server')
+
+
 def get_bot_config_file_list(botCount, config):
     config_file_list = []
     for i in range(botCount):
