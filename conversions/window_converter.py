@@ -1,4 +1,4 @@
-from Tkinter import Tk, Label, Button
+from tkinter import Tk, Label, Button
 
 
 def create_popup(popup_text):
