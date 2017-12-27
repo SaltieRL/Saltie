@@ -92,7 +92,6 @@ def get_random_array(batch_size):
     array.append(tf.constant([1.0] * batch_size))
     array.append(tf.constant([4000.0] * batch_size))
     array.append(tf.constant([1.0] * batch_size))
-
     array.append(tf.constant([4000.0] * batch_size))
     array.append(tf.constant([1.0] * batch_size))
     array.append(tf.constant([4000.0] * batch_size))
