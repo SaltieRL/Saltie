@@ -18,7 +18,6 @@ class RewardTrainer:
     epoch = 0
     display_step = 5
 
-    batch_size = 2000
     last_action = None
     reward_manager = None
     local_pair_number = 0
@@ -39,7 +38,7 @@ class RewardTrainer:
         self.state_dim = get_state_dim_with_features()
         print('state size ' + str(self.state_dim))
         self.num_actions = self.action_handler.get_action_size()
-        self.agent = self.get_model()(self.sess, self.state_dim, self.num_actions, self.action_handler, is_training=True)
+        self.agent = self.get_model()(self.sess, self.state_dim, self.num_actions, action_handler=self.action_handler, is_training=True)
 
         self.agent.summary_writer = tf.summary.FileWriter(
             'training/events/{}-experiment'.format(self.agent.get_model_name()))
@@ -48,6 +47,7 @@ class RewardTrainer:
 
         self.agent.initialize_model()
 
+        self.batch_size = self.agent.batch_size
 
 
     def get_model(self):
@@ -115,16 +115,19 @@ class RewardTrainer:
         self.batch_process()
         print('\naction conversion time', self.action_time_difference)
         print('training time', self.train_time_difference)
-        print('\n')
         self.action_time_difference = 0
         self.train_time_difference = 0
         if self.file_number % 100 == 0:
             file_path = self.agent.get_model_path(self.agent.get_default_file_name() + str(self.file_number) + ".ckpt")
-            self.agent.saver.save(self.sess, file_path)
+            self.save_replay(file_path)
 
     def end_everything(self):
         file_path = self.agent.get_model_path(self.agent.get_default_file_name() + ".ckpt")
+        self.save_replay(file_path)
+
+    def save_replay(self, file_path):
         dirname = os.path.dirname(file_path)
         if not os.path.isdir(dirname):
             os.makedirs(dirname)
         self.agent.saver.save(self.sess, file_path)
+

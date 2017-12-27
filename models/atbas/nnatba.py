@@ -19,8 +19,8 @@ class NNAtba(base_model.BaseModel):
     def __init__(self, session,
                  state_dim,
                  num_actions,
-                 player_index,
-                 action_handler,
+                 player_index=-1,
+                 action_handler=None,
                  is_training=False,
                  optimizer=tf.train.GradientDescentOptimizer(learning_rate=0.1),
                  summary_writer=None,
@@ -58,7 +58,7 @@ class NNAtba(base_model.BaseModel):
         layer_3 = tf.nn.sigmoid(tf.add(tf.matmul(layer_2, self.weights['out']), self.biases['out']))
         return layer_3
 
-    def create_copy_training_model(self, batch_size):
+    def create_copy_training_model(self):
         self.labels = tf.placeholder(tf.int64, shape=(None, self.num_actions))
 
         cross_entropy = self.action_handler.get_cross_entropy_with_logits(

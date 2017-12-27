@@ -1,6 +1,8 @@
-from models import base_model
 import numpy as np
 import tensorflow as tf
+
+from models import base_model
+
 
 class BaseReinforcement(base_model.BaseModel):
     """"
@@ -10,8 +12,8 @@ class BaseReinforcement(base_model.BaseModel):
     def __init__(self, session,
                  state_dim,
                  num_actions,
-                 player_index,
-                 action_handler,
+                 player_index=-1,
+                 action_handler=None,
                  is_training=False,
                  optimizer=tf.train.GradientDescentOptimizer(learning_rate=0.1),
                  summary_writer=None,
@@ -32,7 +34,7 @@ class BaseReinforcement(base_model.BaseModel):
         self.reward_buffer = []
         self.action_buffer = None
 
-        #training parameters
+        # training parameters
         self.discount_factor = discount_factor
 
         # exploration parameters
@@ -41,7 +43,30 @@ class BaseReinforcement(base_model.BaseModel):
         self.final_exp = final_exp
         self.anneal_steps = anneal_steps
 
-    def create_copy_training_model(self, batch_size):
+    def _set_variables(self):
+        try:
+            init = tf.global_variables_initializer()
+            if self.action_handler.is_split_mode():
+                actions_null = np.zeros((self.batch_size, 4))
+            else:
+                actions_null = np.zeros((self.batch_size,))
+            self.sess.run(init, feed_dict={self.input_placeholder: np.zeros((self.batch_size, self.state_dim)),
+                                           self.taken_actions_placeholder: actions_null})
+        except Exception as e:
+            print('failed to initialize')
+            print(e)
+            try:
+                init = tf.global_variables_initializer()
+                self.sess.run(init)
+            except Exception as e2:
+                print('failed to initialize again')
+                print(e2)
+                init = tf.global_variables_initializer()
+                self.sess.run(init, feed_dict={
+                    self.input_placeholder: np.reshape(np.zeros(206), [1, 206])
+                })
+
+    def create_copy_training_model(self):
         self.labels = tf.placeholder(tf.int64, shape=(None, self.num_actions))
 
         cross_entropy = self.action_handler.get_cross_entropy_with_logits(
@@ -64,9 +89,13 @@ class BaseReinforcement(base_model.BaseModel):
         # reinforcement variables
         with tf.name_scope("compute_pg_gradients"):
             if self.action_handler.is_split_mode():
-                self.taken_actions = tf.placeholder(tf.int32, (None, 4), name="taken_actions")
+                self.taken_actions_placeholder = tf.placeholder(tf.int32, (None, 4), name="taken_actions_phd")
+                self.taken_actions = tf.Variable(self.taken_actions_placeholder, validate_shape=False, trainable=False)
+                self.taken_actions.set_shape([None, 4])
             else:
-                self.taken_actions = tf.placeholder(tf.int32, (None,), name="taken_actions")
+                self.taken_actions_placeholder = tf.placeholder(tf.int32, (None,), name="taken_actions_phd")
+                self.taken_actions = tf.Variable(self.taken_actions_placeholder, validate_shape=False, trainable=False)
+                self.taken_actions.set_shape([None,])
             self.input_rewards = self.create_reward()
         return {}
 
@@ -80,10 +109,10 @@ class BaseReinforcement(base_model.BaseModel):
             self.reward_buffer.append(reward)
             self.state_buffer.append(input_state)
 
-        if len(self.action_buffer) >= 1000 and self.is_online_training and not self.is_evaluating:
+        if len(self.action_buffer) >= self.batch_size and self.is_online_training and not self.is_evaluating:
             print('running online trainer!')
             self.update_model()
-        if self.action_buffer is not None and len(self.action_buffer) >= 10000:
+        if self.action_buffer is not None and len(self.action_buffer) >= self.batch_size * 10:
             self.clean_up()
 
     def store_rollout_batch(self, input_state, last_action):
@@ -103,7 +132,7 @@ class BaseReinforcement(base_model.BaseModel):
         new_counter = counter - tf.constant(1)
         return new_counter, input_rewards, new_discounted_rewards, new_r
 
-    def discount_rewards(self, input_rewards):
+    def discount_rewards(self, input_rewards, input):
         r = tf.Variable(initial_value=tf.reshape(tf.constant(0.0), [1]))
         length = tf.Variable(tf.size(input_rewards))
         discounted_rewards = tf.zeros(tf.shape(input_rewards), name='discounted_rewards')
@@ -121,8 +150,8 @@ class BaseReinforcement(base_model.BaseModel):
             return
 
         # compute discounted future rewards
-        #discounted_rewards = np.zeros(N)
-        #for t in reversed(range(N)):
+        # discounted_rewards = np.zeros(N)
+        # for t in reversed(range(N)):
         #    # future discounted reward from now on
         #    r = self.reward_buffer[t] + self.discount_factor * r
         #    discounted_rewards[t] = r
@@ -139,18 +168,14 @@ class BaseReinforcement(base_model.BaseModel):
 
         input_states = np.array(self.state_buffer)
         actions = np.array(self.action_buffer)
-        #rewards = np.array(self.reward_buffer).reshape((len(self.reward_buffer), 1))
+        # rewards = np.array(self.reward_buffer).reshape((len(self.reward_buffer), 1))
         rewards = None
         result, summary_str = self.run_train_step(calculate_summaries, input_states, actions, rewards)
-
-        # emit summaries
-        if calculate_summaries:
-            self.summary_writer.add_summary(summary_str, self.train_iteration)
 
         self.anneal_exploration()
         self.train_iteration += 1
 
-        #print(self.train_iteration)
+        # print(self.train_iteration)
 
         # clean up
         self.clean_up()
@@ -161,10 +186,13 @@ class BaseReinforcement(base_model.BaseModel):
             self.train_op,
             self.summarize if calculate_summaries else self.no_op
         ], feed_dict={
-            self.input: input_states,
-            self.taken_actions: actions,
+            self.input_placeholder: input_states,
+            self.taken_actions_placeholder: actions,
             self.input_rewards: rewards
         })
+
+
+
         return result, summary_str
 
     def anneal_exploration(self, stategy='linear'):

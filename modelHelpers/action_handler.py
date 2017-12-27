@@ -30,24 +30,29 @@ class ActionHandler:
 
     def __init__(self, split_mode=False):
         self.split_mode = split_mode
-        if split_mode:
-            self.actions = self.create_actions()
-        else:
-            self.actions = self.create_actions_split()
+        self.actions = self.create_actions()
         self.action_map = ActionMap(self.actions)
 
-        self.actions_split = self.create_actions_split()
+        self.actions_split, self.split_action_sizes = self.create_actions_split()
         self.action_map_split = ActionMap(self.actions_split[3])
 
     def is_split_mode(self):
         return self.split_mode
 
+    def get_split_sizes(self):
+        return self.split_action_sizes
+
     def get_action_size(self):
         """
-        :param split_mode: True if we should use the reduced action size
         :return: the size of the logits layer in a model
         """
-        return len(self.actions)
+        if not self.split_mode:
+            return len(self.actions)
+
+        counter = 0
+        for action in self.actions_split:
+            counter += len(action)
+        return counter
 
     def create_actions(self):
         """
@@ -83,11 +88,14 @@ class ActionHandler:
         # 24 + 5 + 5 + 5 = 39
         button_combo = list(itertools.product(*action_list))
         actions = []
+        split_actions_sizes = []
         actions.append(steer)
         actions.append(pitch)
         actions.append(roll)
         actions.append(button_combo)
-        return actions
+        for i in actions:
+            split_actions_sizes.append(len(i))
+        return actions, split_actions_sizes
 
     def create_controller_output_from_actions(self, action_selection):
         if len(action_selection) != len(self.actions_split):
@@ -227,12 +235,28 @@ class ActionHandler:
         for tensor in input_tensors:
             i += 1
             if isinstance(tensor, collections.Sequence):
-                output1.append(tensor[0])
-                output2.append(tensor[1])
-                output3.append(tensor[2])
-                output4.append(tensor[3])
+                if len(tensor) == self.get_action_size():
+                    output1.append(tensor[0:5])
+                    output2.append(tensor[5:10])
+                    output3.append(tensor[10:15])
+                    output4.append(tensor[15:])
+                else:
+                    output1.append(tensor[0])
+                    output2.append(tensor[1])
+                    output3.append(tensor[2])
+                    output4.append(tensor[3])
             else:
-                if tensor.get_shape()[1] == self.get_action_size():
+                if len(tensor.get_shape()) == 0:
+                    output1.append(tf.identity(tensor, name='copy1'))
+                    output2.append(tf.identity(tensor, name='copy2'))
+                    output3.append(tf.identity(tensor, name='copy3'))
+                    output4.append(tf.identity(tensor, name='copy4'))
+                elif tensor.get_shape()[0] == self.get_action_size():
+                    output1.append(tf.slice(tensor, [0], [self.range_size]))
+                    output2.append(tf.slice(tensor, [self.range_size], [self.range_size]))
+                    output3.append(tf.slice(tensor, [self.range_size * 2], [self.range_size]))
+                    output4.append(tf.slice(tensor, [self.range_size * 3], [24]))
+                elif tensor.get_shape()[1] == self.get_action_size():
                     output1.append(tf.slice(tensor, [0, 0], [-1, self.range_size]))
                     output2.append(tf.slice(tensor, [0, self.range_size], [-1, self.range_size]))
                     output3.append(tf.slice(tensor, [0, self.range_size * 2], [-1, self.range_size]))
@@ -248,10 +272,14 @@ class ActionHandler:
                     output3.append(tf.identity(tensor, name='copy3'))
                     output4.append(tf.identity(tensor, name='copy4'))
 
-        result1 = split_func(*output1)
-        result2 = split_func(*output2)
-        result3 = split_func(*output3)
-        result4 = split_func(*output4)
+        with tf.name_scope("split1"):
+            result1 = split_func(*output1)
+        with tf.name_scope("split2"):
+            result2 = split_func(*output2)
+        with tf.name_scope("split3"):
+            result3 = split_func(*output3)
+        with tf.name_scope("split4"):
+            result4 = split_func(*output4)
 
         if return_as_list:
             return [result1, result2, result3, result4]

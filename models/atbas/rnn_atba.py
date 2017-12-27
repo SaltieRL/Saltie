@@ -24,8 +24,8 @@ class RNNAtba(nnatba.NNAtba):
     def __init__(self, session,
                  state_dim,
                  num_actions,
-                 player_index,
-                 action_handler,
+                 player_index=-1,
+                 action_handler=None,
                  is_training=False,
                  optimizer=None,
                  summary_writer=None,
@@ -33,10 +33,6 @@ class RNNAtba(nnatba.NNAtba):
 
         super().__init__(session, state_dim, num_actions, player_index, action_handler, is_training,
                          optimizer, summary_writer, summary_every)
-
-    def create_copy_training_model(self, batch_size):
-        self.batch_size = batch_size
-        return super().create_copy_training_model(batch_size)
 
     def create_model(self, input):
         self.create_weights()
