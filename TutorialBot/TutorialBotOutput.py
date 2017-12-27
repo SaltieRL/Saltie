@@ -33,19 +33,13 @@ def get_output_vector(values, given_output):
 
     # Controller inputs
     # throttle = 0 defined in 100
-    steer = 0
-    pitch = 0
-    yaw = 0
-    roll = 0
+    steer = tf.constant(0)
+    pitch = tf.constant(0)
+    yaw = tf.constant(0)
+    roll = tf.constant(0)
     # boost = FalseThey
-    jump = False
+    jump = tf.constant(False)
     powerslide = tf.constant(False)
-
-    # Game values
-    bot_pos = None
-    bot_rot = None
-    ball_pos = None
-    bot_yaw = None
 
     # Update game data variables
     bot_pos = values.gamecars[index].Location
