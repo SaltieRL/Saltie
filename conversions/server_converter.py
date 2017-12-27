@@ -3,7 +3,7 @@ import io
 import random
 import requests
 import zipfile
-from conversion import window_converter
+from conversions import window_converter
 
 
 class ServerConverter:
