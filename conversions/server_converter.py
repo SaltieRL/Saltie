@@ -3,6 +3,7 @@ import io
 import random
 import requests
 import zipfile
+from conversion import window_converter
 
 
 class ServerConverter:
@@ -136,7 +137,7 @@ class ServerConverter:
     def download_file(self, file):
         response = requests.get(self.server_ip + '/replays/' + file)
         return io.BytesIO(response.content)
-    
-    def warn_server():
-        print('not able to upload files')
-        popup_warning('not able to upload files')
+
+    def warn_server(self, issue_string):
+        print(issue_string)
+        window_converter.create_popup(issue_string)
