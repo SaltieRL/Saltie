@@ -79,26 +79,23 @@ def get_output_vector(values, given_output):
     [steer, powerslide] = tf.cond(tf.logical_and(tf.equal(ball_pos.X, 0), tf.equal(ball_pos.Y, 0)),
                                   lambda: aim(ball_pos.X, ball_pos.Y), lambda: [steer, powerslide])
 
-    # output = [0] * 8  # Initialised all to neutral
-    output = tf.Variable(0)
-
     def output_on_ground():
         # Throttle
-        nonlocal output
-        output += tf.cond(tf.less(tf.abs(throttle - given_output[0]), tf.constant(0.5)), lambda: 1, lambda: -1)
+        output = tf.cond(tf.less(tf.abs(throttle - given_output[0]), tf.constant(0.5)), lambda: 1, lambda: -1)
 
         # Steer
         output += tf.cond(tf.less_equal(tf.abs(steer - given_output[1]), tf.constant(0.5)), lambda: 1, lambda: -1)
 
         # Powerslide
         output += tf.cond(tf.equal(powerslide, given_output[7]), lambda: 1, lambda: -1)
+        return output
 
     def output_off_ground():
-        nonlocal output
         # Pitch
         output += tf.cond(tf.equal(pitch, given_output[2]), lambda: 1, lambda: -1)
+        return output
 
-    tf.cond(values.gamecars[index].bOnGround, output_on_ground(), output_off_ground())
+    output = tf.cond(values.gamecars[index].bOnGround, output_on_ground(), output_off_ground())
 
     # Jump
     output += tf.cond(tf.equal(jump, given_output[5]), lambda: 1, lambda: -1)
