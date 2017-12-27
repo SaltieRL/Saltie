@@ -3,7 +3,7 @@ from tkinter import Tk, Label, Button
 
 def create_popup(popup_text):
   app = Tk()
-  app.title("SPIES")
+  app.title("Error")
   app.geometry("500x300+200+200")
   label1 = Label(app, text=popup_text, height=0, width=100)
   label1.pack()
