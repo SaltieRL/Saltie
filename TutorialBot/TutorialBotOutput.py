@@ -1,4 +1,5 @@
 import math
+import tensorflow as tf
 
 
 def get_output_vector(values, given_output):
@@ -62,7 +63,7 @@ def get_output_vector(values, given_output):
     pitch = 0
     yaw = 0
     roll = 0
-    boost = False
+    # boost = False
     jump = False
     powerslide = False
 
@@ -118,42 +119,25 @@ def get_output_vector(values, given_output):
 
     # check_for_dodge(ball_pos.X, ball_pos.Y)
 
-    output = [0] * 8  # Initialised all to neutral
+    # output = [0] * 8  # Initialised all to neutral
+    output = tf.Variable(0)
     if values.gamecars[index].bOnGround:
         # Throttle
-        if abs(throttle - given_output[0]) < 0.5:
-            output[0] = 1
-        else:
-            output[0] = -1
+        output += tf.cond(tf.less(tf.abs(throttle - given_output[0]), tf.constant(0.5)), lambda: 1, lambda: -1)
 
         # Steer
-        if abs(steer - given_output[1]) <= 0.5:
-            output[1] = 1
-        else:
-            output[1] = -1
+        output += tf.cond(tf.less_equal(tf.abs(steer - given_output[1]), tf.constant(0.5)), lambda: 1, lambda: -1)
 
-        # Boost
-        if powerslide == given_output[7]:
-            output[7] = 1
-        else:
-            output[7] = -1
+        # Powerslide
+        output += tf.cond(tf.equal(powerslide, given_output[7]), lambda: 1, lambda: -1)
+
     else:
         # Pitch
-        if pitch == given_output[2]:
-            output[2] = 1
-        else:
-            output[2] = -1
+        output += tf.cond(tf.equal(pitch, given_output[2]), lambda: 1, lambda: -1)
 
     # Jump
-    if jump == given_output[5]:
-        output[5] = 1
-    else:
-        output[5] = -1
+    output += tf.cond(tf.equal(jump, given_output[5]), lambda: 1, lambda: -1)
 
     # Boost
-    if boost == given_output[6]:
-        output[6] = 1
-    else:
-        output[6] = -1
-    print(output)
+    output += tf.cond(tf.equal(boost, given_output[6]), lambda: 1, lambda: -1)
     return output

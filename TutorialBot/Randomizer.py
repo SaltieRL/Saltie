@@ -142,7 +142,7 @@ class PacketGenerator:
         info.bOverTime = False
         info.bUnlimitedTime = False
         info.bRoundActive = True
-        info.bBallHasBeenHit = False
+        info.bBallHasBeenHit = True
         info.bMatchEnded = False
         return info
 

@@ -10,7 +10,7 @@ rand = r.PacketGenerator()
 
 form = input_formatter_no_rewards.InputFormatter(0, 0)
 
-TutorialBotOutput.get_output_vector(rand.get_random_packet(), [1, 1, 1, 1, 1, 1, 1, 1])
+TutorialBotOutput.get_output_vector(rand.get_random_packet(), [1, 1, 1, 1, 1, 1, 1.0, 1.0])
 
 for n in range(1):
     learning_rate = 0.3
