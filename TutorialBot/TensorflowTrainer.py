@@ -18,7 +18,7 @@ def get_loss(logits, game_tick_packet, output_creator):
 
 learning_rate = 0.3
 total_batches = 1
-batch_size = 1
+batch_size = 100
 display_step = 1
 
 # Network Parameters
@@ -60,7 +60,7 @@ if __name__ == '__main__':
 
     formatter = tensorflow_input_formatter.TensorflowInputFormatter(0, 0, batch_size)
     packet_generator = r.TensorflowPacketGenerator(batch_size)
-    output_creator = tutorial_bot_output.TutorialBotOutput()
+    output_creator = tutorial_bot_output.TutorialBotOutput(batch_size)
 
     #start model construction
     input_state, game_tick_packet = get_random_data(batch_size, packet_generator, formatter)

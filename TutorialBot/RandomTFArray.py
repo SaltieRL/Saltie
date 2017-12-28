@@ -10,6 +10,7 @@ class TensorflowPacketGenerator:
         self.three = tf.constant([3.0] * batch_size)
         self.four = tf.constant([4.0] * batch_size)
         self.five = tf.constant([5.0] * batch_size)
+        self.batch_size = batch_size
 
     # game_info + score_info + player_car + ball_data +
     # self.flattenArrays(team_members) + self.flattenArrays(enemies) + boost_info
@@ -84,14 +85,18 @@ class TensorflowPacketGenerator:
 
         return (rotation, velocity, angular)
 
+    def get_on_ground_info(self, is_on_ground):
+        return tf.cond(is_on_ground,
+                       lambda: tf.random_uniform(shape=[ ], maxval=16.7, dtype=tf.float32),  # Z on ground
+                       lambda: tf.random_uniform(shape=[ ], minval=16.7, maxval=2000, dtype=tf.float32)) # Z in air
+
     def get_car_info(self, batch_size, is_on_ground, team, index):
         car = self.create_object()
+        car_z = tf.map_fn(self.get_on_ground_info, is_on_ground)
         car.Location = self.create_3D_point(
             tf.random_uniform(shape=[batch_size, ], minval=-3800, maxval=7600, dtype=tf.float32), # X
             tf.random_uniform(shape=[batch_size, ], minval=-3800, maxval=7600, dtype=tf.float32), # Y
-            tf.cond(is_on_ground,
-                lambda: tf.random_uniform(shape=[batch_size, ], maxval=16.7, dtype=tf.float32),  # Z on ground
-                lambda: tf.random_uniform(shape=[batch_size, ], minval=16.7, maxval=2000, dtype=tf.float32))) # Z in air
+            car_z)
 
         car.Rotation, car.Velocity, car.AngularVelocity = self.createRotVelAng(batch_size)
 
@@ -208,7 +213,7 @@ class TensorflowPacketGenerator:
         return boost_objects
 
     def get_random_array(self, batch_size):
-        is_on_ground = tf.greater(tf.random_uniform(shape=[], maxval=2, dtype=tf.int32), 1)
+        is_on_ground = tf.greater(tf.random_uniform(shape=[batch_size, ], maxval=2, dtype=tf.int32), 1)
 
         game_tick_packet = self.create_object()
         # Game info
