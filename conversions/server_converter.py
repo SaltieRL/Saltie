@@ -3,6 +3,7 @@ import io
 import random
 import requests
 import zipfile
+from conversions import window_converter
 
 
 class ServerConverter:
@@ -11,6 +12,7 @@ class ServerConverter:
     config_response = None
     download_config = False
     download_model = False
+    error = False
 
     def __init__(self, server_ip, uploading, download_config, download_model,
                  num_players=2, num_my_team=1, username='', model_hash='', is_eval=False):
@@ -23,6 +25,7 @@ class ServerConverter:
         self.num_my_team = num_my_team
         self.model_hash = model_hash
         self.is_eval = is_eval
+        self.ping_server()
 
     def set_player_username(self, username):
         print('setting username', username)
@@ -136,3 +139,18 @@ class ServerConverter:
     def download_file(self, file):
         response = requests.get(self.server_ip + '/replays/' + file)
         return io.BytesIO(response.content)
+    
+    def ping_server(self):
+        try:
+            response = requests.head(self.server_ip, timeout=10)
+            if response.status_code != 200 and response.status_code != 202:
+                self.Error = True
+        except Exception as e:
+            self.Error = True
+        if self.server_ip.endswith('/'):
+            self.warn_server('Server IP Ends with / when it should not')
+            self.Error = True
+
+    def warn_server(self, issue_string):
+        print(issue_string)
+        window_converter.create_popup(issue_string)

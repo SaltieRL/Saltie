@@ -7,6 +7,7 @@ from pyqtgraph.Qt import QtGui, QtCore
 import numpy as np
 import pyqtgraph as pg
 
+
 def create_plot(name):
     p6 = win.addPlot(title=name)
     p6.setYRange(-1.5, 1.5)
