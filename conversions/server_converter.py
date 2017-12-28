@@ -143,7 +143,7 @@ class ServerConverter:
     def ping_server(self):
         try:
             response = requests.head(self.server_ip, timeout=10)
-            if response.statuse_code != 200 and response.status_code != 202:
+            if response.status_code != 200 and response.status_code != 202:
                 self.Error = True
         except Exception as e:
             self.Error = True
