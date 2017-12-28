@@ -1,19 +1,21 @@
 import tensorflow as tf
 import time
+from conversions import input_formatter
+from TutorialBot import tensorflow_input_formatter
 from TutorialBot import TutorialBotOutput
 from TutorialBot import RandomTFArray as r
 
-def get_random_data(batch_size):
-  array = r.get_random_array()
+
+def get_random_data(batch_size, packet_generator, input_formatter):
+  game_tick_packet = packet_generator.get_random_array(batch_size)
+  output_array = input_formatter.create_input_array(game_tick_packet)[0]
   # reverse the shape of the array
-  inverted_array = tf.reshape(array, [tf.shape(array)[1], batch_size]
-  game_tick_packet = output_formatter.create_output_array(array)
-  return inverted_array, game_tick_packet
+  return output_array, game_tick_packet
 
 
 def get_loss(logits, game_tick_packet):
-  return TutorialBotOutput.get_output_vector(logits, game_tick_packet)
-  
+  return TutorialBotOutput.get_output_vector(game_tick_packet, logits)
+
 learning_rate = 0.3
 total_batches = 1
 batch_size = 1
@@ -21,7 +23,7 @@ display_step = 1
 
 # Network Parameters
 n_neurons_hidden = 128  # every layer of neurons
-n_input = 198  # data input
+n_input = input_formatter.get_state_dim_with_features()  # data input
 n_output = 8  # total outputs
 
 # Store layers weight & bias
@@ -54,24 +56,28 @@ def multilayer_perceptron(x):
     out_layer = tf.matmul(layer_5, weights['out']) + biases['out']
     return out_layer
 
+if __name__ == '__main__':
 
-#start model construction
-input_state, game_tick_packet = get_random_data(batch_size)
+    formatter = tensorflow_input_formatter.TensorflowInputFormatter(0, 0, batch_size)
+    packet_generator = r.TensorflowPacketGenerator(batch_size)
 
-logits = multilayer_perceptron(input_state)
+    #start model construction
+    input_state, game_tick_packet = get_random_data(batch_size, packet_generator, formatter)
 
-loss_op = get_loss(logits, game_tick_packet)
-optimizer = tf.train.GradientDescentOptimizer(learning_rate=learning_rate)
-train_op = optimizer.minimize(loss_op)
-init = tf.global_variables_initializer()
+    logits = multilayer_perceptron(input_state)
 
-with tf.Session() as sess:
-    sess.run(init)
-    # Training cycle
-    avg_cost = 0.
-    for i in range(total_batches):
-      _, c = sess.run([train_op, loss_op])
-      # Compute average loss
-      avg_cost += c / batch_size
-      # Display logs per epoch step
-      print("Cost={:.9f}".format(avg_cost))
+    loss_op = get_loss(logits, game_tick_packet)
+    optimizer = tf.train.GradientDescentOptimizer(learning_rate=learning_rate)
+    train_op = optimizer.minimize(loss_op)
+    init = tf.global_variables_initializer()
+
+    with tf.Session() as sess:
+        sess.run(init)
+        # Training cycle
+        avg_cost = 0.
+        for i in range(total_batches):
+          _, c = sess.run([train_op, loss_op])
+          # Compute average loss
+          avg_cost += c / batch_size
+          # Display logs per epoch step
+          print("Cost={:.9f}".format(avg_cost))
