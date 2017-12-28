@@ -13,8 +13,8 @@ def get_random_data(batch_size, packet_generator, input_formatter):
   return output_array, game_tick_packet
 
 
-def get_loss(logits, game_tick_packet):
-  return tutorial_bot_output.get_output_vector(game_tick_packet, logits)
+def get_loss(logits, game_tick_packet, output_creator):
+  return output_creator.get_output_vector(game_tick_packet, logits)
 
 learning_rate = 0.3
 total_batches = 1
@@ -60,13 +60,14 @@ if __name__ == '__main__':
 
     formatter = tensorflow_input_formatter.TensorflowInputFormatter(0, 0, batch_size)
     packet_generator = r.TensorflowPacketGenerator(batch_size)
+    output_creator = tutorial_bot_output.TutorialBotOutput()
 
     #start model construction
     input_state, game_tick_packet = get_random_data(batch_size, packet_generator, formatter)
 
     logits = multilayer_perceptron(input_state)
 
-    loss_op = get_loss(logits, game_tick_packet)
+    loss_op = get_loss(logits, game_tick_packet, output_creator)
     optimizer = tf.train.GradientDescentOptimizer(learning_rate=learning_rate)
     train_op = optimizer.minimize(loss_op)
     init = tf.global_variables_initializer()
