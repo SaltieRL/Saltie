@@ -105,17 +105,18 @@ class TensorflowPacketGenerator:
 
         rotation, velocity, angularVelocity = self.createRotVelAng(batch_size)
 
-        return (location, rotation, velocity, angularVelocity)
+        return self.decompose(location, rotation, velocity, angularVelocity)
+
 
     def get_car_info(self, batch_size, is_on_ground, team, index):
         car = self.create_object()
 
         get_normal_car_values = self.get_normal_car_values
 
-        car.Location, car.Rotation, car.Velocity, car.AngularVelocity = tf.cond(
+        car.Location, car.Rotation, car.Velocity, car.AngularVelocity = self.convert_to_objects(tf.cond(
             tf.logical_and(team == 0, tf.greater_equal(tf.random_uniform(shape=[ ], maxval=0.6, dtype=tf.float32), 0.5)),
             lambda: get_normal_car_values(batch_size, is_on_ground),
-            self.get_kickoff_data)
+            self.get_kickoff_data))
 
 
         car.bDemolished = self.false # Demolished
@@ -272,22 +273,26 @@ class TensorflowPacketGenerator:
                24576.0, # diagonal left
                8192.0]  # diagonal right
 
+        length_of_positions = len(yaw)
+
         locations = tf.constant(locations)
+
         yaw = tf.constant(yaw)
 
         # yaw +/- 20
 
-        random_index = tf.random_uniform(shape=[batch_size, ], minval=0, maxval=len(yaw), dtype=tf.int8),
+        random_index = tf.round(tf.random_uniform(shape=[self.batch_size, ], minval=0, maxval=length_of_positions, dtype=tf.float32))
+        random_index = tf.cast(random_index, tf.int32)
 
         kick_off_loc, yaw = self.slice_kickoff_locations(random_index, locations, yaw)
-        kick_off_loc.set_shape([batch_size, 3])
-        kick_off_loc = tf.reshape([3, batch_size])
-        yaw.set_shape([batch_size, ])
+        kick_off_loc.set_shape([self.batch_size, 3])
+        kick_off_loc = tf.reshape(kick_off_loc, [3, self.batch_size])
+        yaw.set_shape([self.batch_size, ])
         location = self.create_3D_point(kick_off_loc[0],
                                         kick_off_loc[1],
                                         kick_off_loc[2])
 
-        yaw = yaw + tf.random_uniform(shape=[batch_size, ], minval=0, maxval=20, dtype=tf.int8)
+        yaw = yaw + tf.random_uniform(shape=[self.batch_size, ], minval=0, maxval=20, dtype=tf.float32)
 
         rotation = self.create_3D_rotation(tf.constant(0),
                                            yaw,
@@ -295,17 +300,44 @@ class TensorflowPacketGenerator:
 
         _, velocity, angular = self.createEmptyRotVelAng(self.batch_size)
 
-        return (location, rotation, velocity, angular)
+        return self.decompose(location, rotation, velocity, angular)
 
     def slice_kickoff_locations(self, random_index, locations, yaw):
 
-        def get_kickoff_location(elements):
-            random_index = elements[0]
-            return (tf.slice(locations, [random_index], [1]),
-                    tf.slice(yaw, [random_index], [1])),
+        def get_kickoff_location(random_index):
+            return (tf.slice(locations, [random_index, 0], [1, -1]),
+                    tf.slice(yaw, [random_index], [1]))
 
-        return tf.map_fn(
-            get_kickoff_location
-            (random_index, random_index),
-            dtype=tf.float32,
+
+        result = tf.map_fn(
+            get_kickoff_location,
+            random_index,
+            dtype=(tf.float32, tf.float32),
             infer_shape = False)
+
+        return result
+
+
+    def decompose(self, *args):
+        array = []
+        for object in args:
+            for item in object.__dir__():
+                if not item.startswith('__'):
+                    array.append(getattr(object, item))
+        return array
+
+    def convert_to_objects(self, array):
+        return (
+            self.create_3D_point(array[0],
+                                 array[1],
+                                 array[2]),
+            self.create_3D_rotation(array[3],
+                                 array[4],
+                                 array[5]),
+            self.create_3D_point(array[6],
+                                 array[7],
+                                 array[8]),
+            self.create_3D_point(array[9],
+                                 array[10],
+                                 array[11]),
+        )
