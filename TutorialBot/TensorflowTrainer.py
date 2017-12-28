@@ -85,13 +85,14 @@ if __name__ == '__main__':
         # RUNNING
         sess.run(init)
         # Training cycle
-        avg_cost = 0.
+        cost = 0.0
         for i in range(total_batches):
             _, c = sess.run([train_op, tf.reduce_mean(loss_op)])
             # Compute average loss
-            avg_cost += c / batch_size
-            # Display logs per epoch step
-            print("Cost=", avg_cost)
 
+            cost += c
+            # Display logs per epoch step
+            print("Cost =", cost / (i + 1))
+        print("Final cost = ", cost / total_batches)
         total_time = time.time() - start
         print('total time', total_time)
