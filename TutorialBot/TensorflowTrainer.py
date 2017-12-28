@@ -4,6 +4,8 @@ from conversions import input_formatter
 from TutorialBot import tensorflow_input_formatter
 from TutorialBot import tutorial_bot_output
 from TutorialBot import RandomTFArray as r
+from models.actor_critic import base_actor_critic
+from modelHelpers import action_handler
 
 
 def get_random_data(batch_size, packet_generator, input_formatter):
@@ -17,7 +19,7 @@ def get_loss(logits, game_tick_packet, output_creator):
   return output_creator.get_output_vector(game_tick_packet, logits)
 
 learning_rate = 0.3
-total_batches = 1
+total_batches = 2
 batch_size = 100
 display_step = 1
 
@@ -54,31 +56,39 @@ def multilayer_perceptron(x):
     layer_5 = tf.add(tf.matmul(layer_4, weights['h5']), biases['b5'])
     # Output fully connected layer with a neuron for each class
     out_layer = tf.matmul(layer_5, weights['out']) + biases['out']
+
     return out_layer
 
 if __name__ == '__main__':
 
-    formatter = tensorflow_input_formatter.TensorflowInputFormatter(0, 0, batch_size)
-    packet_generator = r.TensorflowPacketGenerator(batch_size)
-    output_creator = tutorial_bot_output.TutorialBotOutput(batch_size)
-
-    #start model construction
-    input_state, game_tick_packet = get_random_data(batch_size, packet_generator, formatter)
-
-    logits = multilayer_perceptron(input_state)
-
-    loss_op = get_loss(logits, game_tick_packet, output_creator)
-    optimizer = tf.train.GradientDescentOptimizer(learning_rate=learning_rate)
-    train_op = optimizer.minimize(loss_op)
-    init = tf.global_variables_initializer()
-
     with tf.Session() as sess:
+
+        formatter = tensorflow_input_formatter.TensorflowInputFormatter(0, 0, batch_size)
+        packet_generator = r.TensorflowPacketGenerator(batch_size)
+        output_creator = tutorial_bot_output.TutorialBotOutput(batch_size)
+        #actions = action_handler.ActionHandler(split_mode=True)
+
+        #model = base_actor_critic.BaseActorCritic(sess, n_input, actions)
+
+        #start model construction
+        input_state, game_tick_packet = get_random_data(batch_size, packet_generator, formatter)
+
+        logits = multilayer_perceptron(input_state)
+
+        loss_op = get_loss(logits, game_tick_packet, output_creator)
+        optimizer = tf.train.GradientDescentOptimizer(learning_rate=learning_rate)
+        train_op = optimizer.minimize(loss_op)
+        init = tf.global_variables_initializer()
+
+
+        # RUNNING
         sess.run(init)
         # Training cycle
         avg_cost = 0.
         for i in range(total_batches):
-          _, c = sess.run([train_op, loss_op])
-          # Compute average loss
-          avg_cost += c / batch_size
-          # Display logs per epoch step
-          print("Cost={:.9f}".format(avg_cost))
+            _, c = sess.run([train_op, loss_op])
+            # Compute average loss
+            avg_cost += c / batch_size
+            # Display logs per epoch step
+            print("Cost={:.9f}".format(avg_cost))
+
