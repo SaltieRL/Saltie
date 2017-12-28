@@ -2,7 +2,7 @@ import tensorflow as tf
 import time
 from conversions import input_formatter
 from TutorialBot import tensorflow_input_formatter
-from TutorialBot import TutorialBotOutput
+from TutorialBot import tutorial_bot_output
 from TutorialBot import RandomTFArray as r
 
 
@@ -14,7 +14,7 @@ def get_random_data(batch_size, packet_generator, input_formatter):
 
 
 def get_loss(logits, game_tick_packet):
-  return TutorialBotOutput.get_output_vector(game_tick_packet, logits)
+  return tutorial_bot_output.get_output_vector(game_tick_packet, logits)
 
 learning_rate = 0.3
 total_batches = 1

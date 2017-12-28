@@ -1,6 +1,6 @@
 import tensorflow as tf
 import time
-from TutorialBot import TutorialBotOutput
+from TutorialBot import tutorial_bot_output
 from TutorialBot import Randomizer as r
 from conversions import input_formatter_no_rewards
 
@@ -10,7 +10,7 @@ rand = r.PacketGenerator()
 
 form = input_formatter_no_rewards.InputFormatter(0, 0)
 
-TutorialBotOutput.get_output_vector(rand.get_random_packet(), [1, 1, 1, 1, 1, 1, 1.0, 1.0])
+tutorial_bot_output.get_output_vector(rand.get_random_packet(), [1, 1, 1, 1, 1, 1, 1.0, 1.0])
 
 for n in range(1):
     learning_rate = 0.3
@@ -78,7 +78,7 @@ for n in range(1):
                 packet = rand.get_random_packet()
                 x = form.create_input_array(packet)[0]
                 batch_x.append(x)
-                batch_y.append(TutorialBotOutput.get_output_vector(packet, multilayer_perceptron(x)))
+                batch_y.append(tutorial_bot_output.get_output_vector(packet, multilayer_perceptron(x)))
 
             _, c = sess.run([train_op, loss_op], feed_dict={input_state: batch_x,
                                                             calculated_loss: batch_y})
