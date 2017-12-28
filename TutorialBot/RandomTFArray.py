@@ -51,23 +51,29 @@ class TensorflowPacketGenerator:
 
     def createRotVelAng(self, batch_size):
         rotation = self.create_3D_rotation(
-            tf.random_uniform(shape=[batch_size, ], minval=-16384, maxval=32768, dtype=tf.float32), # Pitch
-            tf.random_uniform(shape=[batch_size, ], minval=-32768, maxval=65536, dtype=tf.float32), # Yaw
-            tf.random_uniform(shape=[batch_size, ], minval=-32768, maxval=65536, dtype=tf.float32)) # Roll
+            tf.random_uniform(shape=[batch_size, ], minval=-16384, maxval=16384, dtype=tf.float32), # Pitch
+            tf.random_uniform(shape=[batch_size, ], minval=-32768, maxval=32768, dtype=tf.float32), # Yaw
+            tf.random_uniform(shape=[batch_size, ], minval=-32768, maxval=32768, dtype=tf.float32)) # Roll
 
         velocity = self.create_3D_point(
-            tf.random_uniform(shape=[batch_size, ], minval=-2300, maxval=4600, dtype=tf.float32), # Velocity X
-            tf.random_uniform(shape=[batch_size, ], minval=-2300, maxval=4600, dtype=tf.float32), # Y
-            tf.random_uniform(shape=[batch_size, ], minval=-2300, maxval=4600, dtype=tf.float32)) # Z
+            tf.random_uniform(shape=[batch_size, ], minval=-2300, maxval=2300, dtype=tf.float32), # Velocity X
+            tf.random_uniform(shape=[batch_size, ], minval=-2300, maxval=2300, dtype=tf.float32), # Y
+            tf.random_uniform(shape=[batch_size, ], minval=-2300, maxval=2300, dtype=tf.float32)) # Z
 
         angular = self.create_3D_point(
-            tf.random_uniform(shape=[batch_size, ], minval=-5.5, maxval=11, dtype=tf.float32), # Angular velocity X
-            tf.random_uniform(shape=[batch_size, ], minval=-5.5, maxval=11, dtype=tf.float32), # Y
-            tf.random_uniform(shape=[batch_size, ], minval=-5.5, maxval=11, dtype=tf.float32)) # Z
+            tf.random_uniform(shape=[batch_size, ], minval=-5.5, maxval=5.5, dtype=tf.float32), # Angular velocity X
+            tf.random_uniform(shape=[batch_size, ], minval=-5.5, maxval=5.5, dtype=tf.float32), # Y
+            tf.random_uniform(shape=[batch_size, ], minval=-5.5, maxval=5.5, dtype=tf.float32)) # Z
 
         return (rotation, velocity, angular)
 
     def createEmptyRotVelAng(self, batch_size):
+
+        # Pitch -56 (basically 0) car at rest. 16384 nose of car facing up. -16384 car nose facing down. 0 when upside down.
+        # Roll  0 at rest. -32768 bottom of wheels facing ceiling.
+        # -16384 bottom of wheels facing side wall with right wheels higher than left wheels
+        # 16384 bottom of wheels facing side wall with left wheels higher than right wheels (from 3rd person perspective behind car).
+
         rotation = self.create_3D_rotation(
                                            self.zero, # Pitch
                                            self.zero, # Yaw
@@ -90,15 +96,27 @@ class TensorflowPacketGenerator:
                        lambda: tf.random_uniform(shape=[ ], maxval=16.7, dtype=tf.float32),  # Z on ground
                        lambda: tf.random_uniform(shape=[ ], minval=16.7, maxval=2000, dtype=tf.float32)) # Z in air
 
-    def get_car_info(self, batch_size, is_on_ground, team, index):
-        car = self.create_object()
+    def get_normal_car_values(self, batch_size, is_on_ground):
         car_z = tf.map_fn(self.get_on_ground_info, is_on_ground, dtype=tf.float32)
-        car.Location = self.create_3D_point(
+        location = self.create_3D_point(
             tf.random_uniform(shape=[batch_size, ], minval=-3800, maxval=7600, dtype=tf.float32), # X
             tf.random_uniform(shape=[batch_size, ], minval=-3800, maxval=7600, dtype=tf.float32), # Y
             car_z)
 
-        car.Rotation, car.Velocity, car.AngularVelocity = self.createRotVelAng(batch_size)
+        rotation, velocity, angularVelocity = self.createRotVelAng(batch_size)
+
+        return (location, rotation, velocity, angularVelocity)
+
+    def get_car_info(self, batch_size, is_on_ground, team, index):
+        car = self.create_object()
+
+        get_normal_car_values = self.get_normal_car_values
+
+        car.Location, car.Rotation, car.Velocity, car.AngularVelocity = tf.cond(
+            tf.logical_and(team == 0, tf.greater_equal(tf.random_uniform(shape=[ ], maxval=0.6, dtype=tf.float32), 0.5)),
+            lambda: get_normal_car_values(batch_size, is_on_ground),
+            self.get_kickoff_data)
+
 
         car.bDemolished = self.false # Demolished
 
@@ -241,3 +259,53 @@ class TensorflowPacketGenerator:
         game_tick_packet.gameBoosts = self.get_boost_info(batch_size)
 
         return game_tick_packet
+
+    def get_kickoff_data(self):
+        locations = [[-0.0009841920109465718, -4607.98583984375, 17.02585220336914], # center
+         [255.99899291992188, -3839.99072265625, 17.02585220336914], # center left
+         [-256.0019836425781, -3839.990966796875, 17.02585220336914], # center right
+         [1951.9951171875, -2463.99169921875, 17.025854110717773], # diagonal left
+         [-1952.0006103515625, -2463.991455078125, 17.02585220336914]] # diagonal right
+        yaw = [16384.0, # center
+               16384.0, # center left
+               16384.0, # center right
+               24576.0, # diagonal left
+               8192.0]  # diagonal right
+
+        locations = tf.constant(locations)
+        yaw = tf.constant(yaw)
+
+        # yaw +/- 20
+
+        random_index = tf.random_uniform(shape=[batch_size, ], minval=0, maxval=len(yaw), dtype=tf.int8),
+
+        kick_off_loc, yaw = self.slice_kickoff_locations(random_index, locations, yaw)
+        kick_off_loc.set_shape([batch_size, 3])
+        kick_off_loc = tf.reshape([3, batch_size])
+        yaw.set_shape([batch_size, ])
+        location = self.create_3D_point(kick_off_loc[0],
+                                        kick_off_loc[1],
+                                        kick_off_loc[2])
+
+        yaw = yaw + tf.random_uniform(shape=[batch_size, ], minval=0, maxval=20, dtype=tf.int8)
+
+        rotation = self.create_3D_rotation(tf.constant(0),
+                                           yaw,
+                                           tf.constant(0))
+
+        _, velocity, angular = self.createEmptyRotVelAng(self.batch_size)
+
+        return (location, rotation, velocity, angular)
+
+    def slice_kickoff_locations(self, random_index, locations, yaw):
+
+        def get_kickoff_location(elements):
+            random_index = elements[0]
+            return (tf.slice(locations, [random_index], [1]),
+                    tf.slice(yaw, [random_index], [1])),
+
+        return tf.map_fn(
+            get_kickoff_location
+            (random_index, random_index),
+            dtype=tf.float32,
+            infer_shape = False)
