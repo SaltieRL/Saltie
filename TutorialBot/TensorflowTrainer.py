@@ -18,9 +18,9 @@ def get_random_data(batch_size, packet_generator, input_formatter):
 def get_loss(logits, game_tick_packet, output_creator):
   return output_creator.get_output_vector(game_tick_packet, logits)
 
-learning_rate = 0.3
-total_batches = 2
-batch_size = 100
+learning_rate = 0.1
+total_batches = 100
+batch_size = 1000
 display_step = 1
 
 # Network Parameters
@@ -49,13 +49,13 @@ biases = {
  # Create model
 def multilayer_perceptron(x):
     # 5 hidden layers with 128 neurons each
-    layer_1 = tf.add(tf.matmul(x, weights['h1']), biases['b1'])
-    layer_2 = tf.add(tf.matmul(layer_1, weights['h2']), biases['b2'])
-    layer_3 = tf.add(tf.matmul(layer_2, weights['h3']), biases['b3'])
-    layer_4 = tf.add(tf.matmul(layer_3, weights['h4']), biases['b4'])
-    layer_5 = tf.add(tf.matmul(layer_4, weights['h5']), biases['b5'])
+    layer_1 = tf.nn.relu6(tf.add(tf.matmul(x, weights['h1']), biases['b1']))
+    layer_2 = tf.nn.relu6(tf.add(tf.matmul(layer_1, weights['h2']), biases['b2']))
+    layer_3 = tf.nn.relu6(tf.add(tf.matmul(layer_2, weights['h3']), biases['b3']))
+    layer_4 = tf.nn.relu6(tf.add(tf.matmul(layer_3, weights['h4']), biases['b4']))
+    layer_5 = tf.nn.relu6(tf.add(tf.matmul(layer_4, weights['h5']), biases['b5']))
     # Output fully connected layer with a neuron for each class
-    out_layer = tf.matmul(layer_5, weights['out']) + biases['out']
+    out_layer = tf.nn.sigmoid(tf.matmul(layer_5, weights['out']) + biases['out'])
 
     return out_layer
 
@@ -80,15 +80,18 @@ if __name__ == '__main__':
         train_op = optimizer.minimize(loss_op)
         init = tf.global_variables_initializer()
 
+        start = time.time()
 
         # RUNNING
         sess.run(init)
         # Training cycle
         avg_cost = 0.
         for i in range(total_batches):
-            _, c = sess.run([train_op, loss_op])
+            _, c = sess.run([train_op, tf.reduce_mean(loss_op)])
             # Compute average loss
             avg_cost += c / batch_size
             # Display logs per epoch step
-            print("Cost={:.9f}".format(avg_cost))
+            print("Cost=", avg_cost)
 
+        total_time = time.time() - start
+        print('total time', total_time)

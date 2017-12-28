@@ -92,7 +92,7 @@ class TensorflowPacketGenerator:
 
     def get_car_info(self, batch_size, is_on_ground, team, index):
         car = self.create_object()
-        car_z = tf.map_fn(self.get_on_ground_info, is_on_ground)
+        car_z = tf.map_fn(self.get_on_ground_info, is_on_ground, dtype=tf.float32)
         car.Location = self.create_3D_point(
             tf.random_uniform(shape=[batch_size, ], minval=-3800, maxval=7600, dtype=tf.float32), # X
             tf.random_uniform(shape=[batch_size, ], minval=-3800, maxval=7600, dtype=tf.float32), # Y

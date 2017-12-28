@@ -70,27 +70,32 @@ class TutorialBotOutput:
 
         def output_on_ground():
             # Throttle
-            output = tf.cond(tf.less(tf.abs(throttle - given_output[0]), 0.5), lambda: 1, lambda: -1)
+            output = tf.losses.absolute_difference(throttle, given_output[0])
 
             # Steer
-            output += tf.cond(tf.less_equal(tf.abs(steer - given_output[1]), 0.5), lambda: 1, lambda: -1)
+            #output += tf.cond(tf.less_equal(tf.abs(steer - given_output[1]), 0.5), lambda: 1, lambda: -1)
+            output += tf.losses.absolute_difference(steer, given_output[1])
 
             # Powerslide
-            output += tf.cond(tf.equal(tf.cast(powerslide, tf.float32), given_output[7]), lambda: 1, lambda: -1)
+            # output += tf.cond(tf.equal(tf.cast(powerslide, tf.float32), given_output[7]), lambda: 1, lambda: -1)
+            output += tf.losses.mean_squared_error(powerslide, given_output[1])
             return output
 
         def output_off_ground():
             # Pitch
-            output = tf.cond(tf.less_equal(tf.abs(pitch - given_output[2]), 0.5), lambda: 1, lambda: -1)
+            output = tf.losses.absolute_difference(pitch, given_output[2])
+            # output = tf.cond(tf.less_equal(tf.abs(pitch - given_output[2]), 0.5), lambda: 1, lambda: -1)
             return output
 
         output = tf.cond(is_on_ground, output_on_ground, output_off_ground)
 
         # Jump
-        output += tf.cond(tf.equal(tf.cast(jump, tf.float32), given_output[5]), lambda: 1, lambda: -1)
+        #output += tf.cond(tf.equal(tf.cast(jump, tf.float32), given_output[5]), lambda: 1, lambda: -1)
+        output += tf.losses.mean_squared_error(jump, given_output[5])
 
         # Boost
-        output += tf.cond(tf.equal(tf.cast(boost, tf.float32), given_output[6]), lambda: 1, lambda: -1)
+        #output += tf.cond(tf.equal(tf.cast(boost, tf.float32), given_output[6]), lambda: 1, lambda: -1)
+        output += tf.losses.mean_squared_error(boost, given_output[6])
 
         return [output, elements[1], elements[2], elements[3]]
 
