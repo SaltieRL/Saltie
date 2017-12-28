@@ -21,6 +21,8 @@ class TensorflowInputFormatter(input_formatter.InputFormatter):
     def create_result_array(self, array):
         converted_array = []
         for i in range(len(array)):
-            converted_array.append(tf.cast(array[i], tf.float32))
+            casted_number = tf.cast(array[i], tf.float32)
+            #casted_number = tf.Print(casted_number, [tf.shape(casted_number)], 'index: ' + str(i) + ' name: ' + array[i].name + ' ')
+            converted_array.append(casted_number)
         result = tf.stack(converted_array)
         return tf.reshape(result, [self.batch_size, tf.shape(result)[0]])

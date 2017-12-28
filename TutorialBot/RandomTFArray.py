@@ -17,8 +17,6 @@ class TensorflowPacketGenerator:
     def create_object(self):
         return lambda: None
 
-
-
     def get_game_info(self, batch_size):
         info = self.create_object()
         # Game info
@@ -33,37 +31,50 @@ class TensorflowPacketGenerator:
 
         return info
 
-    def create_3D_point(self, x, y, z):
+    def create_3D_point(self, x, y, z, convert_name=True):
         point = self.create_object()
-        point.X = x
-        point.Y = y
-        point.Z = z
+        if convert_name:
+            point.X = tf.identity(x, name='X')
+            point.Y = tf.identity(y, name='Y')
+            point.Z = tf.identity(z, name='Z')
+        else:
+            point.X = x
+            point.Y = y
+            point.Z = z
 
         return point
 
-    def create_3D_rotation(self, pitch, yaw, roll):
+    def create_3D_rotation(self, pitch, yaw, roll, convert_name=True):
         rotator = self.create_object()
-        rotator.Pitch = pitch
-        rotator.Yaw = yaw
-        rotator.Roll = roll
+        if convert_name:
+            rotator.Pitch = tf.identity(pitch, name='Pitch')
+            rotator.Yaw = tf.identity(yaw, name='Yaw')
+            rotator.Roll = tf.identity(roll, name='Roll')
+        else:
+            rotator.Pitch = pitch
+            rotator.Yaw = yaw
+            rotator.Roll = roll
 
         return rotator
 
     def createRotVelAng(self, batch_size):
-        rotation = self.create_3D_rotation(
-            tf.random_uniform(shape=[batch_size, ], minval=-16384, maxval=16384, dtype=tf.float32), # Pitch
-            tf.random_uniform(shape=[batch_size, ], minval=-32768, maxval=32768, dtype=tf.float32), # Yaw
-            tf.random_uniform(shape=[batch_size, ], minval=-32768, maxval=32768, dtype=tf.float32)) # Roll
+        with tf.name_scope("Rotation"):
+            rotation = self.create_3D_rotation(
+                tf.random_uniform(shape=[batch_size, ], minval=-16384, maxval=16384, dtype=tf.float32), # Pitch
+                tf.random_uniform(shape=[batch_size, ], minval=-32768, maxval=32768, dtype=tf.float32), # Yaw
+                tf.random_uniform(shape=[batch_size, ], minval=-32768, maxval=32768, dtype=tf.float32)) # Roll
 
-        velocity = self.create_3D_point(
-            tf.random_uniform(shape=[batch_size, ], minval=-2300, maxval=2300, dtype=tf.float32), # Velocity X
-            tf.random_uniform(shape=[batch_size, ], minval=-2300, maxval=2300, dtype=tf.float32), # Y
-            tf.random_uniform(shape=[batch_size, ], minval=-2300, maxval=2300, dtype=tf.float32)) # Z
+        with tf.name_scope("Velocity"):
+            velocity = self.create_3D_point(
+                tf.random_uniform(shape=[batch_size, ], minval=-2300, maxval=2300, dtype=tf.float32), # Velocity X
+                tf.random_uniform(shape=[batch_size, ], minval=-2300, maxval=2300, dtype=tf.float32), # Y
+                tf.random_uniform(shape=[batch_size, ], minval=-2300, maxval=2300, dtype=tf.float32)) # Z
 
-        angular = self.create_3D_point(
-            tf.random_uniform(shape=[batch_size, ], minval=-5.5, maxval=5.5, dtype=tf.float32), # Angular velocity X
-            tf.random_uniform(shape=[batch_size, ], minval=-5.5, maxval=5.5, dtype=tf.float32), # Y
-            tf.random_uniform(shape=[batch_size, ], minval=-5.5, maxval=5.5, dtype=tf.float32)) # Z
+        with tf.name_scope("AngularVelocity"):
+            angular = self.create_3D_point(
+                tf.random_uniform(shape=[batch_size, ], minval=-5.5, maxval=5.5, dtype=tf.float32), # Angular velocity X
+                tf.random_uniform(shape=[batch_size, ], minval=-5.5, maxval=5.5, dtype=tf.float32), # Y
+                tf.random_uniform(shape=[batch_size, ], minval=-5.5, maxval=5.5, dtype=tf.float32)) # Z
 
         return (rotation, velocity, angular)
 
@@ -74,20 +85,23 @@ class TensorflowPacketGenerator:
         # -16384 bottom of wheels facing side wall with right wheels higher than left wheels
         # 16384 bottom of wheels facing side wall with left wheels higher than right wheels (from 3rd person perspective behind car).
 
-        rotation = self.create_3D_rotation(
-                                           self.zero, # Pitch
-                                           self.zero, # Yaw
-                                           self.zero) # Roll
+        with tf.name_scope("Rotation"):
+            rotation = self.create_3D_rotation(
+                                               self.zero, # Pitch
+                                               self.zero, # Yaw
+                                               self.zero) # Roll
 
-        velocity = self.create_3D_point(
-                                        self.zero, # Velocity X
-                                        self.zero, # Y
-                                        self.zero) # Z
+        with tf.name_scope("Velocity"):
+            velocity = self.create_3D_point(
+                                            self.zero, # Velocity X
+                                            self.zero, # Y
+                                            self.zero) # Z
 
-        angular = self.create_3D_point(
-                                       self.zero, # Angular velocity X
-                                       self.zero, # Y
-                                       self.zero) # Z
+        with tf.name_scope("AngularVelocity"):
+            angular = self.create_3D_point(
+                                           self.zero, # Angular velocity X
+                                           self.zero, # Y
+                                           self.zero) # Z
 
         return (rotation, velocity, angular)
 
@@ -184,24 +198,28 @@ class TensorflowPacketGenerator:
 
         ball.Rotation, ball.Velocity, ball.AngularVelocity = self.createRotVelAng(batch_size)
 
-        ball.Acceleration = self.create_3D_point(
-                                                 self.zero, # Acceleration X
-                                                 self.zero, # Acceleration Y
-                                                 self.zero) # Acceleration Z
+        with tf.name_scope("BallAccerlation"):
+            ball.Acceleration = self.create_3D_point(
+                                                     self.zero, # Acceleration X
+                                                     self.zero, # Acceleration Y
+                                                     self.zero) # Acceleration Z
 
         ball.LatestTouch = self.create_object()
-        ball.LatestTouch.wPlayerName = tf.round(tf.random_uniform(shape=[batch_size, ], minval=0, maxval=2,  dtype=tf.float32))
 
-        ball.LatestTouch.sHitLocation = self.create_3D_point(
-            tf.random_uniform(shape=[batch_size, ], minval=-4050, maxval=8100,  dtype=tf.float32),  # Location X
-            tf.random_uniform(shape=[batch_size, ], minval=-5900, maxval=11800, dtype=tf.float32),  # Y
-            tf.random_uniform(shape=[batch_size, ], minval=0,     maxval=2000,  dtype=tf.float32))  # Z
+        ball.LatestTouch.wPlayerName = tf.round(tf.random_uniform(shape=[batch_size, ],
+                                                                  minval=0, maxval=2,  dtype=tf.float32),
+                                                name="wPlayerName")
 
-        # INVALID VALUES
-        ball.LatestTouch.sHitNormal = self.create_3D_point(
-            tf.random_uniform(shape=[batch_size, ], minval=-2300, maxval=4600, dtype=tf.float32), # Velocity X
-            tf.random_uniform(shape=[batch_size, ], minval=-2300, maxval=4600, dtype=tf.float32), # Y
-            tf.random_uniform(shape=[batch_size, ], minval=-2300, maxval=4600, dtype=tf.float32)) # Z
+        with tf.name_scope("HitLocation"):
+            ball.LatestTouch.sHitLocation = self.create_3D_point(
+                tf.random_uniform(shape=[batch_size, ], minval=-4050, maxval=8100,  dtype=tf.float32),  # Location X
+                tf.random_uniform(shape=[batch_size, ], minval=-5900, maxval=11800, dtype=tf.float32),  # Y
+                tf.random_uniform(shape=[batch_size, ], minval=0,     maxval=2000,  dtype=tf.float32),)  # Z
+        with tf.name_scope("HitNormal"):
+            ball.LatestTouch.sHitNormal = self.create_3D_point(
+                tf.random_uniform(shape=[batch_size, ], minval=-2300, maxval=4600, dtype=tf.float32), # Velocity X
+                tf.random_uniform(shape=[batch_size, ], minval=-2300, maxval=4600, dtype=tf.float32), # Y
+                tf.random_uniform(shape=[batch_size, ], minval=-2300, maxval=4600, dtype=tf.float32)) # Z
         return ball
 
     def get_boost_info(self, batch_size):
@@ -223,11 +241,12 @@ class TensorflowPacketGenerator:
                        4000, -1024.0, 0.0, 64.0, 1.0, 4000, 0.0, -4240.0, 64.0, 1.0, 4000]
         for i in range(35):
             boost_info = self.create_object()
-            boost_info.Location = self.create_3D_point(tf.constant([boost_array[i * 5]] * batch_size),
-                                                       tf.constant([boost_array[i * 5 + 1]] * batch_size),
-                                                       tf.constant([boost_array[i * 5 + 2]] * batch_size))
-            boost_info.bActive = tf.constant([boost_array[i * 5 + 3]] * batch_size)
-            boost_info.Timer = tf.constant([boost_array[i * 5 + 4]] * batch_size)
+            with tf.name_scope('BoostLocation'):
+                boost_info.Location = self.create_3D_point(tf.constant([boost_array[i * 5]] * batch_size),
+                                                           tf.constant([boost_array[i * 5 + 1]] * batch_size),
+                                                           tf.constant([boost_array[i * 5 + 2]] * batch_size))
+            boost_info.bActive = tf.constant([boost_array[i * 5 + 3]] * batch_size, name='BostActive')
+            boost_info.Timer = tf.constant([boost_array[i * 5 + 4]] * batch_size, name='BoostTimer')
             boost_objects.append(boost_info)
         return boost_objects
 
@@ -236,28 +255,35 @@ class TensorflowPacketGenerator:
 
         game_tick_packet = self.create_object()
         # Game info
-        game_tick_packet.gameInfo = self.get_game_info(batch_size)
+        with tf.name_scope("Game_Info"):
+            game_tick_packet.gameInfo = self.get_game_info(batch_size)
         # Score info
 
         # Player car info
         game_tick_packet.gamecars = []
-        game_tick_packet.gamecars.append(self.get_car_info(batch_size, is_on_ground, self.zero, self.zero))
+        with tf.name_scope("Player_Car"):
+            game_tick_packet.gamecars.append(self.get_car_info(batch_size, is_on_ground, self.zero, self.zero))
 
         game_tick_packet.numCars = len(game_tick_packet.gamecars)
 
         # Ball info
-        game_tick_packet.gameball = self.get_ball_info(batch_size)
+        with tf.name_scope("Ball_Info"):
+            game_tick_packet.gameball = self.get_ball_info(batch_size)
 
         # Teammates info, 1v1 so empty
-        self.get_empty_car_info(batch_size, is_on_ground, self.zero, self.two)
-        self.get_empty_car_info(batch_size, is_on_ground, self.zero, self.four)
+        with tf.name_scope("Team_0"):
+            self.get_empty_car_info(batch_size, is_on_ground, self.zero, self.two)
+            self.get_empty_car_info(batch_size, is_on_ground, self.zero, self.four)
 
         # Enemy info, 1 enemy
-        game_tick_packet.gamecars.append(self.get_car_info(batch_size, is_on_ground, self.one, self.one))
-        self.get_empty_car_info(batch_size, is_on_ground, self.one, self.three)
-        self.get_empty_car_info(batch_size, is_on_ground, self.one, self.five)
+        with tf.name_scope("Enemy"):
+            game_tick_packet.gamecars.append(self.get_car_info(batch_size, is_on_ground, self.one, self.one))
+        with tf.name_scope("Enemy1"):
+            self.get_empty_car_info(batch_size, is_on_ground, self.one, self.three)
+            self.get_empty_car_info(batch_size, is_on_ground, self.one, self.five)
 
-        game_tick_packet.gameBoosts = self.get_boost_info(batch_size)
+        with tf.name_scope("Boost"):
+            game_tick_packet.gameBoosts = self.get_boost_info(batch_size)
 
         return game_tick_packet
 
@@ -267,46 +293,48 @@ class TensorflowPacketGenerator:
          [-256.0019836425781, -3839.990966796875, 17.02585220336914], # center right
          [1951.9951171875, -2463.99169921875, 17.025854110717773], # diagonal left
          [-1952.0006103515625, -2463.991455078125, 17.02585220336914]] # diagonal right
-        yaw = [16384.0, # center
+        yaw_list = [16384.0, # center
                16384.0, # center left
                16384.0, # center right
                24576.0, # diagonal left
                8192.0]  # diagonal right
 
-        length_of_positions = len(yaw)
+        length_of_positions = len(yaw_list)
 
         locations = tf.constant(locations)
 
-        yaw = tf.constant(yaw)
+        yaw_list = tf.constant(yaw_list)
 
         # yaw +/- 20
 
-        random_index = tf.round(tf.random_uniform(shape=[self.batch_size, ], minval=0, maxval=length_of_positions, dtype=tf.float32))
+        random_index = tf.round(tf.random_uniform(shape=[self.batch_size, ], minval=0, maxval=length_of_positions - 1, dtype=tf.float32))
         random_index = tf.cast(random_index, tf.int32)
 
-        kick_off_loc, yaw = self.slice_kickoff_locations(random_index, locations, yaw)
+        kick_off_loc, yaw = self.slice_kickoff_locations(random_index, locations, yaw_list)
         kick_off_loc.set_shape([self.batch_size, 3])
         kick_off_loc = tf.reshape(kick_off_loc, [3, self.batch_size])
         yaw.set_shape([self.batch_size, ])
-        location = self.create_3D_point(kick_off_loc[0],
-                                        kick_off_loc[1],
-                                        kick_off_loc[2])
+
+        with tf.name_scope('Location'):
+            location = self.create_3D_point(kick_off_loc[0],
+                                            kick_off_loc[1],
+                                            kick_off_loc[2])
 
         yaw = yaw + tf.random_uniform(shape=[self.batch_size, ], minval=0, maxval=20, dtype=tf.float32)
 
-        rotation = self.create_3D_rotation(tf.constant(0),
-                                           yaw,
-                                           tf.constant(0))
+        with tf.name_scope('Rotation'):
+            rotation = self.create_3D_rotation(self.zero,
+                                               yaw,
+                                               self.zero)
 
         _, velocity, angular = self.createEmptyRotVelAng(self.batch_size)
 
         return self.decompose(location, rotation, velocity, angular)
 
-    def slice_kickoff_locations(self, random_index, locations, yaw):
-
+    def slice_kickoff_locations(self, random_index, location_list, yaw_list):
         def get_kickoff_location(random_index):
-            return (tf.slice(locations, [random_index, 0], [1, -1]),
-                    tf.slice(yaw, [random_index], [1]))
+            return (tf.slice(location_list, [random_index, 0], [1, -1]),
+                    tf.slice(yaw_list, [random_index], [1]))
 
 
         result = tf.map_fn(
@@ -315,7 +343,11 @@ class TensorflowPacketGenerator:
             dtype=(tf.float32, tf.float32),
             infer_shape = False)
 
-        return result
+        location, yaw = result
+
+        yaw = tf.squeeze(yaw)
+
+        return (location, yaw)
 
 
     def decompose(self, *args):
@@ -330,14 +362,18 @@ class TensorflowPacketGenerator:
         return (
             self.create_3D_point(array[0],
                                  array[1],
-                                 array[2]),
+                                 array[2],
+                                 True),
             self.create_3D_rotation(array[3],
                                  array[4],
-                                 array[5]),
+                                 array[5],
+                                 True),
             self.create_3D_point(array[6],
                                  array[7],
-                                 array[8]),
+                                 array[8],
+                                 True),
             self.create_3D_point(array[9],
                                  array[10],
-                                 array[11]),
+                                 array[11],
+                                 True),
         )
