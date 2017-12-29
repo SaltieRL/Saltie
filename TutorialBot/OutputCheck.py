@@ -52,5 +52,16 @@ class OutputChecks:
 
         input_state, game_tick_packet = self.get_random_data()
         output = self.sess.run(get_output(input_state))
-        sort = np.sort(np.matrix.transpose(output))  # sort[0] gives all the returned values for throttle sorted
-        # Some kind of visualisation or such should be over here
+        transposed = np.matrix.transpose(output)  # transposed[0] gives all the returned values for throttle sorted
+        print("Splitting up everything in intervals of 0.5, so [-1, -0.5], [-0.5, 0] etc.")
+        print("Throttle: ", np.histogram(transposed[0], [-1.0, -0.5, 0, 0.5, 1])[0])
+        print("Steer: ", np.histogram(transposed[1], [-1.0, -0.5, 0, 0.5, 1])[0])
+        print("Pitch: ", np.histogram(transposed[2], [-1.0, -0.5, 0, 0.5, 1])[0])
+        print("Yaw: ", np.histogram(transposed[3], [-1.0, -0.5, 0, 0.5, 1])[0])
+        print("Roll: ", np.histogram(transposed[4], [-1.0, -0.5, 0, 0.5, 1])[0])
+        print("From here the intervals are [0.0, 0.5], [0.5, 1.0]")
+        print("Jump: ", np.histogram(transposed[5], [0, 0.5, 1])[0])
+        print("Boost: ", np.histogram(transposed[6], [0, 0.5, 1])[0])
+        print("Handbrake: ", np.histogram(transposed[7], [0, 0.5, 1])[0])
+
+
