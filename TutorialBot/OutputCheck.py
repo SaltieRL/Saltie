@@ -1,4 +1,4 @@
-from TutorialBot import RandomTFArray, tensorflow_input_formatter
+from TutorialBot import RandomTFArray, tensorflow_input_formatter, tutorial_bot_output
 from conversions import input_formatter
 import tensorflow as tf
 import numpy as np
@@ -10,6 +10,7 @@ class OutputChecks:
         self.packets = packets
         self.formatter = tensorflow_input_formatter.TensorflowInputFormatter(0, 0, packets)
         self.packet_generator = RandomTFArray.TensorflowPacketGenerator(packets)
+        self.tutorial_bot = tutorial_bot_output.TutorialBotOutput(packets)
         n_neurons_hidden = 128  # every layer of neurons
         n_input = input_formatter.get_state_dim_with_features()  # data input
         n_output = 8  # total outputs
@@ -52,16 +53,25 @@ class OutputChecks:
 
         input_state, game_tick_packet = self.get_random_data()
         output = self.sess.run(get_output(input_state))
+        bot_output = self.sess.run(self.tutorial_bot.get_output_vector(game_tick_packet, output)[1])
         transposed = np.matrix.transpose(output)  # transposed[0] gives all the returned values for throttle sorted
-        print("Splitting up everything in intervals of 0.5, so [-1, -0.5], [-0.5, 0] etc.")
-        print("Throttle: ", np.histogram(transposed[0], [-1.0, -0.5, 0, 0.5, 1])[0])
-        print("Steer: ", np.histogram(transposed[1], [-1.0, -0.5, 0, 0.5, 1])[0])
-        print("Pitch: ", np.histogram(transposed[2], [-1.0, -0.5, 0, 0.5, 1])[0])
-        print("Yaw: ", np.histogram(transposed[3], [-1.0, -0.5, 0, 0.5, 1])[0])
-        print("Roll: ", np.histogram(transposed[4], [-1.0, -0.5, 0, 0.5, 1])[0])
-        print("From here the intervals are [0.0, 0.5], [0.5, 1.0]")
-        print("Jump: ", np.histogram(transposed[5], [0, 0.5, 1])[0])
-        print("Boost: ", np.histogram(transposed[6], [0, 0.5, 1])[0])
+        print("Splitting up everything in ranges: [-1, -0.5>, [-0.5, 0>, [0, 0.5>, [0.5, 1] and the second array is for the bot output")
+        print("Throttle:  ", np.histogram(transposed[0], [-1.0, -0.5, 0, 0.5, 1])[0])
+        print("           ", np.histogram(bot_output[0], [-1.0, -0.5, 0, 0.5, 1])[0])
+        print("Steer:     ", np.histogram(transposed[1], [-1.0, -0.5, 0, 0.5, 1])[0])
+        print("           ", np.histogram(bot_output[1], [-1.0, -0.5, 0, 0.5, 1])[0])
+        print("Pitch:     ", np.histogram(transposed[2], [-1.0, -0.5, 0, 0.5, 1])[0])
+        print("           ", np.histogram(bot_output[2], [-1.0, -0.5, 0, 0.5, 1])[0])
+        print("Yaw:       ", np.histogram(transposed[3], [-1.0, -0.5, 0, 0.5, 1])[0])
+        print("           ", np.histogram(bot_output[3], [-1.0, -0.5, 0, 0.5, 1])[0])
+        print("Roll:      ", np.histogram(transposed[4], [-1.0, -0.5, 0, 0.5, 1])[0])
+        print("           ", np.histogram(bot_output[4], [-1.0, -0.5, 0, 0.5, 1])[0])
+        print("From here the ranges are [0.0, 0.5>, [0.5, 1.0]")
+        print("Jump:      ", np.histogram(transposed[5], [0, 0.5, 1])[0])
+        print("           ", np.histogram(bot_output[5], [0, 0.5, 1])[0])
+        print("Boost:     ", np.histogram(transposed[6], [0, 0.5, 1])[0])
+        print("           ", np.histogram(bot_output[6], [0, 0.5, 1])[0])
         print("Handbrake: ", np.histogram(transposed[7], [0, 0.5, 1])[0])
+        print("           ", np.histogram(bot_output[7], [0, 0.5, 1])[0])
 
 

@@ -1,11 +1,13 @@
 import math
 import tensorflow as tf
 
+
 class TutorialBotOutput:
     # Constants
     distance_from_ball_to_boost = tf.constant(1500.0)  # Minimum distance to ball for using boost
     powerslide_angle = tf.constant(170.0)  # The angle (from the front of the bot to the ball) to start to powerslide.
-    unreal_to_degrees = tf.constant(1.0 / 65536.0 * 360.0) # The numbers used to convert unreal rotation units to degrees
+    unreal_to_degrees = tf.constant(
+        1.0 / 65536.0 * 360.0)  # The numbers used to convert unreal rotation units to degrees
     true = tf.constant(1.0)
     one = true
     false = tf.constant(0.0)
@@ -21,7 +23,8 @@ class TutorialBotOutput:
         return radians * 180 / math.pi
 
     def aim(self, bot_X, bot_Y, bot_yaw, target_x, target_y):
-        angle_between_bot_and_target = self.to_degrees(tf.atan2(tf.subtract(target_y, bot_Y), tf.subtract(target_x, bot_X)))
+        angle_between_bot_and_target = self.to_degrees(
+            tf.atan2(tf.subtract(target_y, bot_Y), tf.subtract(target_x, bot_X)))
         angle_front_to_target = angle_between_bot_and_target - bot_yaw
 
         # Correct the values
@@ -40,8 +43,8 @@ class TutorialBotOutput:
         ball_X, ball_Y = elements[0]
         bot_X, bot_Y, bot_yaw = elements[1]
         st, ps = tf.cond(tf.less(bot_Y, ball_Y),
-            lambda: self.aim(bot_X, bot_Y, bot_yaw, ball_X, ball_Y),
-            lambda: self.aim(bot_X, bot_Y, bot_yaw, 0.0, -5000.0))
+                         lambda: self.aim(bot_X, bot_Y, bot_yaw, ball_X, ball_Y),
+                         lambda: self.aim(bot_X, bot_Y, bot_yaw, 0.0, -5000.0))
 
         return [(st, ps), elements[1]]
 
@@ -53,12 +56,12 @@ class TutorialBotOutput:
         bot_X, bot_Y, bot_yaw = decomposed_elements[1]
 
         throttle = tf.cond(is_kickoff,
-            lambda: self.one,
-            lambda: throttle)
+                           lambda: self.one,
+                           lambda: throttle)
 
         steer, powerslide = tf.cond(is_kickoff,
-            lambda: self.aim(bot_X, bot_Y, bot_yaw, ball_X, ball_Y),
-            lambda: (steer, powerslide))
+                                    lambda: self.aim(bot_X, bot_Y, bot_yaw, ball_X, ball_Y),
+                                    lambda: (steer, powerslide))
         return [(throttle, steer, powerslide), (is_kickoff, decomposed_elements)]
 
     def calculate_loss(self, elements):
@@ -73,7 +76,7 @@ class TutorialBotOutput:
             output = tf.losses.absolute_difference(throttle, given_output[0])
 
             # Steer
-            #output += tf.cond(tf.less_equal(tf.abs(steer - given_output[1]), 0.5), lambda: 1, lambda: -1)
+            # output += tf.cond(tf.less_equal(tf.abs(steer - given_output[1]), 0.5), lambda: 1, lambda: -1)
             output += tf.losses.absolute_difference(steer, given_output[1])
 
             # Powerslide
@@ -90,11 +93,11 @@ class TutorialBotOutput:
         output = tf.cond(is_on_ground, output_on_ground, output_off_ground)
 
         # Jump
-        #output += tf.cond(tf.equal(tf.cast(jump, tf.float32), given_output[5]), lambda: 1, lambda: -1)
+        # output += tf.cond(tf.equal(tf.cast(jump, tf.float32), given_output[5]), lambda: 1, lambda: -1)
         output += tf.losses.mean_squared_error(jump, given_output[5])
 
         # Boost
-        #output += tf.cond(tf.equal(tf.cast(boost, tf.float32), given_output[6]), lambda: 1, lambda: -1)
+        # output += tf.cond(tf.equal(tf.cast(boost, tf.float32), given_output[6]), lambda: 1, lambda: -1)
         output += tf.losses.mean_squared_error(boost, given_output[6])
 
         return [output, elements[1], elements[2], elements[3]]
@@ -121,7 +124,8 @@ class TutorialBotOutput:
         # multiple by sign or raw data
         bot_yaw *= tf.sign(bot_rot.Yaw)
 
-        boost_cond = tf.greater(self.distance(bot_pos.X, bot_pos.Y, ball_pos.X, ball_pos.Y), self.distance_from_ball_to_boost)
+        boost_cond = tf.greater(self.distance(bot_pos.X, bot_pos.Y, ball_pos.X, ball_pos.Y),
+                                self.distance_from_ball_to_boost)
 
         # Boost when ball is far enough away
         boost = boost_cond
@@ -129,7 +133,6 @@ class TutorialBotOutput:
         # Blue has their goal at -5000 (Y axis) and orange has their goal at 5000 (Y axis). This means that:
         # - Blue is behind the ball if the ball's Y axis is greater than blue's Y axis
         # - Orange is behind the ball if the ball's Y axis is smaller than orange's Y axis
-
 
         elements = [(ball_pos.X, ball_pos.Y),
                     (bot_pos.X, bot_pos.Y, bot_yaw)]
@@ -148,5 +151,7 @@ class TutorialBotOutput:
         throttle, steer, powerslide = tf.map_fn(self.hand_kickoff, elements)[0]
 
         elements = [throttle, values.gamecars[0].bOnGround, given_output, (steer, powerslide, pitch, jump, boost)]
+
+        output = [throttle, steer, pitch, yaw, roll, jump, boost, powerslide]
         loss = tf.map_fn(self.calculate_loss, elements)[0]
-        return loss
+        return [loss, output]

@@ -16,7 +16,7 @@ def get_random_data(packet_generator, input_formatter):
 
 
 def get_loss(logits, game_tick_packet, output_creator):
-    return output_creator.get_output_vector(game_tick_packet, logits)
+    return output_creator.get_output_vector(game_tick_packet, logits)[0]
 
 
 learning_rate = 0.1
