@@ -21,7 +21,7 @@ def get_loss(logits, game_tick_packet, output_creator):
 
 
 learning_rate = 0.1
-total_batches = 100
+total_batches = 1000
 batch_size = 1000
 display_step = 1
 
@@ -53,7 +53,7 @@ def create_loss(expected_outputs, created_outputs, logprobs):
     cross_entropy_loss += tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logprobs[3],
                                                                          labels=output_button)
 
-    return loss + cross_entropy_loss
+    return loss + cross_entropy_loss, cross_entropy_loss
 
 
 def save_replay(model, sess, file_path):
@@ -71,7 +71,8 @@ if __name__ == '__main__':
         output_creator = tutorial_bot_output.TutorialBotOutput(batch_size)
         actions = action_handler.ActionHandler(split_mode=True)
 
-        model = base_actor_critic.BaseActorCritic(sess, n_input, n_output, action_handler=actions)
+        model = base_actor_critic.BaseActorCritic(sess, n_input, n_output, action_handler=actions, is_training=True)
+        model.num_layers = 10
 
         # start model construction
         input_state, game_tick_packet = get_random_data(packet_generator, formatter)
@@ -90,9 +91,11 @@ if __name__ == '__main__':
 
         optimizer = tf.train.GradientDescentOptimizer(learning_rate=learning_rate)
 
-        loss_op += create_loss(real_indexes, model.argmax, model.softmax)
+        combined_loss_op, cross_entropy_loss = create_loss(real_indexes, model.argmax, model.softmax)
 
+        combined_loss_op += loss_op
 
+        loss_op = cross_entropy_loss
 
         train_op = optimizer.minimize(loss_op)
         init = tf.global_variables_initializer()
@@ -108,13 +111,13 @@ if __name__ == '__main__':
         c = 0.
         avg_cost = 0.
         for i in range(total_batches):
-            _, c = sess.run([train_op, tf.reduce_mean(loss_op)])
+            _, c, total_loss = sess.run([train_op, tf.reduce_mean(loss_op), tf.reduce_mean(combined_loss_op)])
 
             # Display logs per epoch step
             # Compute average loss
             avg_cost += (c / float(total_batches))
             # Display logs per epoch step
-            print("Current Cost = ", c)
+            print("Current Cost = ", c, 'total loss', total_loss)
         save_replay(model, sess, model.get_model_path('TensorflowTrainer.ckpt'))
         print('TOTAL COST=', avg_cost)
         saver = tf.train.Saver()

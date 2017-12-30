@@ -123,13 +123,14 @@ class ActionHandler:
     def create_tensorflow_controller_output_from_actions(self, action_selection, batch_size=1):
         movement_actions = self.movement_actions
         combo_actions = self.combo_actions
-        indexer = tf.constant(1)
+        indexer = tf.constant(1, dtype=tf.int32)
+        action_selection = tf.cast(action_selection, tf.int32)
         if batch_size > 1:
             movement_actions = tf.expand_dims(movement_actions, 0)
             multiplier = tf.constant([int(batch_size), 1, 1])
             movement_actions = tf.tile(movement_actions, multiplier)
             combo_actions = tf.tile(tf.expand_dims(combo_actions, 0), multiplier)
-            indexer = tf.constant(np.arange(0, batch_size, 1))
+            indexer = tf.constant(np.arange(0, batch_size, 1), dtype=tf.int32)
             yaw_actions = tf.squeeze(tf.slice(movement_actions, [0, 0, 0], [-1, 1, -1]))
             pitch_actions = tf.squeeze(tf.slice(movement_actions, [0, 1, 0], [-1, 1, -1]))
             roll_actions = tf.squeeze(tf.slice(movement_actions, [0, 2, 0], [-1, 1, -1]))
