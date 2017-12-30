@@ -29,37 +29,32 @@ n_neurons_hidden = 128  # every layer of neurons
 n_input = input_formatter.get_state_dim_with_features()  # data input
 n_output = 39  # total outputs
 
-# Store layers weight & bias
-weights = {
-    'h1': tf.Variable(tf.random_normal([n_input, n_neurons_hidden])),
-    'h2': tf.Variable(tf.random_normal([n_neurons_hidden, n_neurons_hidden])),
-    'h3': tf.Variable(tf.random_normal([n_neurons_hidden, n_neurons_hidden])),
-    'h4': tf.Variable(tf.random_normal([n_neurons_hidden, n_neurons_hidden])),
-    'h5': tf.Variable(tf.random_normal([n_neurons_hidden, n_neurons_hidden])),
-    'out': tf.Variable(tf.random_normal([n_neurons_hidden, n_output]))
-}
-biases = {
-    'b1': tf.Variable(tf.random_normal([n_neurons_hidden])),
-    'b2': tf.Variable(tf.random_normal([n_neurons_hidden])),
-    'b3': tf.Variable(tf.random_normal([n_neurons_hidden])),
-    'b4': tf.Variable(tf.random_normal([n_neurons_hidden])),
-    'b5': tf.Variable(tf.random_normal([n_neurons_hidden])),
-    'out': tf.Variable(tf.random_normal([n_output]))
-}
+def create_loss(expected_outputs, created_outputs, logprobs):
+    reshaped = tf.transpose(expected_outputs)
+    reshaped = tf.cast(reshaped, tf.int32)
+    output_yaw = reshaped[0]
+    output_pitch = reshaped[1]
+    output_roll = reshaped[2]
+    output_button = reshaped[3]
+
+    loss = tf.losses.absolute_difference(output_yaw, created_outputs[0], weights=0.5)
+    loss += tf.losses.absolute_difference(output_pitch, created_outputs[1], weights=0.5)
+    loss += tf.losses.absolute_difference(output_roll, created_outputs[2], weights=0.5)
+    loss += tf.losses.mean_squared_error(output_button, created_outputs[3])
 
 
-# Create model
-def multilayer_perceptron(x):
-    # 5 hidden layers with 128 neurons each
-    layer_1 = tf.nn.relu6(tf.add(tf.matmul(x, weights['h1']), biases['b1']))
-    layer_2 = tf.nn.relu6(tf.add(tf.matmul(layer_1, weights['h2']), biases['b2']))
-    layer_3 = tf.nn.relu6(tf.add(tf.matmul(layer_2, weights['h3']), biases['b3']))
-    layer_4 = tf.nn.relu6(tf.add(tf.matmul(layer_3, weights['h4']), biases['b4']))
-    layer_5 = tf.nn.relu6(tf.add(tf.matmul(layer_4, weights['h5']), biases['b5']))
-    # Output fully connected layer with a neuron for each class
-    out_layer = tf.nn.sigmoid(tf.matmul(layer_5, weights['out']) + biases['out'])
+    cross_entropy_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logprobs[0],
+                                                                        labels=output_yaw)
+    cross_entropy_loss += tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logprobs[1],
+                                                                        labels=output_pitch)
+    cross_entropy_loss += tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logprobs[2],
+                                                                         labels=output_roll)
+    cross_entropy_loss += tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logprobs[3],
+                                                                         labels=output_button)
 
-    return out_layer
+    return loss + cross_entropy_loss
+
+
 
 
 if __name__ == '__main__':
@@ -75,7 +70,7 @@ if __name__ == '__main__':
         # start model construction
         input_state, game_tick_packet = get_random_data(packet_generator, formatter)
 
-        logits = multilayer_perceptron(input_state)
+        #logits = multilayer_perceptron(input_state)
 
         model.create_model(input_state)
 
@@ -88,13 +83,21 @@ if __name__ == '__main__':
         real_indexes = actions.create_indexes_graph(tf.stack(real_output, axis=1))
 
         optimizer = tf.train.GradientDescentOptimizer(learning_rate=learning_rate)
+
+        loss_op += create_loss(real_indexes, model.argmax, model.softmax)
+
+
+
         train_op = optimizer.minimize(loss_op)
         init = tf.global_variables_initializer()
 
         start = time.time()
 
+        model.batch_size = batch_size
+
+        model.initialize_model()
+
         # RUNNING
-        sess.run(init)
         # Training cycle
         c = 0.
         for i in range(total_batches):
