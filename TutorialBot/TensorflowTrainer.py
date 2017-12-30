@@ -16,7 +16,7 @@ def get_random_data(packet_generator, input_formatter):
 
 
 def get_loss(logits, game_tick_packet, output_creator):
-    return output_creator.get_output_vector(game_tick_packet, logits)[0]
+    return output_creator.get_output_vector(game_tick_packet, logits)
 
 
 learning_rate = 0.1
@@ -70,22 +70,22 @@ if __name__ == '__main__':
         output_creator = tutorial_bot_output.TutorialBotOutput(batch_size)
         actions = action_handler.ActionHandler(split_mode=True)
 
-        model = base_actor_critic.BaseActorCritic(sess, n_input, n_output, action_handler=actions)
+        #model = base_actor_critic.BaseActorCritic(sess, n_input, n_output, action_handler=actions)
 
         # start model construction
         input_state, game_tick_packet = get_random_data(packet_generator, formatter)
 
-        #multilayer_perceptron(input_state, model)
+        logits = multilayer_perceptron(input_state)
 
-        model.create_model(input_state)
+        # model.create_model(input_state)
 
         # the indexes
-        print(model.argmax)
-        created_actions = actions.create_tensorflow_controller_output_from_actions(model.argmax, batch_size)
+        #print(model.argmax)
+        #created_actions = actions.create_tensorflow_controller_output_from_actions(model.argmax, batch_size)
 
-        loss_op, real_output = get_loss(created_actions, game_tick_packet, output_creator)
+        loss_op, real_output = get_loss(logits, game_tick_packet, output_creator)
 
-        real_indexes = actions.create_indexes_graph(real_output)
+        # real_indexes = actions.create_indexes_graph(real_output)
 
         optimizer = tf.train.GradientDescentOptimizer(learning_rate=learning_rate)
         train_op = optimizer.minimize(loss_op)
