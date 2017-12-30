@@ -105,8 +105,10 @@ if __name__ == '__main__':
 
             # Display logs per epoch step
             print("Cost: ", c)
+        model.saver.save(sess, model.get_model_path('TensorflowTrainer.ckpt'))
         saver = tf.train.Saver()
+
         saver.save(sess, "./trained_variables/TensorflowTrainer.ckpt")
-        print(sess.run(weights['out']))
+        print(sess.run(model.softmax))
         total_time = time.time() - start
         print('total time: ', total_time)
