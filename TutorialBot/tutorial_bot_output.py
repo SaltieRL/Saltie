@@ -152,6 +152,6 @@ class TutorialBotOutput:
 
         elements = [throttle, values.gamecars[0].bOnGround, given_output, (steer, powerslide, pitch, jump, boost)]
 
-        output = [throttle, steer, pitch, yaw, roll, jump, boost, powerslide]
+        output = [throttle, steer, pitch, yaw, roll, jump, tf.cast(boost, tf.float32), powerslide]
         loss = tf.map_fn(self.calculate_loss, elements)[0]
         return (loss, output)

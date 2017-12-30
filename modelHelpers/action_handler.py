@@ -85,6 +85,7 @@ class ActionHandler:
         boost = [True, False]
         handbrake = [True, False]
         action_list = [throttle, jump, boost, handbrake]
+        self.action_list_size = len(action_list)
         # 24 + 5 + 5 + 5 = 39
         button_combo = list(itertools.product(*action_list))
         actions = []
@@ -93,6 +94,9 @@ class ActionHandler:
         actions.append(pitch)
         actions.append(roll)
         self.movement_actions = tf.constant(np.array(actions), shape=[3,5])
+        self.yaw_actions = self.movement_actions[0]
+        self.pitch_actions = self.movement_actions[1]
+        self.roll_actions = self.movement_actions[2]
         self.combo_actions = tf.constant(button_combo)
         actions.append(button_combo)
         for i in actions:
@@ -115,30 +119,41 @@ class ActionHandler:
         # print(controller_option)
         return controller_option
 
+
     def create_tensorflow_controller_output_from_actions(self, action_selection, batch_size=1):
         movement_actions = self.movement_actions
         combo_actions = self.combo_actions
+        indexer = tf.constant(1)
         if batch_size > 1:
             movement_actions = tf.expand_dims(movement_actions, 0)
             multiplier = tf.constant([int(batch_size), 1, 1])
             movement_actions = tf.tile(movement_actions, multiplier)
             combo_actions = tf.tile(tf.expand_dims(combo_actions, 0), multiplier)
+            indexer = tf.constant(np.arange(0, batch_size, 1))
+            yaw_actions = tf.squeeze(tf.slice(movement_actions, [0, 0, 0], [-1, 1, -1]))
+            pitch_actions = tf.squeeze(tf.slice(movement_actions, [0, 1, 0], [-1, 1, -1]))
+            roll_actions = tf.squeeze(tf.slice(movement_actions, [0, 2, 0], [-1, 1, -1]))
+        else:
+            yaw_actions = movement_actions[0]
+            pitch_actions = movement_actions[1]
+            roll_actions = movement_actions[2]
 
+        # we get the options based on each individual index in the batches.  so this returns batch_size options
+        steer = tf.gather_nd(yaw_actions, tf.stack([indexer, action_selection[0]], axis = 1))
+        pitch = tf.gather_nd(pitch_actions, tf.stack([indexer, action_selection[1]], axis = 1))
+        roll = tf.gather_nd(roll_actions, tf.stack([indexer, action_selection[2]], axis = 1))
 
-        # use tf.gather
-
-        steer = tf.gather(movement_actions, action_selection[0], axis=2)
-        steer = tf.slice(movement_actions, [0, 0, action_selection[0]], [-1, 1, 1])
-        pitch = tf.slice(movement_actions, [0, 1, action_selection[1]], [-1, 1, 1])
-        roll = tf.slice(movement_actions, [0, 2, action_selection[2]], [-1, 1, 1])
-        button_combo = tf.slice(combo_actions, [0, action_selection[3], 0], [-1, 1, -1])
+        button_combo = tf.gather_nd(combo_actions, tf.stack([indexer, action_selection[3]], axis=1))
+        new_shape = [self.action_list_size, batch_size]
+        button_combo = tf.reshape(button_combo, new_shape)
         throttle = button_combo[0]
         jump = button_combo[1]
         boost = button_combo[2]
         handbrake = button_combo[3]
         controller_option = [throttle, steer, pitch, steer, roll, jump, boost, handbrake]
+        controller_option = [tf.cast(option, tf.float32) for option in controller_option]
         # print(controller_option)
-        return tf.stack(controller_option)
+        return tf.stack(controller_option, axis=1)
 
     def create_action_label(self, real_action):
         if self.split_mode:
