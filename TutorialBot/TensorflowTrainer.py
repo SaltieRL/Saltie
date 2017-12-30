@@ -1,5 +1,6 @@
 import tensorflow as tf
 import time
+import os
 from conversions import input_formatter
 from TutorialBot import tensorflow_input_formatter
 from TutorialBot import tutorial_bot_output
@@ -20,7 +21,7 @@ def get_loss(logits, game_tick_packet, output_creator):
 
 
 learning_rate = 0.1
-total_batches = 50
+total_batches = 100
 batch_size = 1000
 display_step = 1
 
@@ -55,6 +56,11 @@ def create_loss(expected_outputs, created_outputs, logprobs):
     return loss + cross_entropy_loss
 
 
+def save_replay(model, sess, file_path):
+    dirname = os.path.dirname(file_path)
+    if not os.path.isdir(dirname):
+        os.makedirs(dirname)
+    model.saver.save(sess, file_path)
 
 
 if __name__ == '__main__':
@@ -100,15 +106,21 @@ if __name__ == '__main__':
         # RUNNING
         # Training cycle
         c = 0.
+        avg_cost = 0.
         for i in range(total_batches):
             _, c = sess.run([train_op, tf.reduce_mean(loss_op)])
 
             # Display logs per epoch step
-            print("Cost: ", c)
-        model.saver.save(sess, model.get_model_path('TensorflowTrainer.ckpt'))
+            # Compute average loss
+            avg_cost += (c / float(total_batches))
+            # Display logs per epoch step
+            print("Current Cost = ", c)
+        save_replay(model, sess, model.get_model_path('TensorflowTrainer.ckpt'))
+        print('TOTAL COST=', avg_cost)
         saver = tf.train.Saver()
 
         saver.save(sess, "./trained_variables/TensorflowTrainer.ckpt")
         print(sess.run(model.softmax))
         total_time = time.time() - start
         print('total time: ', total_time)
+        print('time per batch: ', total_time / (float(total_batches)))
