@@ -112,7 +112,6 @@ class PolicyGradient(BaseActorCritic):
         return (critic_gradients, critic_loss, critic_reg_loss)
 
     def _compute_training_op(self, actor_gradients, critic_gradients):
-
         # collect all gradients
         gradients = actor_gradients + critic_gradients
 

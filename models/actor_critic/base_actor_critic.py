@@ -57,9 +57,9 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
     def create_model(self, input):
         with tf.name_scope("predict_actions"):
             # initialize actor-critic network
-            with tf.variable_scope("actor_network"):
+            with tf.variable_scope("actor_network", reuse=tf.AUTO_REUSE):
                 self.policy_outputs = self.actor_network(self.input)
-            with tf.variable_scope("critic_network"):
+            with tf.variable_scope("critic_network", reuse=tf.AUTO_REUSE):
                 self.value_outputs = tf.reduce_mean(self.critic_network(self.input), name="Value_estimation")
 
             # predict actions from policy network
@@ -74,6 +74,9 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
 
         self.softmax = self.action_handler.run_func_on_split_tensors(self.action_scores,
                                                                      lambda input_tensor: tf.nn.softmax(input_tensor),
+                                                                     return_as_list=True)
+        self.argmax = self.action_handler.run_func_on_split_tensors(self.action_scores,
+                                                                     lambda input_tensor: tf.argmax(tf.nn.softmax(input_tensor), axis=1),
                                                                      return_as_list=True)
         return self.predicted_actions, self.action_scores
 
@@ -97,12 +100,10 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
 
         self.train_op = self.create_training_op(self.logprobs, taken_actions)
 
-
     def create_training_op(self, logprobs, taken_actions):
         cross_entropy_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logprobs,
                                                                             labels=taken_actions)
         return self.optimizer.minimize(cross_entropy_loss)
-
 
     def sample_action(self, input_state):
         # TODO: use this code piece when tf.multinomial gets better

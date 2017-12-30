@@ -92,6 +92,8 @@ class ActionHandler:
         actions.append(steer)
         actions.append(pitch)
         actions.append(roll)
+        self.movement_actions = tf.constant(np.array(actions), shape=[3,5])
+        self.combo_actions = tf.constant(button_combo)
         actions.append(button_combo)
         for i in actions:
             split_actions_sizes.append(len(i))
@@ -112,6 +114,31 @@ class ActionHandler:
         controller_option = [throttle, steer, pitch, steer, roll, jump, boost, handbrake]
         # print(controller_option)
         return controller_option
+
+    def create_tensorflow_controller_output_from_actions(self, action_selection, batch_size=1):
+        movement_actions = self.movement_actions
+        combo_actions = self.combo_actions
+        if batch_size > 1:
+            movement_actions = tf.expand_dims(movement_actions, 0)
+            multiplier = tf.constant([int(batch_size), 1, 1])
+            movement_actions = tf.tile(movement_actions, multiplier)
+            combo_actions = tf.tile(tf.expand_dims(combo_actions, 0), multiplier)
+
+
+        # use tf.gather
+
+        steer = tf.gather(movement_actions, action_selection[0], axis=2)
+        steer = tf.slice(movement_actions, [0, 0, action_selection[0]], [-1, 1, 1])
+        pitch = tf.slice(movement_actions, [0, 1, action_selection[1]], [-1, 1, 1])
+        roll = tf.slice(movement_actions, [0, 2, action_selection[2]], [-1, 1, 1])
+        button_combo = tf.slice(combo_actions, [0, action_selection[3], 0], [-1, 1, -1])
+        throttle = button_combo[0]
+        jump = button_combo[1]
+        boost = button_combo[2]
+        handbrake = button_combo[3]
+        controller_option = [throttle, steer, pitch, steer, roll, jump, boost, handbrake]
+        # print(controller_option)
+        return tf.stack(controller_option)
 
     def create_action_label(self, real_action):
         if self.split_mode:

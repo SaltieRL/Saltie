@@ -154,4 +154,4 @@ class TutorialBotOutput:
 
         output = [throttle, steer, pitch, yaw, roll, jump, boost, powerslide]
         loss = tf.map_fn(self.calculate_loss, elements)[0]
-        return [loss, output]
+        return (loss, output)

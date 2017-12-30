@@ -27,7 +27,7 @@ display_step = 1
 # Network Parameters
 n_neurons_hidden = 128  # every layer of neurons
 n_input = input_formatter.get_state_dim_with_features()  # data input
-n_output = 8  # total outputs
+n_output = 39  # total outputs
 
 # Store layers weight & bias
 weights = {
@@ -65,20 +65,28 @@ def multilayer_perceptron(x):
 if __name__ == '__main__':
 
     with tf.Session() as sess:
-
         formatter = tensorflow_input_formatter.TensorflowInputFormatter(0, 0, batch_size)
         packet_generator = r.TensorflowPacketGenerator(batch_size)
         output_creator = tutorial_bot_output.TutorialBotOutput(batch_size)
-        # actions = action_handler.ActionHandler(split_mode=True)
+        actions = action_handler.ActionHandler(split_mode=True)
 
-        # model = base_actor_critic.BaseActorCritic(sess, n_input, actions)
+        model = base_actor_critic.BaseActorCritic(sess, n_input, n_output, action_handler=actions)
 
         # start model construction
         input_state, game_tick_packet = get_random_data(packet_generator, formatter)
 
-        logits = multilayer_perceptron(input_state)
+        #multilayer_perceptron(input_state, model)
 
-        loss_op = get_loss(logits, game_tick_packet, output_creator)
+        model.create_model(input_state)
+
+        # the indexes
+        print(model.argmax)
+        created_actions = actions.create_tensorflow_controller_output_from_actions(model.argmax, batch_size)
+
+        loss_op, real_output = get_loss(created_actions, game_tick_packet, output_creator)
+
+        real_indexes = actions.create_indexes_graph(real_output)
+
         optimizer = tf.train.GradientDescentOptimizer(learning_rate=learning_rate)
         train_op = optimizer.minimize(loss_op)
         init = tf.global_variables_initializer()
