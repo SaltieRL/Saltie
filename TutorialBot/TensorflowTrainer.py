@@ -63,8 +63,7 @@ def save_replay(model, sess, file_path):
     model.saver.save(sess, file_path)
 
 
-if __name__ == '__main__':
-
+def run():
     with tf.Session() as sess:
         formatter = tensorflow_input_formatter.TensorflowInputFormatter(0, 0, batch_size)
         packet_generator = r.TensorflowPacketGenerator(batch_size)
@@ -127,3 +126,7 @@ if __name__ == '__main__':
         total_time = time.time() - start
         print('total time: ', total_time)
         print('time per batch: ', total_time / (float(total_batches)))
+
+
+if __name__ == '__main__':
+    run()
