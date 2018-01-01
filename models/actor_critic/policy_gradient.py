@@ -77,7 +77,7 @@ class PolicyGradient(BaseActorCritic):
         with tf.name_scope("compute_pg_gradients"):
             pg_loss = tf.reduce_mean(cross_entropy_loss, name='pg_loss')
 
-            actor_loss = pg_loss + self.reg_param * actor_reg_loss
+            actor_loss = pg_loss + actor_reg_loss
 
             # compute actor gradients
             actor_gradients = self.optimizer.compute_gradients(actor_loss,
