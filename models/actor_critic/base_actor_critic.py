@@ -176,7 +176,7 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
         with tf.variable_scope("last_layer"):
             output_layer = self.create_layer(tf.nn.sigmoid, inner_layer, 'last_layer',
                                          critic_size, output_size, critic_prefix)
-        return output_layer
+        return output_layer * 2.0 - 1.0
 
     def get_model_name(self):
         return 'base_actor_critic-' + str(self.num_layers) + '-layers'
