@@ -161,7 +161,7 @@ class BaseModel:
         self._set_variables()
         model_file = None
 
-        #file does not exist too lazy to add check
+        # file does not exist too lazy to add check
         if self.model_file is None:
             model_file = self.get_model_path(self.get_default_file_name() + '.ckpt')
             self.model_file = model_file

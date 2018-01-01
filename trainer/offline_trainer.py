@@ -21,7 +21,7 @@ TRAINER_CONFIGURATION_HEADER = 'Trainer Configuration'
 def load_config_file(config_file):
     if config_file is None:
         return
-    #read file code here
+    # read file code here
 
     model_package = config_file.get(MODEL_CONFIGURATION_HEADER,
                                     'model_package')
@@ -87,7 +87,7 @@ def get_all_files(max_files, only_eval):
 def train_file(trainer_class, f):
     trainer_class.start_new_file()
     try:
-        binary_converter.read_data(f, trainer_class.process_pair, batching=False)
+        binary_converter.read_data(f, trainer_class.process_pair, batching=True)
     except Exception as e:
         print('error training on file ', e)
     trainer_class.end_file()
@@ -132,7 +132,6 @@ def get_file_list_get_function(download, input_server):
         return input_server.get_replays
     else:
         return get_all_files
-
 
 
 if __name__ == '__main__':
