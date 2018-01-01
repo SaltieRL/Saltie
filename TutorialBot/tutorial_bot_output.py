@@ -32,8 +32,15 @@ class TutorialBotOutput:
                                          lambda: tf.cond(tf.greater(angle_front_to_target, 180.0), lambda: -360.0,
                                                          lambda: 0.0))
 
-        st = tf.cond(tf.less(angle_front_to_target, -10), lambda: -1.0,
-                     lambda: tf.cond(tf.greater(angle_front_to_target, 10), lambda: 1.0, lambda: 0.0))
+
+        full_turn_angle = 50
+        half_turn_angle = 10
+
+        st = tf.cond(tf.less(angle_front_to_target, -full_turn_angle), lambda: -1.0,
+                     lambda: tf.cond(tf.less(angle_front_to_target, -half_turn_angle), lambda: -0.5,
+                     lambda: tf.cond(tf.greater(angle_front_to_target, full_turn_angle), lambda: 1.0,
+                     lambda: tf.cond(tf.greater(angle_front_to_target, half_turn_angle), lambda: 0.5,
+                                     lambda: 0.0))))
 
         ps = tf.cond(tf.less(tf.abs(self.to_degrees(angle_front_to_target)), self.powerslide_angle), lambda: self.true,
                      lambda: self.false)
