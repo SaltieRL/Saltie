@@ -5,7 +5,7 @@ from modelHelpers import tensorflow_reward_manager
 
 class PolicyGradient(BaseActorCritic):
 
-    reg_param = 0.001
+
     max_gradient = 1
 
     def __init__(self, session,
@@ -36,13 +36,8 @@ class PolicyGradient(BaseActorCritic):
     def create_actor_gradients(self, logprobs, taken_actions):
         advantages = tf.reduce_sum(self.discounted_rewards - self.estimated_values, name='advantages')
 
-        all_actor_variables = self.actor_network_variables + self.actor_last_row_layer
-
-        actor_reg_loss = tf.reduce_sum([tf.reduce_sum(tf.square(x)) for x in all_actor_variables],
-                                       name='actor_reg_loss')
-
+        actor_reg_loss = self.get_actor_regularization_loss()
         tf.summary.scalar("actor_reg_loss", actor_reg_loss)
-
 
         result = self.action_handler.run_func_on_split_tensors([logprobs,
                                                                 taken_actions,

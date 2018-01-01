@@ -16,6 +16,7 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
     forced_frame_action = 500
     is_graphing = False
     keep_prob = 0.5
+    reg_param = 0.001
 
     def __init__(self, session,
                  state_dim,
@@ -185,6 +186,20 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
     def parse_actions(self, taken_actions):
         return taken_actions
 
+    def get_actor_regularization_loss(self):
+        all_actor_variables = self.actor_network_variables
+
+        # flatten all the variables to 1d
+        all_actor_variables = [tf.reshape(x, [-1]) for x in all_actor_variables]
+
+        normalized_variables = [(tf.nn.l2_loss(x) * self.reg_param) for x in all_actor_variables]
+
+        actor_reg_loss = tf.reduce_sum(normalized_variables,
+                                       name='actor_reg_loss')
+
+        return actor_reg_loss
+
+
     def create_last_layer(self, activation_function, inner_layer, network_size, num_actions, actor_prefix):
         last_layer_name = 'last'
         if not self.action_handler.is_split_mode():
@@ -195,7 +210,8 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
 
         self.actor_last_row_layer = []
         for i, item in enumerate(self.action_handler.get_split_sizes()):
-            self.actor_last_row_layer.append(self.create_layer(activation_function, inner_layer, last_layer_name, network_size, item, actor_prefix + str(i)))
+            self.actor_last_row_layer.append(self.create_layer(activation_function, inner_layer, last_layer_name,
+                                                               network_size, item, actor_prefix + str(i)))
 
         last_row_variables = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope="actor_network/last_layer")
         reshaped_list = np.reshape(np.array(last_row_variables), [int(len(last_row_variables) / 2), 2])

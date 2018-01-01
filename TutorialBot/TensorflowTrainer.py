@@ -94,7 +94,7 @@ def run():
 
         combined_loss_op += loss_op
 
-        loss_op = cross_entropy_loss
+        loss_op = cross_entropy_loss + model.get_actor_regularization_loss()
 
         train_op = optimizer.minimize(loss_op)
         init = tf.global_variables_initializer()

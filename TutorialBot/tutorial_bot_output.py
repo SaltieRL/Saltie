@@ -32,7 +32,6 @@ class TutorialBotOutput:
                                          lambda: tf.cond(tf.greater(angle_front_to_target, 180.0), lambda: -360.0,
                                                          lambda: 0.0))
 
-
         full_turn_angle = 50
         half_turn_angle = 10
 
