@@ -58,7 +58,7 @@ class PolicyGradient(BaseActorCritic):
 
         total_loss = tf.reduce_sum(tf.stack(merged_loss_list))
 
-        all_but_last_row = list(set(self.actor_network_variables) - set(self.last_row_variables))
+        all_but_last_row = self.all_but_last_layer
 
         actor_gradients = self.optimizer.compute_gradients(total_loss,
                                                            all_but_last_row)

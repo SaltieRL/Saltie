@@ -71,6 +71,7 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
                 self.action_handler.run_func_on_split_tensors(self.action_scores,
                                                               lambda split_tensor: tf.multinomial(split_tensor, 1))
 
+        self.all_but_last_layer = all_variable_list
         # get variable list
         self.actor_network_variables = all_variable_list + last_layer_list
         self.critic_network_variables = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope="critic_network")
@@ -150,7 +151,8 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
                              initializer=tf.constant_initializer(0.0))
         layer_output = activation_function(tf.matmul(input, W) + b)
         if variable_list is not None:
-            variable_list.append(layer_output)
+            variable_list.append(W)
+            variable_list.append(b)
         if self.is_training:
             layer_output = tf.nn.dropout(layer_output, self.keep_prob)
         self.stored_variables[weight_name] = W

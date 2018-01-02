@@ -79,6 +79,8 @@ def run():
         actions = action_handler.ActionHandler(split_mode=True)
 
         model = tutorial_model.TutorialModel(sess, n_input, n_output, action_handler=actions, is_training=True)
+        model.summary_writer = tf.summary.FileWriter(
+            'training/events/tutorial/{}-experiment'.format(model.get_model_name()))
         model.num_layers = 10
         model.batch_size = batch_size
         model.mini_batch_size = batch_size
@@ -103,9 +105,7 @@ def run():
         model.taken_actions = reshaped
         model.create_reinforcement_training_model()
 
-
-
-        optimizer = tf.train.GradientDescentOptimizer(learning_rate=learning_rate)
+        # optimizer = tf.train.GradientDescentOptimizer(learning_rate=learning_rate)
 
         combined_loss_op, cross_entropy_loss = create_loss(real_indexes, model.argmax, model.split_action_scores)
 
@@ -115,7 +115,7 @@ def run():
 
         loss_op = cross_entropy_loss # + model_loss
 
-        train_op = optimizer.minimize(loss_op)
+        # train_op = optimizer.minimize(loss_op)
         init = tf.global_variables_initializer()
 
         start = time.time()
@@ -127,13 +127,17 @@ def run():
         c = 0.
         avg_cost = 0.
         for i in range(total_batches):
-            _, c, total_loss, model_loss = sess.run([model.train_op, tf.reduce_mean(loss_op), tf.reduce_mean(combined_loss_op), tf.reduce_mean(model_loss)])
+            # _, c, total_loss, model_loss =\
+            sess.run([model.train_op
+                                                     #   , tf.reduce_mean(loss_op), tf.reduce_mean(combined_loss_op), tf.reduce_mean(model_loss)
+                                                     ])
 
             # Display logs per epoch step
             # Compute average loss
-            avg_cost += (c / float(total_batches))
+            #avg_cost += (c / float(total_batches))
             # Display logs per epoch step
-            print("Current Cost = ", c, 'total loss', total_loss, 'regularization', model_loss)
+            #print("Current Cost = ", c, 'total loss', total_loss, 'regularization', model_loss)
+            print('batch', i)
         save_replay(model, sess, model.get_model_path('TensorflowTrainer.ckpt'))
         print('TOTAL COST=', avg_cost)
         saver = tf.train.Saver()
