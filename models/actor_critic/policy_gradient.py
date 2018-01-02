@@ -33,8 +33,11 @@ class PolicyGradient(BaseActorCritic):
 
         return self._compute_training_op(actor_gradients, critic_gradients)
 
+    def create_advantages(self):
+        return tf.reduce_sum(self.discounted_rewards - self.estimated_values, name='advantages')
+
     def create_actor_gradients(self, logprobs, taken_actions):
-        advantages = tf.reduce_sum(self.discounted_rewards - self.estimated_values, name='advantages')
+        advantages = self.create_advantages()
 
         actor_reg_loss = self.get_actor_regularization_loss()
         tf.summary.scalar("actor_reg_loss", actor_reg_loss)
@@ -55,7 +58,7 @@ class PolicyGradient(BaseActorCritic):
 
         total_loss = tf.reduce_sum(tf.stack(merged_loss_list))
 
-        all_but_last_row = self.actor_network_variables
+        all_but_last_row = list(set(self.actor_network_variables) - set(self.last_row_variables))
 
         actor_gradients = self.optimizer.compute_gradients(total_loss,
                                                            all_but_last_row)
@@ -65,7 +68,6 @@ class PolicyGradient(BaseActorCritic):
         tf.summary.scalar("toal_actor_loss", total_loss)
 
         return merged_gradient_list, total_loss, actor_reg_loss
-
 
     def create_split_actor_loss(self, logprobs, taken_actions, actor_reg_loss, advantages, actor_network_variables):
         if len(taken_actions.get_shape()) == 2:

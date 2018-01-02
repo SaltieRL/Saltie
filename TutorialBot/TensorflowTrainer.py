@@ -5,7 +5,7 @@ from conversions import input_formatter
 from TutorialBot import tensorflow_input_formatter
 from TutorialBot import tutorial_bot_output
 from TutorialBot import RandomTFArray as r
-from models.actor_critic import base_actor_critic
+from models.actor_critic import tutorial_model
 from modelHelpers import action_handler
 
 
@@ -20,7 +20,7 @@ def get_loss(logits, game_tick_packet, output_creator):
     return output_creator.get_output_vector(game_tick_packet, logits)
 
 
-learning_rate = 0.1
+learning_rate = 0.01
 total_batches = 1000
 batch_size = 1000
 display_step = 1
@@ -43,17 +43,25 @@ def create_loss(expected_outputs, created_outputs, logprobs):
     loss += tf.losses.absolute_difference(output_roll, created_outputs[2], weights=0.5)
     loss += tf.losses.mean_squared_error(output_button, created_outputs[3])
 
-
     cross_entropy_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logprobs[0],
                                                                         labels=output_yaw)
-    cross_entropy_loss += tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logprobs[1],
+    cross_entropy_loss = tf.Print(cross_entropy_loss, [tf.argmax(logprobs[0][0]),
+                                               output_yaw[0]], 'yaw values')
+
+    cross_entropy_loss1 = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logprobs[1],
                                                                         labels=output_pitch)
-    cross_entropy_loss += tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logprobs[2],
+    cross_entropy_loss2 = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logprobs[2],
                                                                          labels=output_roll)
-    cross_entropy_loss += tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logprobs[3],
+    cross_entropy_loss3 = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logprobs[3],
                                                                          labels=output_button)
 
-    return loss + cross_entropy_loss, cross_entropy_loss
+    merged_loss = cross_entropy_loss + cross_entropy_loss1 + cross_entropy_loss2 + cross_entropy_loss3
+    merged_loss = tf.Print(merged_loss, [tf.reduce_mean(cross_entropy_loss),
+                                         tf.reduce_mean(cross_entropy_loss1),
+                                         tf.reduce_mean(cross_entropy_loss2),
+                                         tf.reduce_mean(cross_entropy_loss3),], 'losses')
+
+    return loss + merged_loss, merged_loss
 
 
 def save_replay(model, sess, file_path):
@@ -70,8 +78,10 @@ def run():
         output_creator = tutorial_bot_output.TutorialBotOutput(batch_size)
         actions = action_handler.ActionHandler(split_mode=True)
 
-        model = base_actor_critic.BaseActorCritic(sess, n_input, n_output, action_handler=actions, is_training=True)
+        model = tutorial_model.TutorialModel(sess, n_input, n_output, action_handler=actions, is_training=True)
         model.num_layers = 10
+        model.batch_size = batch_size
+        model.mini_batch_size = batch_size
 
         # start model construction
         input_state, game_tick_packet = get_random_data(packet_generator, formatter)
@@ -88,20 +98,27 @@ def run():
 
         real_indexes = actions.create_indexes_graph(tf.stack(real_output, axis=1))
 
+        model.input = input_state
+        reshaped = tf.cast(real_indexes, tf.int32)
+        model.taken_actions = reshaped
+        model.create_reinforcement_training_model()
+
+
+
         optimizer = tf.train.GradientDescentOptimizer(learning_rate=learning_rate)
 
-        combined_loss_op, cross_entropy_loss = create_loss(real_indexes, model.argmax, model.softmax)
+        combined_loss_op, cross_entropy_loss = create_loss(real_indexes, model.argmax, model.split_action_scores)
 
         combined_loss_op += loss_op
 
-        loss_op = cross_entropy_loss + model.get_actor_regularization_loss()
+        model_loss = model.get_actor_regularization_loss()
+
+        loss_op = cross_entropy_loss # + model_loss
 
         train_op = optimizer.minimize(loss_op)
         init = tf.global_variables_initializer()
 
         start = time.time()
-
-        model.batch_size = batch_size
 
         model.initialize_model()
 
@@ -110,13 +127,13 @@ def run():
         c = 0.
         avg_cost = 0.
         for i in range(total_batches):
-            _, c, total_loss = sess.run([train_op, tf.reduce_mean(loss_op), tf.reduce_mean(combined_loss_op)])
+            _, c, total_loss, model_loss = sess.run([model.train_op, tf.reduce_mean(loss_op), tf.reduce_mean(combined_loss_op), tf.reduce_mean(model_loss)])
 
             # Display logs per epoch step
             # Compute average loss
             avg_cost += (c / float(total_batches))
             # Display logs per epoch step
-            print("Current Cost = ", c, 'total loss', total_loss)
+            print("Current Cost = ", c, 'total loss', total_loss, 'regularization', model_loss)
         save_replay(model, sess, model.get_model_path('TensorflowTrainer.ckpt'))
         print('TOTAL COST=', avg_cost)
         saver = tf.train.Saver()

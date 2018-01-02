@@ -283,37 +283,45 @@ class ActionHandler:
                     output2.append(tensor[5:10])
                     output3.append(tensor[10:15])
                     output4.append(tensor[15:])
+                    continue
                 else:
                     output1.append(tensor[0])
                     output2.append(tensor[1])
                     output3.append(tensor[2])
                     output4.append(tensor[3])
+                    continue
             else:
                 if len(tensor.get_shape()) == 0:
                     output1.append(tf.identity(tensor, name='copy1'))
                     output2.append(tf.identity(tensor, name='copy2'))
                     output3.append(tf.identity(tensor, name='copy3'))
                     output4.append(tf.identity(tensor, name='copy4'))
+                    continue
                 elif tensor.get_shape()[0] == self.get_action_size():
                     output1.append(tf.slice(tensor, [0], [self.range_size]))
                     output2.append(tf.slice(tensor, [self.range_size], [self.range_size]))
                     output3.append(tf.slice(tensor, [self.range_size * 2], [self.range_size]))
                     output4.append(tf.slice(tensor, [self.range_size * 3], [24]))
+                    continue
                 elif tensor.get_shape()[1] == self.get_action_size():
                     output1.append(tf.slice(tensor, [0, 0], [-1, self.range_size]))
                     output2.append(tf.slice(tensor, [0, self.range_size], [-1, self.range_size]))
                     output3.append(tf.slice(tensor, [0, self.range_size * 2], [-1, self.range_size]))
                     output4.append(tf.slice(tensor, [0, self.range_size * 3], [-1, 24]))
+                    continue
                 elif tensor.get_shape()[1] == 4:
                     output1.append(tf.slice(tensor, [0, 0], [-1, 1]))
                     output2.append(tf.slice(tensor, [0, 1], [-1, 1]))
                     output3.append(tf.slice(tensor, [0, 2], [-1, 1]))
                     output4.append(tf.slice(tensor, [0, 3], [-1, 1]))
+                    continue
                 elif tensor.get_shape()[1] == 1:
                     output1.append(tf.identity(tensor, name='copy1'))
                     output2.append(tf.identity(tensor, name='copy2'))
                     output3.append(tf.identity(tensor, name='copy3'))
                     output4.append(tf.identity(tensor, name='copy4'))
+                    continue
+            print('tensor ignored', tensor)
 
         with tf.name_scope("split1"):
             result1 = split_func(*output1)
