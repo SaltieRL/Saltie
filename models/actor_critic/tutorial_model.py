@@ -27,3 +27,6 @@ class TutorialModel(PolicyGradient):
 
     def create_advantages(self):
         return tf.constant(1.0)
+
+    def calculate_loss(self, cross_entropy_loss):
+        return cross_entropy_loss

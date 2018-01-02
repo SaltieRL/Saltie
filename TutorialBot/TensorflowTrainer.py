@@ -128,7 +128,9 @@ def run():
         avg_cost = 0.
         for i in range(total_batches):
             # _, c, total_loss, model_loss =\
+            #_, c =\
             sess.run([model.train_op
+                             #, tf.reduce_mean(cross_entropy_loss)
                                                      #   , tf.reduce_mean(loss_op), tf.reduce_mean(combined_loss_op), tf.reduce_mean(model_loss)
                                                      ])
 
@@ -136,7 +138,9 @@ def run():
             # Compute average loss
             #avg_cost += (c / float(total_batches))
             # Display logs per epoch step
-            #print("Current Cost = ", c, 'total loss', total_loss, 'regularization', model_loss)
+            #print("Current Cost = ", c,
+                #  'total loss', total_loss, 'regularization', model_loss
+            #      )
             print('batch', i)
         save_replay(model, sess, model.get_model_path('TensorflowTrainer.ckpt'))
         print('TOTAL COST=', avg_cost)

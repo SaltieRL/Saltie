@@ -52,11 +52,12 @@ class PolicyGradient(BaseActorCritic):
 
         merged_gradient_list = []
         merged_loss_list = []
+        total_loss = 0
         for item in result:
             merged_gradient_list += item[0]
-            merged_loss_list.append(item[1])
+            total_loss += item[1]
 
-        total_loss = tf.reduce_sum(tf.stack(merged_loss_list))
+        total_loss = tf.identity(total_loss, 'total_actor_loss')
 
         all_but_last_row = self.all_but_last_layer
 
@@ -65,7 +66,7 @@ class PolicyGradient(BaseActorCritic):
 
         merged_gradient_list += actor_gradients
 
-        tf.summary.scalar("toal_actor_loss", total_loss)
+        tf.summary.scalar("total_actor_loss", total_loss)
 
         return merged_gradient_list, total_loss, actor_reg_loss
 
@@ -77,7 +78,7 @@ class PolicyGradient(BaseActorCritic):
         cross_entropy_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logprobs,
                                                                             labels=taken_actions)
         with tf.name_scope("compute_pg_gradients"):
-            pg_loss = tf.reduce_mean(cross_entropy_loss, name='pg_loss')
+            pg_loss = self.calculate_loss(cross_entropy_loss)
 
             actor_loss = pg_loss + actor_reg_loss
 
@@ -183,3 +184,6 @@ class PolicyGradient(BaseActorCritic):
 
     def get_model_name(self):
         return 'a_c_policy_gradient' + ('_split' if self.action_handler.is_split_mode else '') + str(self.num_layers) + '-layers'
+
+    def calculate_loss(self, cross_entropy_loss):
+        return tf.reduce_mean(cross_entropy_loss, name='pg_loss')
