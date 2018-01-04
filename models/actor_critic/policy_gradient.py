@@ -39,7 +39,6 @@ class PolicyGradient(BaseActorCritic):
 
         actor_reg_loss = self.get_regularization_loss(self.all_but_last_actor_layer, prefix="actor_hidden")
 
-
         result = self.action_handler.run_func_on_split_tensors([logprobs,
                                                                 taken_actions,
                                                                 advantages,
@@ -53,9 +52,11 @@ class PolicyGradient(BaseActorCritic):
             merged_gradient_list += item[0]
             total_loss += item[1]
 
+        tf.summary.scalar("total_actor_loss", tf.reduce_mean(total_loss))
+
         total_loss += actor_reg_loss
 
-        total_loss = tf.identity(total_loss, 'total_actor_loss')
+        total_loss = tf.identity(total_loss, 'total_actor_loss_with_reg')
 
         all_but_last_row = self.all_but_last_actor_layer
 
@@ -63,8 +64,6 @@ class PolicyGradient(BaseActorCritic):
                                                            all_but_last_row)
 
         merged_gradient_list += actor_gradients
-
-        tf.summary.scalar("total_actor_loss", tf.reduce_mean(total_loss))
 
         return merged_gradient_list, total_loss, actor_reg_loss
 
