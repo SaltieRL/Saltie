@@ -53,6 +53,8 @@ class Agent:
 
         self.model.is_online_training = self.is_online_training
 
+        self.model.create_model()
+
         if self.model.is_training and self.model.is_online_training:
             self.model.create_reinforcement_training_model()
 
