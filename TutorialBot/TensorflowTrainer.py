@@ -16,10 +16,6 @@ def get_random_data(packet_generator, input_formatter):
     return output_array, game_tick_packet
 
 
-def get_loss(logits, game_tick_packet, output_creator):
-    return output_creator.get_output_vector(game_tick_packet, logits)
-
-
 learning_rate = 0.01
 total_batches = 1000
 batch_size = 1000
@@ -30,46 +26,43 @@ n_neurons_hidden = 128  # every layer of neurons
 n_input = input_formatter.get_state_dim_with_features()  # data input
 n_output = 39  # total outputs
 
-def create_loss(expected_outputs, created_outputs, logprobs):
-    reshaped = tf.transpose(expected_outputs)
-    reshaped = tf.cast(reshaped, tf.int32)
-    output_yaw = reshaped[0]
-    output_pitch = reshaped[1]
-    output_roll = reshaped[2]
-    output_button = reshaped[3]
+def calculate_loss(self, elements):
+    throttle = elements[0]
+    is_on_ground = elements[1]
+    given_output = elements[2]
+    created_output = elements[3]
+    steer, powerslide, pitch, jump, boost = created_output
 
-    loss = tf.losses.absolute_difference(output_yaw, created_outputs[0], weights=0.5)
-    loss += tf.losses.absolute_difference(output_pitch, created_outputs[1], weights=0.5)
-    loss += tf.losses.absolute_difference(output_roll, created_outputs[2], weights=0.5)
-    loss += tf.losses.mean_squared_error(output_button, created_outputs[3])
+    def output_on_ground():
+        # Throttle
+        output = tf.losses.absolute_difference(throttle, given_output[0])
 
-    cross_entropy_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logprobs[0],
-                                                                        labels=output_yaw)
-    cross_entropy_loss = tf.Print(cross_entropy_loss, [tf.argmax(logprobs[0][0]),
-                                               output_yaw[0]], 'yaw values')
+        # Steer
+        # output += tf.cond(tf.less_equal(tf.abs(steer - given_output[1]), 0.5), lambda: 1, lambda: -1)
+        output += tf.losses.absolute_difference(steer, given_output[1])
 
-    cross_entropy_loss1 = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logprobs[1],
-                                                                        labels=output_pitch)
-    cross_entropy_loss2 = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logprobs[2],
-                                                                         labels=output_roll)
-    cross_entropy_loss3 = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logprobs[3],
-                                                                         labels=output_button)
+        # Powerslide
+        # output += tf.cond(tf.equal(tf.cast(powerslide, tf.float32), given_output[7]), lambda: 1, lambda: -1)
+        output += tf.losses.mean_squared_error(powerslide, given_output[1])
+        return output
 
-    merged_loss = cross_entropy_loss + cross_entropy_loss1 + cross_entropy_loss2 + cross_entropy_loss3
-    merged_loss = tf.Print(merged_loss, [tf.reduce_mean(cross_entropy_loss),
-                                         tf.reduce_mean(cross_entropy_loss1),
-                                         tf.reduce_mean(cross_entropy_loss2),
-                                         tf.reduce_mean(cross_entropy_loss3),], 'losses')
+    def output_off_ground():
+        # Pitch
+        output = tf.losses.absolute_difference(pitch, given_output[2])
+        # output = tf.cond(tf.less_equal(tf.abs(pitch - given_output[2]), 0.5), lambda: 1, lambda: -1)
+        return output
 
-    return loss + merged_loss, merged_loss
+    output = tf.cond(is_on_ground, output_on_ground, output_off_ground)
 
+    # Jump
+    # output += tf.cond(tf.equal(tf.cast(jump, tf.float32), given_output[5]), lambda: 1, lambda: -1)
+    output += tf.losses.mean_squared_error(jump, given_output[5])
 
-def save_replay(model, sess, file_path):
-    dirname = os.path.dirname(file_path)
-    if not os.path.isdir(dirname):
-        os.makedirs(dirname)
-    model.saver.save(sess, file_path)
+    # Boost
+    # output += tf.cond(tf.equal(tf.cast(boost, tf.float32), given_output[6]), lambda: 1, lambda: -1)
+    output += tf.losses.mean_squared_error(boost, given_output[6])
 
+    return [output, elements[1], elements[2], elements[3]]
 
 def run():
     with tf.Session() as sess:
@@ -79,9 +72,9 @@ def run():
         actions = action_handler.ActionHandler(split_mode=True)
 
         model = tutorial_model.TutorialModel(sess, n_input, n_output, action_handler=actions, is_training=True)
-        model.summary_writer = tf.summary.FileWriter(
-            'training/events/tutorial/{}-experiment'.format(model.get_model_name()))
         model.num_layers = 10
+        model.summary_writer = tf.summary.FileWriter(
+            model.get_event_path('events'))
         model.batch_size = batch_size
         model.mini_batch_size = batch_size
 
@@ -90,35 +83,37 @@ def run():
 
         #logits = multilayer_perceptron(input_state)
 
-        model.create_model(input_state)
 
         # the indexes
-        print(model.argmax)
-        created_actions = actions.create_tensorflow_controller_output_from_actions(model.argmax, batch_size)
+        # created_actions = actions.create_tensorflow_controller_output_from_actions(model.argmax, batch_size)
 
-        loss_op, real_output = get_loss(created_actions, game_tick_packet, output_creator)
+        real_output = output_creator.get_output_vector(game_tick_packet)
 
         real_indexes = actions.create_indexes_graph(tf.stack(real_output, axis=1))
 
         model.input = input_state
         reshaped = tf.cast(real_indexes, tf.int32)
         model.taken_actions = reshaped
+        model.create_model()
         model.create_reinforcement_training_model()
+
+        model.create_savers()
 
         # optimizer = tf.train.GradientDescentOptimizer(learning_rate=learning_rate)
 
-        combined_loss_op, cross_entropy_loss = create_loss(real_indexes, model.argmax, model.split_action_scores)
+        #cross_entropy_loss = create_loss(real_indexes, model.argmax, model.split_action_scores)
 
-        combined_loss_op += loss_op
+        # combined_loss_op += loss_op
 
         model_loss = model.get_actor_regularization_loss()
 
-        loss_op = cross_entropy_loss # + model_loss
+        #loss_op = cross_entropy_loss # + model_loss
 
         # train_op = optimizer.minimize(loss_op)
-        init = tf.global_variables_initializer()
 
         start = time.time()
+
+        model.model_file = model.get_model_path('TensorflowTrainer.ckpt')
 
         model.initialize_model()
 
@@ -129,11 +124,13 @@ def run():
         for i in range(total_batches):
             # _, c, total_loss, model_loss =\
             #_, c =\
-            sess.run([model.train_op
+            result, summaries = sess.run([model.train_op,
+                      model.summarize if model.summarize is not None else model.no_op
                              #, tf.reduce_mean(cross_entropy_loss)
                                                      #   , tf.reduce_mean(loss_op), tf.reduce_mean(combined_loss_op), tf.reduce_mean(model_loss)
                                                      ])
-
+            if model.summary_writer is not None:
+                model.summary_writer.add_summary(summaries, i)
             # Display logs per epoch step
             # Compute average loss
             #avg_cost += (c / float(total_batches))
@@ -142,12 +139,9 @@ def run():
                 #  'total loss', total_loss, 'regularization', model_loss
             #      )
             print('batch', i)
-        save_replay(model, sess, model.get_model_path('TensorflowTrainer.ckpt'))
+        model.save_model(model.get_model_path('TensorflowTrainer.ckpt'))
         print('TOTAL COST=', avg_cost)
-        saver = tf.train.Saver()
 
-        saver.save(sess, "./trained_variables/TensorflowTrainer.ckpt")
-        print(sess.run(model.softmax))
         total_time = time.time() - start
         print('total time: ', total_time)
         print('time per batch: ', total_time / (float(total_batches)))

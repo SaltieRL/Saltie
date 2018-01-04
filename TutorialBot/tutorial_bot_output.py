@@ -70,45 +70,7 @@ class TutorialBotOutput:
                                     lambda: (steer, powerslide))
         return [(throttle, steer, powerslide), (is_kickoff, decomposed_elements)]
 
-    def calculate_loss(self, elements):
-        throttle = elements[0]
-        is_on_ground = elements[1]
-        given_output = elements[2]
-        created_output = elements[3]
-        steer, powerslide, pitch, jump, boost = created_output
-
-        def output_on_ground():
-            # Throttle
-            output = tf.losses.absolute_difference(throttle, given_output[0])
-
-            # Steer
-            # output += tf.cond(tf.less_equal(tf.abs(steer - given_output[1]), 0.5), lambda: 1, lambda: -1)
-            output += tf.losses.absolute_difference(steer, given_output[1])
-
-            # Powerslide
-            # output += tf.cond(tf.equal(tf.cast(powerslide, tf.float32), given_output[7]), lambda: 1, lambda: -1)
-            output += tf.losses.mean_squared_error(powerslide, given_output[1])
-            return output
-
-        def output_off_ground():
-            # Pitch
-            output = tf.losses.absolute_difference(pitch, given_output[2])
-            # output = tf.cond(tf.less_equal(tf.abs(pitch - given_output[2]), 0.5), lambda: 1, lambda: -1)
-            return output
-
-        output = tf.cond(is_on_ground, output_on_ground, output_off_ground)
-
-        # Jump
-        # output += tf.cond(tf.equal(tf.cast(jump, tf.float32), given_output[5]), lambda: 1, lambda: -1)
-        output += tf.losses.mean_squared_error(jump, given_output[5])
-
-        # Boost
-        # output += tf.cond(tf.equal(tf.cast(boost, tf.float32), given_output[6]), lambda: 1, lambda: -1)
-        output += tf.losses.mean_squared_error(boost, given_output[6])
-
-        return [output, elements[1], elements[2], elements[3]]
-
-    def get_output_vector(self, values, given_output):
+    def get_output_vector(self, values):
         # Controller inputs
         # throttle = 0 defined in 100
         steer = tf.constant([0.0] * self.batch_size)
@@ -156,8 +118,8 @@ class TutorialBotOutput:
 
         throttle, steer, powerslide = tf.map_fn(self.hand_kickoff, elements)[0]
 
-        elements = [throttle, values.gamecars[0].bOnGround, given_output, (steer, powerslide, pitch, jump, boost)]
+       # elements = [throttle, values.gamecars[0].bOnGround, given_output, (steer, powerslide, pitch, jump, boost)]
 
         output = [throttle, steer, pitch, yaw, roll, jump, tf.cast(boost, tf.float32), powerslide]
-        loss = tf.map_fn(self.calculate_loss, elements)[0]
-        return (loss, output)
+       # loss = tf.map_fn(self.calculate_loss, elements)[0]
+        return output

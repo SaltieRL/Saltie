@@ -1,4 +1,3 @@
-import collections
 from models import base_reinforcement
 from models import base_model
 import numpy as np
@@ -9,7 +8,7 @@ import livedata.live_data_util as live_data_util
 
 class BaseActorCritic(base_reinforcement.BaseReinforcement):
     frames_since_last_random_action = 0
-    network_size = 256
+    network_size = 128
     num_layers = 3
     last_row_variables = None
     actor_last_row_layer = None
@@ -55,7 +54,7 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
         except:
             print('unable to load exploration_factor')
 
-    def create_model(self, input):
+    def _create_model(self, model_input):
         all_variable_list = []
         last_layer_list = []
         with tf.name_scope("predict_actions"):
@@ -142,7 +141,7 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
             return action
 
     def create_layer(self, activation_function, input, layer_number, input_size, output_size, network_prefix,
-                     variable_list=None):
+                     variable_list=None, dropout=True):
         weight_name = network_prefix + "W" + str(layer_number)
         bias_name = network_prefix + "b" + str(layer_number)
         W = tf.get_variable(weight_name, [input_size, output_size],
@@ -153,7 +152,7 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
         if variable_list is not None:
             variable_list.append(W)
             variable_list.append(b)
-        if self.is_training:
+        if self.is_training and dropout:
             layer_output = tf.nn.dropout(layer_output, self.keep_prob)
         self.stored_variables[weight_name] = W
         self.stored_variables[bias_name] = b
@@ -162,12 +161,13 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
     def actor_network(self, input_states, variable_list=None, last_layer_list=None):
         # define policy neural network
         actor_prefix = 'actor'
-        layer1 = self.create_layer(tf.nn.relu6, input_states, 1, self.state_dim, self.network_size, actor_prefix, variable_list)
+        layer1 = self.create_layer(tf.nn.relu6, input_states, 1, self.state_dim, self.network_size, actor_prefix,
+                                   variable_list=variable_list, dropout=False)
         inner_layer = layer1
         print('num layers', self.num_layers)
         for i in range(0, self.num_layers - 2):
             inner_layer = self.create_layer(tf.nn.relu6, inner_layer, i + 2, self.network_size,
-                                            self.network_size, actor_prefix, variable_list)
+                                            self.network_size, actor_prefix, variable_list=variable_list)
         with tf.variable_scope("last_layer"):
             output_layer = self.create_last_layer(tf.nn.sigmoid, inner_layer, self.network_size,
                                                   self.num_actions, actor_prefix, last_layer_list)
@@ -181,7 +181,8 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
         # four sets of actions why not! :)
         critic_layers = self.num_layers
         output_size = 1
-        layer1 = self.create_layer(tf.nn.relu6, input_states, 1, self.state_dim, critic_size, critic_prefix)
+        layer1 = self.create_layer(tf.nn.relu6, input_states, 1, self.state_dim, critic_size, critic_prefix,
+                                   dropout=False)
         inner_layer = layer1
         for i in range(0, critic_layers - 2):
             inner_layer = self.create_layer(tf.nn.relu6, inner_layer, i + 2, critic_size,
@@ -210,7 +211,7 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
         actor_reg_loss = tf.reduce_sum(normalized_variables,
                                        name='actor_reg_loss')
 
-        actor_reg_loss = tf.Print(actor_reg_loss, [actor_reg_loss], 'actor loss')
+        # actor_reg_loss = tf.Print(actor_reg_loss, [actor_reg_loss], 'actor loss')
 
         return actor_reg_loss
 
@@ -233,3 +234,6 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
         reshaped_list = np.reshape(np.array(last_row_variables), [int(len(last_row_variables) / 2), 2])
         self.last_row_variables = reshaped_list.tolist()
         return tf.concat(self.actor_last_row_layer, 1)
+
+    def create_savers(self):
+        self.add_saver('default', self.stored_variables)

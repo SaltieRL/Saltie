@@ -66,13 +66,6 @@ class BaseReinforcement(base_model.BaseModel):
                     self.input_placeholder: np.reshape(np.zeros(206), [1, 206])
                 })
 
-    def create_copy_training_model(self, labels=None, input=None):
-        self.labels = labels
-        self.input = input
-        logits = self.create_model(input)[1]
-        self.action_handler.create
-        return logits, self.input, self.labels
-
     def create_reinforcement_training_model(self):
         """
         Creates a model used for training a bot that will learn through reinforcement
@@ -187,7 +180,8 @@ class BaseReinforcement(base_model.BaseModel):
             self.input_rewards: rewards
         })
 
-
+        if self.summary_writer is not None:
+            self.summary_writer.add_summary(summary_str, self.train_iteration)
 
         return result, summary_str
 

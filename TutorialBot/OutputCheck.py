@@ -53,7 +53,7 @@ class OutputChecks:
 
         input_state, game_tick_packet = self.get_random_data()
         output = self.sess.run(get_output(input_state))
-        bot_output = self.sess.run(self.tutorial_bot.get_output_vector(game_tick_packet, output)[1])
+        bot_output = self.sess.run(self.tutorial_bot.get_output_vector(game_tick_packet))
         transposed = np.matrix.transpose(output)  # transposed[0] gives all the returned values for throttle sorted
         print("Splitting up everything in ranges: [-1, -0.5>, [-0.5, 0>, [0, 0.5>, [0.5, 1] and the second array is for the bot output")
         print("Throttle:  ", np.histogram(transposed[0], [-1.0, -0.5, 0, 0.5, 1])[0])

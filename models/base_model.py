@@ -7,7 +7,7 @@ MODEL_CONFIGURATION_HEADER = 'Model Configuration'
 
 
 class BaseModel:
-
+    savers_map = {}
     batch_size = 20000
     mini_batch_size = 500
     config_file = None
@@ -17,6 +17,8 @@ class BaseModel:
     is_online_training = False
     no_op = tf.no_op()
     train_op = no_op
+    model = None
+    logits = None
 
     """"
     This is a base class for all models It has a couple helper methods but is mainly used to provide a standard
@@ -59,11 +61,6 @@ class BaseModel:
 
         # create variables
         self.stored_variables = self._create_variables()
-
-        # create model
-        self.model, self.logits = self.create_model(self.input_placeholder)
-
-        self.saver = tf.train.Saver(self.stored_variables)
 
     def _create_variables(self):
         with tf.name_scope("model_inputs"):
@@ -122,10 +119,31 @@ class BaseModel:
         labels = None
         return loss, input, labels
 
-    def create_model(self, input):
+    def create_model(self, model_input=None):
         """
         Called to create the model, this is called in the constructor
-        :param input:
+        :param model_input:
+            A Tensor for the input data into the model.
+            if None then a default input is used instead
+        :return:
+            A tensorflow object representing the output of the model
+            This output should be able to be run and create an action
+            And a tensorflow object representing the logits of the model
+            This output should be able to be used in training
+        """
+        # use default in case
+        if model_input is None:
+            safe_input = self.input_placeholder
+        else:
+            safe_input = model_input
+
+        self.model, self.logits = self._create_model(safe_input)
+        return self.model, self.logits
+
+    def _create_model(self, model_input):
+        """
+        Called to create the model, this is called in the constructor
+        :param model_input:
             A placeholder for the input data into the model.
         :return:
             A tensorflow object representing the output of the model
@@ -171,7 +189,7 @@ class BaseModel:
         if os.path.isfile(model_file + '.meta'):
             print('loading existing model')
             try:
-                self.saver.restore(self.sess, os.path.abspath(model_file))
+                self.load_model(os.path.abspath(model_file))
             except Exception as e:
                 self._set_variables()
                 print("Unexpected error loading model:", e)
@@ -203,6 +221,15 @@ class BaseModel:
         dir_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
         return dir_path + "/training/data/" + self.get_model_name() + "/" + filename
 
+    def get_event_path(self, filename):
+        """
+        Creates a path for saving tensorflow events for tensorboard, this puts it in the directory of [get_model_name]
+        :param filename: name of the file being saved
+        :return: The path of the file
+        """
+        dir_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+        return dir_path + "/training/data/events/" + self.get_model_name() + "/" + filename
+
     def _add_summary_writer(self):
         if self.summary_writer is not None:
             self.summarize = tf.summary.merge_all()
@@ -233,8 +260,30 @@ class BaseModel:
         except Exception as e:
             print('unable to load if it should be evaluating')
 
-    def create_model_hash(self):
+    def add_saver(self, name, variable_list):
+        self.savers_map[name] = tf.train.Saver(variable_list)
 
+    def create_savers(self):
+        self.add_saver('default', self.stored_variables)
+
+    def _save_model(self, session, saver, file_path):
+        dirname = os.path.dirname(file_path)
+        if not os.path.isdir(dirname):
+            os.makedirs(dirname)
+        saver.save(session, file_path)
+
+    def save_model(self, model_path):
+        for key in self.savers_map:
+            self._save_model(self.sess, self.savers_map[key], model_path + '-' + key)
+
+    def load_model(self, model_path):
+        for key in self.savers_map:
+            self._load_model(self.sess, self.savers_map[key], model_path + '-' + key)
+
+    def _load_model(self, session, saver, path):
+        saver.restore(session, path)
+
+    def create_model_hash(self):
         # BUF_SIZE is totally arbitrary, change for your app!
         BUF_SIZE = 65536  # lets read stuff in 64kb chunks!
 

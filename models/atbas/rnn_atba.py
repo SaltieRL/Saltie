@@ -34,9 +34,9 @@ class RNNAtba(nnatba.NNAtba):
         super().__init__(session, state_dim, num_actions, player_index, action_handler, is_training,
                          optimizer, summary_writer, summary_every)
 
-    def create_model(self, input):
+    def _create_model(self, model_input):
         self.create_weights()
-        hidden_layers = self.input_encoder(input)
+        hidden_layers = self.input_encoder(model_input)
         hidden_layers = tf.expand_dims(hidden_layers, 0)
         output, last_state = self._build_rnn_graph(inputs=hidden_layers, config=None, is_training=self.is_training)
         with tf.variable_scope('RNN'):

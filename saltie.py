@@ -89,7 +89,6 @@ class Agent:
         if self.model_class is not None:
             self.model_class.config_file = self.config_file
 
-
     def get_model_class(self):
         if self.model_class is None:
             print('Invalid model using default')
