@@ -119,7 +119,6 @@ class ActionHandler:
         # print(controller_option)
         return controller_option
 
-
     def create_tensorflow_controller_output_from_actions(self, action_selection, batch_size=1):
         movement_actions = self.movement_actions
         combo_actions = self.combo_actions
@@ -140,9 +139,9 @@ class ActionHandler:
             roll_actions = movement_actions[2]
 
         # we get the options based on each individual index in the batches.  so this returns batch_size options
-        steer = tf.gather_nd(yaw_actions, tf.stack([indexer, action_selection[0]], axis = 1))
-        pitch = tf.gather_nd(pitch_actions, tf.stack([indexer, action_selection[1]], axis = 1))
-        roll = tf.gather_nd(roll_actions, tf.stack([indexer, action_selection[2]], axis = 1))
+        steer = tf.gather_nd(yaw_actions, tf.stack([indexer, action_selection[0]], axis=1))
+        pitch = tf.gather_nd(pitch_actions, tf.stack([indexer, action_selection[1]], axis=1))
+        roll = tf.gather_nd(roll_actions, tf.stack([indexer, action_selection[2]], axis=1))
 
         button_combo = tf.gather_nd(combo_actions, tf.stack([indexer, action_selection[3]], axis=1))
         new_shape = [self.action_list_size, batch_size]

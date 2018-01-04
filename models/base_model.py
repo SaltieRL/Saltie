@@ -185,7 +185,7 @@ class BaseModel:
             self.model_file = model_file
         else:
             model_file = self.model_file
-        print(model_file)
+        print('looking for ' + model_file + '.keys')
         if os.path.isfile(model_file + '.keys'):
             print('loading existing model')
             try:
@@ -276,7 +276,7 @@ class BaseModel:
 
     def save_model(self, model_path):
         self._create_model_path(model_path)
-        file_object = open(model_path + '.keys', 'w')
+        file_object = open(model_path + '.ckpt.keys', 'w')
         for key in self.savers_map:
             file_object.write(key)
             self._save_model(self.sess, self.savers_map[key], model_path + '-' + key)

@@ -203,6 +203,7 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
                                 for x in variables]
 
         reg_loss = tf.reduce_sum(normalized_variables, name=(prefix + '_reg_loss'))
+        tf.summary.scalar(prefix + '_reg_loss', reg_loss)
         return reg_loss
 
     def create_last_layer(self, activation_function, inner_layer, network_size, num_actions,

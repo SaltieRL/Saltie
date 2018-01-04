@@ -1,12 +1,13 @@
 import tensorflow as tf
 import time
-import os
 from conversions import input_formatter
 from TutorialBot import tensorflow_input_formatter
 from TutorialBot import tutorial_bot_output
 from TutorialBot import RandomTFArray as r
 from models.actor_critic import tutorial_model
 from modelHelpers import action_handler
+from TutorialBot import OutputCheck
+from tqdm import tqdm
 
 
 def get_random_data(packet_generator, input_formatter):
@@ -16,9 +17,9 @@ def get_random_data(packet_generator, input_formatter):
     return output_array, game_tick_packet
 
 
-learning_rate = 0.01
+learning_rate = 0.1
 total_batches = 1000
-batch_size = 1000
+batch_size = 10000
 display_step = 1
 
 # Network Parameters
@@ -74,7 +75,7 @@ def run():
         model = tutorial_model.TutorialModel(sess, n_input, n_output, action_handler=actions, is_training=True)
         model.num_layers = 10
         model.summary_writer = tf.summary.FileWriter(
-            model.get_event_path('events'))
+            model.get_event_path('events2'))
         model.batch_size = batch_size
         model.mini_batch_size = batch_size
 
@@ -82,7 +83,6 @@ def run():
         input_state, game_tick_packet = get_random_data(packet_generator, formatter)
 
         #logits = multilayer_perceptron(input_state)
-
 
         # the indexes
         # created_actions = actions.create_tensorflow_controller_output_from_actions(model.argmax, batch_size)
@@ -99,53 +99,30 @@ def run():
 
         model.create_savers()
 
-        # optimizer = tf.train.GradientDescentOptimizer(learning_rate=learning_rate)
-
-        #cross_entropy_loss = create_loss(real_indexes, model.argmax, model.split_action_scores)
-
-        # combined_loss_op += loss_op
-
-        model_loss = model.get_regularization_loss()
-
-        #loss_op = cross_entropy_loss # + model_loss
-
-        # train_op = optimizer.minimize(loss_op)
-
         start = time.time()
 
-        model.model_file = model.get_model_path('TensorflowTrainer.ckpt')
+        checks = OutputCheck.OutputChecks(1000, model, sess, actions)
 
         model.initialize_model()
 
+        # untrained bot
+        checks.get_amounts()
+
         # RUNNING
-        # Training cycle
-        c = 0.
-        avg_cost = 0.
-        for i in range(total_batches):
-            # _, c, total_loss, model_loss =\
-            #_, c =\
+        for i in tqdm(range(total_batches)):
             result, summaries = sess.run([model.train_op,
-                      model.summarize if model.summarize is not None else model.no_op
-                             #, tf.reduce_mean(cross_entropy_loss)
-                                                     #   , tf.reduce_mean(loss_op), tf.reduce_mean(combined_loss_op), tf.reduce_mean(model_loss)
-                                                     ])
+                      model.summarize if model.summarize is not None else model.no_op])
+
             if model.summary_writer is not None:
                 model.summary_writer.add_summary(summaries, i)
-            # Display logs per epoch step
-            # Compute average loss
-            #avg_cost += (c / float(total_batches))
-            # Display logs per epoch step
-            #print("Current Cost = ", c,
-                #  'total loss', total_loss, 'regularization', model_loss
-            #      )
-            print('batch', i)
-        model.save_model(model.get_model_path('TensorflowTrainer.ckpt'))
-        print('TOTAL COST=', avg_cost)
+        model.save_model(model.get_model_path(model.get_default_file_name()))
 
         total_time = time.time() - start
         print('total time: ', total_time)
         print('time per batch: ', total_time / (float(total_batches)))
 
+        checks = OutputCheck.OutputChecks(1000, model, sess, actions)
+        checks.get_amounts()
 
 if __name__ == '__main__':
     run()

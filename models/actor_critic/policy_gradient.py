@@ -4,8 +4,6 @@ from modelHelpers import tensorflow_reward_manager
 
 
 class PolicyGradient(BaseActorCritic):
-
-
     max_gradient = 1
 
     def __init__(self, session,
@@ -40,7 +38,7 @@ class PolicyGradient(BaseActorCritic):
         advantages = self.create_advantages()
 
         actor_reg_loss = self.get_regularization_loss(self.all_but_last_actor_layer, prefix="actor_hidden")
-        tf.summary.scalar("actor_reg_loss", actor_reg_loss)
+
 
         result = self.action_handler.run_func_on_split_tensors([logprobs,
                                                                 taken_actions,

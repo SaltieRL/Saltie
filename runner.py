@@ -32,7 +32,7 @@ USER_CONFIGURATION_HEADER = 'User Info'
 
 try:
     import config
-    server_manager = ServerConverter(config.UPLOAD_SERVER, True, True, True, username='Sciguymjm')
+    server_manager = ServerConverter(config.UPLOAD_SERVER, False, False, False, username='Sciguymjm')
 except ImportError:
     server_manager = ServerConverter(config.UPLOAD_SERVER, False, False, False)
     print('config.py not present, cannot upload replays to collective server')
