@@ -186,7 +186,7 @@ class BaseModel:
         else:
             model_file = self.model_file
         print(model_file)
-        if os.path.isfile(model_file + '.meta'):
+        if os.path.isfile(model_file + '.keys'):
             print('loading existing model')
             try:
                 self.load_model(os.path.abspath(model_file))
@@ -266,17 +266,24 @@ class BaseModel:
     def create_savers(self):
         self.add_saver('default', self.stored_variables)
 
-    def _save_model(self, session, saver, file_path):
+    def _create_model_path(self, file_path):
         dirname = os.path.dirname(file_path)
         if not os.path.isdir(dirname):
             os.makedirs(dirname)
+
+    def _save_model(self, session, saver, file_path):
         saver.save(session, file_path)
 
     def save_model(self, model_path):
+        self._create_model_path(model_path)
+        file_object = open(model_path + '.keys', 'w')
         for key in self.savers_map:
+            file_object.write(key)
             self._save_model(self.sess, self.savers_map[key], model_path + '-' + key)
+        file_object.close()
 
     def load_model(self, model_path):
+        # TODO read keys
         for key in self.savers_map:
             self._load_model(self.sess, self.savers_map[key], model_path + '-' + key)
 
