@@ -323,13 +323,13 @@ class ActionHandler:
                     continue
             print('tensor ignored', tensor)
 
-        with tf.name_scope("split1"):
+        with tf.name_scope("steer"):
             result1 = split_func(*output1)
-        with tf.name_scope("split2"):
+        with tf.name_scope("pitch"):
             result2 = split_func(*output2)
-        with tf.name_scope("split3"):
+        with tf.name_scope("roll"):
             result3 = split_func(*output3)
-        with tf.name_scope("split4"):
+        with tf.name_scope("combo"):
             result4 = split_func(*output4)
 
         if return_as_list:
