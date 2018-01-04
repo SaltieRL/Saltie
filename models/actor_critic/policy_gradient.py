@@ -39,12 +39,11 @@ class PolicyGradient(BaseActorCritic):
     def create_actor_gradients(self, logprobs, taken_actions):
         advantages = self.create_advantages()
 
-        actor_reg_loss = self.get_actor_regularization_loss()
+        actor_reg_loss = self.get_regularization_loss(self.all_but_last_actor_layer, prefix="actor_hidden")
         tf.summary.scalar("actor_reg_loss", actor_reg_loss)
 
         result = self.action_handler.run_func_on_split_tensors([logprobs,
                                                                 taken_actions,
-                                                                actor_reg_loss,
                                                                 advantages,
                                                                 self.last_row_variables],
                                                                self.create_split_actor_loss,
@@ -56,9 +55,11 @@ class PolicyGradient(BaseActorCritic):
             merged_gradient_list += item[0]
             total_loss += item[1]
 
+        total_loss += actor_reg_loss
+
         total_loss = tf.identity(total_loss, 'total_actor_loss')
 
-        all_but_last_row = self.all_but_last_layer
+        all_but_last_row = self.all_but_last_actor_layer
 
         actor_gradients = self.optimizer.compute_gradients(total_loss,
                                                            all_but_last_row)
@@ -69,7 +70,7 @@ class PolicyGradient(BaseActorCritic):
 
         return merged_gradient_list, total_loss, actor_reg_loss
 
-    def create_split_actor_loss(self, logprobs, taken_actions, actor_reg_loss, advantages, actor_network_variables):
+    def create_split_actor_loss(self, logprobs, taken_actions, advantages, actor_network_variables):
         if len(taken_actions.get_shape()) == 2:
             taken_actions = tf.squeeze(taken_actions, axis=[1])
 
@@ -83,6 +84,8 @@ class PolicyGradient(BaseActorCritic):
                 tf.summary.scalar("actor_x_entropy_loss", pg_loss)
             else:
                 tf.summary.scalar("actor_x_entropy_loss", tf.reduce_mean(pg_loss))
+
+            actor_reg_loss = self.get_regularization_loss(actor_network_variables, prefix="actor")
 
             actor_loss = pg_loss + actor_reg_loss * self.reg_param
 

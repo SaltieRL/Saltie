@@ -105,7 +105,7 @@ def run():
 
         # combined_loss_op += loss_op
 
-        model_loss = model.get_actor_regularization_loss()
+        model_loss = model.get_regularization_loss()
 
         #loss_op = cross_entropy_loss # + model_loss
 
