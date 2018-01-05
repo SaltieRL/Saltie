@@ -140,6 +140,7 @@ class TensorflowPacketGenerator:
         car.bOnGround = is_on_ground
 
         car.bJumped = tf.round(tf.random_uniform(shape=[batch_size, ], maxval=0.6, dtype=tf.float32))  # Jumped
+        car.bSuperSonic = self.false # Jumped
 
         car.bDoubleJumped = tf.round(
             tf.random_uniform(shape=[batch_size, ], maxval=0.55, dtype=tf.float32))  # Double jumped
@@ -177,6 +178,8 @@ class TensorflowPacketGenerator:
         car.bDemolished = self.false  # Demolished
 
         car.bOnGround = is_on_ground
+
+        car.bSuperSonic = self.false # Jumped
 
         car.bJumped = self.false  # Jumped
 

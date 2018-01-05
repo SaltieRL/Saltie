@@ -74,7 +74,7 @@ def run():
         model = tutorial_model.TutorialModel(sess, n_input, n_output, action_handler=actions, is_training=True)
         model.num_layers = 10
         model.summary_writer = tf.summary.FileWriter(
-            model.get_event_path('events7'))
+            model.get_event_path('events8'))
         model.batch_size = batch_size
         model.mini_batch_size = batch_size
 

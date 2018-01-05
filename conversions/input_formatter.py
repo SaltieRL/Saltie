@@ -3,7 +3,7 @@ import game_data_struct
 
 
 def get_state_dim_with_features():
-    return 206
+    return 218
 
 
 class InputFormatter:
@@ -80,7 +80,7 @@ class InputFormatter:
         """
         :return: An array representing a car with no data
         """
-        return [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+        return [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
 
     def get_car_info(self, game_tick_packet, index):
         player_x = game_tick_packet.gamecars[index].Location.X
@@ -95,16 +95,20 @@ class InputFormatter:
         player_angular_speed_x = game_tick_packet.gamecars[index].AngularVelocity.X
         player_angular_speed_y = game_tick_packet.gamecars[index].AngularVelocity.Y
         player_angular_speed_z = game_tick_packet.gamecars[index].AngularVelocity.Z
+        player_on_ground = game_tick_packet.gamecars[self.index].bOnGround
+        player_supersonic = game_tick_packet.gamecars[self.index].bSuperSonic
         player_demolished = game_tick_packet.gamecars[index].bDemolished
         player_jumped = game_tick_packet.gamecars[index].bJumped
         player_double_jumped = game_tick_packet.gamecars[index].bDoubleJumped
         player_team = game_tick_packet.gamecars[index].Team
         player_boost = game_tick_packet.gamecars[index].Boost
         last_touched_ball = self.get_last_touched_ball(game_tick_packet.gamecars[index], game_tick_packet.gameball.LatestTouch)
-        return [player_x, player_y, player_z, player_pitch, player_yaw, player_roll,
+        car_array = [player_x, player_y, player_z, player_pitch, player_yaw, player_roll,
                 player_speed_x, player_speed_y, player_speed_z, player_angular_speed_x,
-                player_angular_speed_y, player_angular_speed_z, player_demolished, player_jumped,
+                player_angular_speed_y, player_angular_speed_z,
+                player_on_ground, player_supersonic, player_demolished, player_jumped,
                 player_double_jumped, player_team, player_boost, last_touched_ball]
+        return car_array
 
     def get_last_touched_ball(self, car, latest_touch):
         return (car.wName == latest_touch.wPlayerName)
