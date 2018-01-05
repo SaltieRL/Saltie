@@ -43,6 +43,8 @@ class RewardTrainer:
         self.agent.summary_writer = tf.summary.FileWriter(
             'training/events/{}-experiment'.format(self.agent.get_model_name()))
 
+        self.agent.create_model()
+
         self.agent.create_reinforcement_training_model()
 
         self.agent.initialize_model()

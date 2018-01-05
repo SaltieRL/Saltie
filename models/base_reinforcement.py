@@ -66,17 +66,6 @@ class BaseReinforcement(base_model.BaseModel):
                     self.input_placeholder: np.reshape(np.zeros(206), [1, 206])
                 })
 
-    def create_copy_training_model(self):
-        self.labels = tf.placeholder(tf.int64, shape=(None, self.num_actions))
-
-        cross_entropy = self.action_handler.get_cross_entropy_with_logits(
-            labels=self.labels, logits=self.logits, name='xentropy')
-        loss = tf.reduce_mean(cross_entropy, name='xentropy_mean')
-
-        self.train_op = self.optimizer.minimize(loss)
-
-        return loss, self.input, self.labels
-
     def create_reinforcement_training_model(self):
         """
         Creates a model used for training a bot that will learn through reinforcement
@@ -143,39 +132,20 @@ class BaseReinforcement(base_model.BaseModel):
         return discounted_rewards
 
     def update_model(self):
-        N = len(self.state_buffer)
-        r = 0  # use discounted reward to approximate Q value
-
-        if N == 0:
+        if len(self.state_buffer) == 0:
             return
-
-        # compute discounted future rewards
-        # discounted_rewards = np.zeros(N)
-        # for t in reversed(range(N)):
-        #    # future discounted reward from now on
-        #    r = self.reward_buffer[t] + self.discount_factor * r
-        #    discounted_rewards[t] = r
-
         # whether to calculate summaries
-        calculate_summaries = self.summarize is not None and self.summary_writer is not None and self.train_iteration % self.summary_every == 0
+        calculate_summaries = (self.summarize is not None and self.summary_writer is not None and
+                               self.train_iteration % self.summary_every == 0)
 
         # update policy network with the rollout in batches
-
-        # prepare inputs
-        # input_states = self.state_buffer[t][np.newaxis, :]
-        # actions = np.array([self.action_buffer[t]])
-        # rewards = np.array([discounted_rewards[t]])
-
         input_states = np.array(self.state_buffer)
         actions = np.array(self.action_buffer)
-        # rewards = np.array(self.reward_buffer).reshape((len(self.reward_buffer), 1))
         rewards = None
-        result, summary_str = self.run_train_step(calculate_summaries, input_states, actions, rewards)
+        self.run_train_step(calculate_summaries, input_states, actions, rewards)
 
         self.anneal_exploration()
         self.train_iteration += 1
-
-        # print(self.train_iteration)
 
         # clean up
         self.clean_up()
@@ -191,7 +161,8 @@ class BaseReinforcement(base_model.BaseModel):
             self.input_rewards: rewards
         })
 
-
+        if self.summary_writer is not None:
+            self.summary_writer.add_summary(summary_str, self.train_iteration)
 
         return result, summary_str
 

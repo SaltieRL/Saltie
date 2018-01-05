@@ -19,9 +19,13 @@ https://github.com/drssoccer55/RLBot/wiki/Setup-Instructions-%28current%29
 *Note: if you only want to collect data or run the bot you can run it on CPU version instead.
 
 After installing tensorflow (which we recommend via pip3)
-You most install a library called requests
+You must install a library called requests
 
 `pip3 install requests`
+
+We use a library called tqdm for printing out timing info
+
+`pip3 install tqdm`
 
 
 If you only want to help train and can not generate data you must have an Nvidia GPU and Ubuntu/linux

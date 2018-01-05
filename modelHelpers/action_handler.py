@@ -85,6 +85,7 @@ class ActionHandler:
         boost = [True, False]
         handbrake = [True, False]
         action_list = [throttle, jump, boost, handbrake]
+        self.action_list_size = len(action_list)
         # 24 + 5 + 5 + 5 = 39
         button_combo = list(itertools.product(*action_list))
         actions = []
@@ -92,6 +93,12 @@ class ActionHandler:
         actions.append(steer)
         actions.append(pitch)
         actions.append(roll)
+        self.movement_actions = tf.constant(np.array(actions), shape=[3,5])
+        self.yaw_actions = self.movement_actions[0]
+        self.pitch_actions = self.movement_actions[1]
+        self.roll_actions = self.movement_actions[2]
+        self.combo_actions = tf.constant(button_combo)
+        self.action_list_names = ['steer', 'pitch', 'yaw', 'combo']
         actions.append(button_combo)
         for i in actions:
             split_actions_sizes.append(len(i))
@@ -112,6 +119,42 @@ class ActionHandler:
         controller_option = [throttle, steer, pitch, steer, roll, jump, boost, handbrake]
         # print(controller_option)
         return controller_option
+
+    def create_tensorflow_controller_output_from_actions(self, action_selection, batch_size=1):
+        movement_actions = self.movement_actions
+        combo_actions = self.combo_actions
+        indexer = tf.constant(1, dtype=tf.int32)
+        action_selection = tf.cast(action_selection, tf.int32)
+        if batch_size > 1:
+            movement_actions = tf.expand_dims(movement_actions, 0)
+            multiplier = tf.constant([int(batch_size), 1, 1])
+            movement_actions = tf.tile(movement_actions, multiplier)
+            combo_actions = tf.tile(tf.expand_dims(combo_actions, 0), multiplier)
+            indexer = tf.constant(np.arange(0, batch_size, 1), dtype=tf.int32)
+            yaw_actions = tf.squeeze(tf.slice(movement_actions, [0, 0, 0], [-1, 1, -1]))
+            pitch_actions = tf.squeeze(tf.slice(movement_actions, [0, 1, 0], [-1, 1, -1]))
+            roll_actions = tf.squeeze(tf.slice(movement_actions, [0, 2, 0], [-1, 1, -1]))
+        else:
+            yaw_actions = movement_actions[0]
+            pitch_actions = movement_actions[1]
+            roll_actions = movement_actions[2]
+
+        # we get the options based on each individual index in the batches.  so this returns batch_size options
+        steer = tf.gather_nd(yaw_actions, tf.stack([indexer, action_selection[0]], axis=1))
+        pitch = tf.gather_nd(pitch_actions, tf.stack([indexer, action_selection[1]], axis=1))
+        roll = tf.gather_nd(roll_actions, tf.stack([indexer, action_selection[2]], axis=1))
+
+        button_combo = tf.gather_nd(combo_actions, tf.stack([indexer, action_selection[3]], axis=1))
+        new_shape = [self.action_list_size, batch_size]
+        button_combo = tf.reshape(button_combo, new_shape)
+        throttle = button_combo[0]
+        jump = button_combo[1]
+        boost = button_combo[2]
+        handbrake = button_combo[3]
+        controller_option = [throttle, steer, pitch, steer, roll, jump, boost, handbrake]
+        controller_option = [tf.cast(option, tf.float32) for option in controller_option]
+        # print(controller_option)
+        return tf.stack(controller_option, axis=1)
 
     def create_action_label(self, real_action):
         if self.split_mode:
@@ -240,45 +283,53 @@ class ActionHandler:
                     output2.append(tensor[5:10])
                     output3.append(tensor[10:15])
                     output4.append(tensor[15:])
+                    continue
                 else:
                     output1.append(tensor[0])
                     output2.append(tensor[1])
                     output3.append(tensor[2])
                     output4.append(tensor[3])
+                    continue
             else:
                 if len(tensor.get_shape()) == 0:
                     output1.append(tf.identity(tensor, name='copy1'))
                     output2.append(tf.identity(tensor, name='copy2'))
                     output3.append(tf.identity(tensor, name='copy3'))
                     output4.append(tf.identity(tensor, name='copy4'))
+                    continue
                 elif tensor.get_shape()[0] == self.get_action_size():
                     output1.append(tf.slice(tensor, [0], [self.range_size]))
                     output2.append(tf.slice(tensor, [self.range_size], [self.range_size]))
                     output3.append(tf.slice(tensor, [self.range_size * 2], [self.range_size]))
                     output4.append(tf.slice(tensor, [self.range_size * 3], [24]))
+                    continue
                 elif tensor.get_shape()[1] == self.get_action_size():
                     output1.append(tf.slice(tensor, [0, 0], [-1, self.range_size]))
                     output2.append(tf.slice(tensor, [0, self.range_size], [-1, self.range_size]))
                     output3.append(tf.slice(tensor, [0, self.range_size * 2], [-1, self.range_size]))
                     output4.append(tf.slice(tensor, [0, self.range_size * 3], [-1, 24]))
+                    continue
                 elif tensor.get_shape()[1] == 4:
                     output1.append(tf.slice(tensor, [0, 0], [-1, 1]))
                     output2.append(tf.slice(tensor, [0, 1], [-1, 1]))
                     output3.append(tf.slice(tensor, [0, 2], [-1, 1]))
                     output4.append(tf.slice(tensor, [0, 3], [-1, 1]))
+                    continue
                 elif tensor.get_shape()[1] == 1:
                     output1.append(tf.identity(tensor, name='copy1'))
                     output2.append(tf.identity(tensor, name='copy2'))
                     output3.append(tf.identity(tensor, name='copy3'))
                     output4.append(tf.identity(tensor, name='copy4'))
+                    continue
+            print('tensor ignored', tensor)
 
-        with tf.name_scope("split1"):
+        with tf.name_scope("steer"):
             result1 = split_func(*output1)
-        with tf.name_scope("split2"):
+        with tf.name_scope("pitch"):
             result2 = split_func(*output2)
-        with tf.name_scope("split3"):
+        with tf.name_scope("roll"):
             result3 = split_func(*output3)
-        with tf.name_scope("split4"):
+        with tf.name_scope("combo"):
             result4 = split_func(*output4)
 
         if return_as_list:

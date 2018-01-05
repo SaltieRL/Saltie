@@ -63,9 +63,12 @@ class InputFormatter:
         self.last_total_score = total_score
         # extra_features = feature_creator.get_extra_features(game_tick_packet, self.index)
 
-        return np.array(game_info + score_info + player_car + ball_data +
-                        self.flattenArrays(team_members) + self.flattenArrays(enemies) + boost_info, dtype=np.float32), \
+        return self.create_result_array(game_info + score_info + player_car + ball_data +
+                        self.flattenArrays(team_members) + self.flattenArrays(enemies) + boost_info), \
                []
+
+    def create_result_array(self, array):
+        return np.array(array, dtype=np.float32)
 
     def get_player_goals(self, game_tick_packet, index):
         return game_tick_packet.gamecars[index].Score.Goals
@@ -83,9 +86,9 @@ class InputFormatter:
         player_x = game_tick_packet.gamecars[index].Location.X
         player_y = game_tick_packet.gamecars[index].Location.Y
         player_z = game_tick_packet.gamecars[index].Location.Z
-        player_pitch = float(game_tick_packet.gamecars[index].Rotation.Pitch)
-        player_yaw = float(game_tick_packet.gamecars[index].Rotation.Yaw)
-        player_roll = float(game_tick_packet.gamecars[index].Rotation.Roll)
+        player_pitch = game_tick_packet.gamecars[index].Rotation.Pitch
+        player_yaw = game_tick_packet.gamecars[index].Rotation.Yaw
+        player_roll = game_tick_packet.gamecars[index].Rotation.Roll
         player_speed_x = game_tick_packet.gamecars[index].Velocity.X
         player_speed_y = game_tick_packet.gamecars[index].Velocity.Y
         player_speed_z = game_tick_packet.gamecars[index].Velocity.Z
@@ -97,12 +100,14 @@ class InputFormatter:
         player_double_jumped = game_tick_packet.gamecars[index].bDoubleJumped
         player_team = game_tick_packet.gamecars[index].Team
         player_boost = game_tick_packet.gamecars[index].Boost
-        last_touched_ball = (game_tick_packet.gamecars[index].wName ==
-                                game_tick_packet.gameball.LatestTouch.wPlayerName)
+        last_touched_ball = self.get_last_touched_ball(game_tick_packet.gamecars[index], game_tick_packet.gameball.LatestTouch)
         return [player_x, player_y, player_z, player_pitch, player_yaw, player_roll,
                 player_speed_x, player_speed_y, player_speed_z, player_angular_speed_x,
                 player_angular_speed_y, player_angular_speed_z, player_demolished, player_jumped,
                 player_double_jumped, player_team, player_boost, last_touched_ball]
+
+    def get_last_touched_ball(self, car, latest_touch):
+        return (car.wName == latest_touch.wPlayerName)
 
     def get_game_info(self, game_tick_packet):
         game_ball_hit = game_tick_packet.gameInfo.bBallHasBeenHit
@@ -119,9 +124,9 @@ class InputFormatter:
         ball_x = game_tick_packet.gameball.Location.X
         ball_y = game_tick_packet.gameball.Location.Y
         ball_z = game_tick_packet.gameball.Location.Z
-        ball_pitch = float(game_tick_packet.gameball.Rotation.Pitch)
-        ball_yaw = float(game_tick_packet.gameball.Rotation.Yaw)
-        ball_roll = float(game_tick_packet.gameball.Rotation.Roll)
+        ball_pitch = game_tick_packet.gameball.Rotation.Pitch
+        ball_yaw = game_tick_packet.gameball.Rotation.Yaw
+        ball_roll = game_tick_packet.gameball.Rotation.Roll
         ball_speed_x = game_tick_packet.gameball.Velocity.X
         ball_speed_y = game_tick_packet.gameball.Velocity.Y
         ball_speed_z = game_tick_packet.gameball.Velocity.Z

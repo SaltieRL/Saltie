@@ -53,6 +53,8 @@ class Agent:
 
         self.model.is_online_training = self.is_online_training
 
+        self.model.create_model()
+
         if self.model.is_training and self.model.is_online_training:
             self.model.create_reinforcement_training_model()
 
@@ -88,7 +90,6 @@ class Agent:
                 self.model_class = class_group[1]
         if self.model_class is not None:
             self.model_class.config_file = self.config_file
-
 
     def get_model_class(self):
         if self.model_class is None:

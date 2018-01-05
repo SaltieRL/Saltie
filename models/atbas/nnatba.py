@@ -28,9 +28,9 @@ class NNAtba(base_model.BaseModel):
         super().__init__(session, state_dim, num_actions, player_index, action_handler, is_training,
                          optimizer, summary_writer, summary_every)
 
-    def create_model(self, input):
+    def _create_model(self, model_input):
         self.create_weights()
-        logits = self.encoder(input)
+        logits = self.encoder(model_input)
         return self.action_handler.create_model_output(logits), logits
 
     def create_weights(self):
