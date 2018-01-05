@@ -54,12 +54,14 @@ class InputFormatter:
         ball_data = self.get_ball_info(game_tick_packet)
         game_info = self.get_game_info(game_tick_packet)
         boost_info = self.get_boost_info(game_tick_packet)
-        score_info = self.get_score_info(game_tick_packet.gamecars[self.index].Score)
-        total_score = enemyTeamScore - ownTeamScore
+
         # we subtract so that when they score it becomes negative for this frame
         # and when we score it is positive
+        total_score = enemyTeamScore - ownTeamScore
         diff_in_score = self.last_total_score - total_score
-        score_info.append(diff_in_score)
+
+        score_info = self.get_score_info(game_tick_packet.gamecars[self.index].Score, diff_in_score)
+
         self.last_total_score = total_score
         # extra_features = feature_creator.get_extra_features(game_tick_packet, self.index)
 
@@ -164,7 +166,7 @@ class InputFormatter:
             game_inputs.append(game_tick_packet.gameBoosts[i].Timer)
         return game_inputs
 
-    def get_score_info(self, Score):
+    def get_score_info(self, Score, diff_in_score):
         score = Score.Score
         goals = Score.Goals
         own_goals = Score.OwnGoals
@@ -173,7 +175,7 @@ class InputFormatter:
         shots = Score.Shots
         demolitions = Score.Demolitions
 
-        return [score, goals, own_goals, assists, saves, shots, demolitions]
+        return [score, goals, own_goals, assists, saves, shots, demolitions, diff_in_score]
 
     def flattenArrays(self, array_of_array):
         """

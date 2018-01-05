@@ -1,7 +1,6 @@
 import ctypes
 from datetime import datetime
 import gzip
-import hashlib
 import importlib
 import mmap
 import os
@@ -15,8 +14,8 @@ import game_data_struct as gd
 import rate_limiter
 
 
-from conversions import input_formatter, binary_converter as compressor
-
+from conversions import binary_converter as compressor
+from conversions.input import input_formatter
 
 OUTPUT_SHARED_MEMORY_TAG = 'Local\\RLBotOutput'
 INPUT_SHARED_MEMORY_TAG = 'Local\\RLBotInput'

@@ -1,5 +1,4 @@
-from conversions import output_formatter
-from conversions.input_formatter import get_state_dim_with_features
+from conversions.input.input_formatter import get_state_dim_with_features
 from modelHelpers import reward_manager
 import tensorflow as tf
 
