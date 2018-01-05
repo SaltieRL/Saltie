@@ -3,10 +3,10 @@ import time
 from conversions import input_formatter
 from TutorialBot import tensorflow_input_formatter
 from TutorialBot import tutorial_bot_output
-from TutorialBot import RandomTFArray as r
+from TutorialBot import random_packet_creator as r
 from models.actor_critic import tutorial_model
 from modelHelpers import action_handler
-from TutorialBot import OutputCheck
+from trainer.utils import controller_statistics
 from tqdm import tqdm
 
 
@@ -17,9 +17,9 @@ def get_random_data(packet_generator, input_formatter):
     return output_array, game_tick_packet
 
 
-learning_rate = 0.1
-total_batches = 1000
-batch_size = 10000
+learning_rate = 0.3
+total_batches = 5000
+batch_size = 2000
 display_step = 1
 
 # Network Parameters
@@ -75,7 +75,7 @@ def run():
         model = tutorial_model.TutorialModel(sess, n_input, n_output, action_handler=actions, is_training=True)
         model.num_layers = 10
         model.summary_writer = tf.summary.FileWriter(
-            model.get_event_path('events2'))
+            model.get_event_path('events7'))
         model.batch_size = batch_size
         model.mini_batch_size = batch_size
 
@@ -101,7 +101,7 @@ def run():
 
         start = time.time()
 
-        checks = OutputCheck.OutputChecks(1000, model, sess, actions)
+        checks = controller_statistics.OutputChecks(batch_size, model, sess, actions)
 
         model.initialize_model()
 
@@ -115,13 +115,15 @@ def run():
 
             if model.summary_writer is not None:
                 model.summary_writer.add_summary(summaries, i)
+            if ((i + 1) * batch_size) % 100000 == 0:
+                model.save_model(model.get_model_path(model.get_default_file_name()))
         model.save_model(model.get_model_path(model.get_default_file_name()))
 
         total_time = time.time() - start
         print('total time: ', total_time)
         print('time per batch: ', total_time / (float(total_batches)))
 
-        checks = OutputCheck.OutputChecks(1000, model, sess, actions)
+        checks = controller_statistics.OutputChecks(batch_size, model, sess, actions)
         checks.get_amounts()
 
 if __name__ == '__main__':

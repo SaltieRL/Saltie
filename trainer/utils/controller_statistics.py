@@ -1,4 +1,4 @@
-from TutorialBot import RandomTFArray, tensorflow_input_formatter, tutorial_bot_output
+from TutorialBot import random_packet_creator, tensorflow_input_formatter, tutorial_bot_output
 import numpy as np
 
 
@@ -7,7 +7,7 @@ class OutputChecks:
         self.sess = tfsession
         self.packets = packets
         self.formatter = tensorflow_input_formatter.TensorflowInputFormatter(0, 0, packets)
-        self.packet_generator = RandomTFArray.TensorflowPacketGenerator(packets)
+        self.packet_generator = random_packet_creator.TensorflowPacketGenerator(packets)
         self.tutorial_bot = tutorial_bot_output.TutorialBotOutput(packets)
         self.model = model
         self.actionHandler = actionHandler

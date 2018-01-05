@@ -98,6 +98,7 @@ class ActionHandler:
         self.pitch_actions = self.movement_actions[1]
         self.roll_actions = self.movement_actions[2]
         self.combo_actions = tf.constant(button_combo)
+        self.action_list_names = ['steer', 'pitch', 'yaw', 'combo']
         actions.append(button_combo)
         for i in actions:
             split_actions_sizes.append(len(i))
