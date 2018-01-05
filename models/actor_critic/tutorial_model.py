@@ -21,8 +21,6 @@ class TutorialModel(PolicyGradient):
                          optimizer, summary_writer, summary_every, discount_factor)
 
     def create_training_op(self, logprobs, labels):
-        labels = tf.Print(labels, [labels[0][0]], 'correct steering label sample')
-        logprobs = tf.Print(logprobs, [self.argmax[0][0]], 'steering value')
         actor_gradients, actor_loss, actor_reg_loss = self.create_actor_gradients(logprobs, labels)
 
         tf.summary.scalar("total_reg_loss", actor_reg_loss)
@@ -32,7 +30,9 @@ class TutorialModel(PolicyGradient):
     def create_advantages(self):
         return tf.constant(1.0)
 
-    def calculate_loss_of_actor(self, cross_entropy_loss):
+    def calculate_loss_of_actor(self, cross_entropy_loss, wrongness, index):
+        if self.action_handler.action_list_names[index] != 'combo':
+            return cross_entropy_loss * wrongness, False
         return cross_entropy_loss, False
 
     def actor_network(self, input_states, variable_list=None, last_layer_list=None):
