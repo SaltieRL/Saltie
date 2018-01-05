@@ -27,6 +27,7 @@ class ActionMap:
 
 class ActionHandler:
     range_size = 5
+    action_list_names = ['actions']
 
     def __init__(self, split_mode=False):
         self.split_mode = split_mode

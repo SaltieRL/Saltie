@@ -19,6 +19,7 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
     first_layer_name = 'first_layer'
     hidden_layer_name = 'hidden_layer'
     last_layer_name = 'last_layer'
+    split_hidden_layer_name = "split_hidden_layer"
 
     def __init__(self, session,
                  state_dim,
@@ -65,7 +66,7 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
 
     def _create_model(self, model_input):
         all_variable_list = []
-        last_layer_list = []
+        last_layer_list = [[] for _ in range(len(self.action_handler.get_split_sizes()))]
         with tf.name_scope("predict_actions"):
             # initialize actor-critic network
             with tf.variable_scope("actor_network", reuse=tf.AUTO_REUSE):
@@ -82,6 +83,7 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
         self.all_but_last_actor_layer = all_variable_list
         # get variable list
         self.actor_network_variables = all_variable_list + last_layer_list
+        self.last_row_variables = last_layer_list
         self.critic_network_variables = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope="critic_network")
 
         self.split_action_scores = self.action_handler.run_func_on_split_tensors(self.action_scores,
@@ -166,17 +168,21 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
         return layer_output
 
     def actor_network(self, input_states, variable_list=None, last_layer_list=None):
+        if last_layer_list is None:
+            last_layer_list = [[] for _ in range(len(self.action_handler.get_split_sizes()))]
         # define policy neural network
         actor_prefix = 'actor'
         with tf.variable_scope(self.first_layer_name):
             layer1 = self.create_layer(tf.nn.relu6, input_states, 1, self.state_dim, self.network_size, actor_prefix,
                                        variable_list=variable_list, dropout=False)
+
         with tf.variable_scope(self.hidden_layer_name):
             inner_layer = layer1
             print('num layers', self.num_layers)
             for i in range(0, self.num_layers - 2):
                 inner_layer = self.create_layer(tf.nn.relu6, inner_layer, i + 2, self.network_size,
                                                 self.network_size, actor_prefix, variable_list=variable_list)
+
         with tf.variable_scope(self.last_layer_name):
             output_layer = self.create_last_layer(tf.nn.sigmoid, inner_layer, self.network_size,
                                                   self.num_actions, actor_prefix, last_layer_list)
@@ -228,14 +234,10 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
 
         self.actor_last_row_layer = []
         for i, item in enumerate(self.action_handler.get_split_sizes()):
-            self.actor_last_row_layer.append(self.create_layer(activation_function, inner_layer, last_layer_name,
+            self.actor_last_row_layer.append(self.create_layer(activation_function, inner_layer[i], last_layer_name,
                                                                network_size, item, actor_prefix + str(i),
-                                                               variable_list=last_layer_list, dropout=False))
+                                                               variable_list=last_layer_list[i], dropout=False))
 
-        last_row_variables = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope="actor_network/"
-                                                                                       + self.last_layer_name)
-        reshaped_list = np.reshape(np.array(last_row_variables), [int(len(last_row_variables) / 2), 2])
-        self.last_row_variables = reshaped_list.tolist()
         return tf.concat(self.actor_last_row_layer, 1)
 
     def create_savers(self):
@@ -245,7 +247,14 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
     def _create_network_saver(self, network_name):
         self._create_layer_saver(network_name, self.last_layer_name)
         self._create_layer_saver(network_name, self.first_layer_name)
-        self._create_layer_saver(network_name, self.hidden_layer_name)
+
+        hidden_layers = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,
+                                          scope=network_name + '/' + self.hidden_layer_name)
+        reshaped_list = np.reshape(np.array(hidden_layers), [int(len(hidden_layers) / 2), 2])
+        for i in range(len(reshaped_list)):
+            layer_name = self.hidden_layer_name + str(i)
+            saver_name = network_name + '_' + layer_name
+            self.add_saver(saver_name, reshaped_list[i].tolist())
 
     def _create_layer_saver(self, network_name, layer_name):
         saver_name = network_name + '_' + layer_name
