@@ -17,7 +17,7 @@ def get_random_data(packet_generator, input_formatter):
 
 
 learning_rate = 0.3
-total_batches = 5000
+total_batches = 10000
 batch_size = 2000
 display_step = 1
 

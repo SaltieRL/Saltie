@@ -8,7 +8,7 @@ import livedata.live_data_util as live_data_util
 
 class BaseActorCritic(base_reinforcement.BaseReinforcement):
     frames_since_last_random_action = 0
-    network_size = 128
+    network_size = 256
     num_layers = 3
     last_row_variables = None
     actor_last_row_layer = None
