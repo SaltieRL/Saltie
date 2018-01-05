@@ -181,7 +181,7 @@ class BaseModel:
 
         #file does not exist too lazy to add check
         if self.model_file is None:
-            model_file = self.get_model_path(self.get_default_file_name() + '.ckpt')
+            model_file = self.get_model_path(self.get_default_file_name())
             self.model_file = model_file
         else:
             model_file = self.model_file
@@ -228,7 +228,13 @@ class BaseModel:
         :return: The path of the file
         """
         dir_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-        return dir_path + "/training/data/events/" + self.get_model_name() + "/" + filename
+        complete_path = dir_path + "/training/data/events/" + self.get_model_name() + "/" + filename
+        modified_path = complete_path
+        counter = 0
+        while os.path.exists(modified_path):
+            counter += 1
+            modified_path = complete_path + str(counter)
+        return modified_path
 
     def _add_summary_writer(self):
         if self.summary_writer is not None:
@@ -276,7 +282,7 @@ class BaseModel:
 
     def save_model(self, model_path):
         self._create_model_path(model_path)
-        file_object = open(model_path + '.ckpt.keys', 'w')
+        file_object = open(model_path + '.keys', 'w')
         for key in self.savers_map:
             file_object.write(key)
             self._save_model(self.sess, self.savers_map[key], model_path + '-' + key)
