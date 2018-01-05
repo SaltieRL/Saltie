@@ -3,6 +3,7 @@ from conversions.input.normalization_input_formatter import NormalizationInputFo
 
 
 class DataNormalizer:
+    normalization_array = None
     formatter = NormalizationInputFormatter(0, 0, None)
     boolean = [0.0, 1.0]
 
@@ -155,10 +156,11 @@ class DataNormalizer:
         return self.formatter.create_input_array(game_tick_packet)[0]
 
     def apply_normalization(self, input_array):
-        normalization_array = self.get_normalization_array()
-        min = normalization_array[0]
-        max = normalization_array[1]
+        if self.normalization_array is None:
+            self.normalization_array = self.get_normalization_array()
+
+        min = self.normalization_array[0]
+        max = self.normalization_array[1]
 
         result = (input_array - min) / (max - min)
-        result = tf.Print(result, [input_array, result], 'pre, post')
         return result

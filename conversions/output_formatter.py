@@ -97,7 +97,7 @@ def create_3D_rotation(array, index):
 
 
 def get_car_info(array, index):
-    if is_empty_player_array(array, index, 17):
+    if is_empty_player_array(array, index, CAR_INFO_OFFSET):
         return None
     car_info = create_object()
     car_info.Location = create_3D_point(array, index)
