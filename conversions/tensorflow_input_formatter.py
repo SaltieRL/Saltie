@@ -1,6 +1,7 @@
 from conversions import input_formatter
 import tensorflow as tf
 
+
 class TensorflowInputFormatter(input_formatter.InputFormatter):
     def __init__(self, team, index, batch_size):
         super().__init__(team, index)

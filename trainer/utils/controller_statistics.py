@@ -1,4 +1,6 @@
-from TutorialBot import random_packet_creator, tensorflow_input_formatter, tutorial_bot_output
+from trainer.utils import random_packet_creator
+from TutorialBot import tutorial_bot_output
+from conversions import tensorflow_input_formatter
 import numpy as np
 
 

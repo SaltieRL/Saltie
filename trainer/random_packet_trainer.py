@@ -1,9 +1,8 @@
 import tensorflow as tf
 import time
-from conversions import input_formatter
-from TutorialBot import tensorflow_input_formatter
+from conversions import input_formatter, tensorflow_input_formatter
 from TutorialBot import tutorial_bot_output
-from TutorialBot import random_packet_creator as r
+from trainer.utils import random_packet_creator as r
 from models.actor_critic import tutorial_model
 from modelHelpers import action_handler
 from trainer.utils import controller_statistics
