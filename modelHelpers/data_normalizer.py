@@ -22,29 +22,18 @@ class DataNormalizer:
 
         return info
 
-    def create_3D_point(self, x, y, z, convert_name=True):
+    def create_3D_point(self, x, y, z):
         point = self.create_object()
-        if convert_name:
-            point.X = tf.identity(x, name='X')
-            point.Y = tf.identity(y, name='Y')
-            point.Z = tf.identity(z, name='Z')
-        else:
-            point.X = x
-            point.Y = y
-            point.Z = z
-
+        point.X = tf.constant(x)
+        point.Y = tf.constant(y)
+        point.Z = tf.constant(z)
         return point
 
-    def create_3D_rotation(self, pitch, yaw, roll, convert_name=True):
+    def create_3D_rotation(self, pitch, yaw, roll):
         rotator = self.create_object()
-        if convert_name:
-            rotator.Pitch = tf.identity(pitch, name='Pitch')
-            rotator.Yaw = tf.identity(yaw, name='Yaw')
-            rotator.Roll = tf.identity(roll, name='Roll')
-        else:
-            rotator.Pitch = pitch
-            rotator.Yaw = yaw
-            rotator.Roll = roll
+        rotator.Pitch = tf.constant(pitch)
+        rotator.Yaw = tf.constant(yaw)
+        rotator.Roll = tf.constant(roll)
         return rotator
 
     def createRotVelAng(self, input_velocity, input_angular):
@@ -164,3 +153,12 @@ class DataNormalizer:
         with tf.name_scope("Boost"):
             game_tick_packet.gameBoosts = self.get_boost_info()
         return self.formatter.create_input_array(game_tick_packet)[0]
+
+    def apply_normalization(self, input_array):
+        normalization_array = self.get_normalization_array()
+        min = normalization_array[0]
+        max = normalization_array[1]
+
+        result = (input_array - min) / (max - min)
+        result = tf.Print(result, [input_array, result], 'pre, post')
+        return result

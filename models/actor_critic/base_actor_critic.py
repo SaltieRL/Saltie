@@ -57,15 +57,21 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
         except:
             print('unable to load exploration_factor')
 
+    def get_input(self, model_input=None):
+        if model_input is None:
+            return super().get_input(self.input)
+        else:
+            return super().get_input(model_input)
+
     def _create_model(self, model_input):
         all_variable_list = []
         last_layer_list = []
         with tf.name_scope("predict_actions"):
             # initialize actor-critic network
             with tf.variable_scope("actor_network", reuse=tf.AUTO_REUSE):
-                self.policy_outputs = self.actor_network(self.input, all_variable_list, last_layer_list)
+                self.policy_outputs = self.actor_network(model_input, all_variable_list, last_layer_list)
             with tf.variable_scope("critic_network", reuse=tf.AUTO_REUSE):
-                self.value_outputs = tf.reduce_mean(self.critic_network(self.input), name="Value_estimation")
+                self.value_outputs = tf.reduce_mean(self.critic_network(model_input), name="Value_estimation")
 
             # predict actions from policy network
             self.action_scores = tf.identity(self.policy_outputs, name="action_scores")
@@ -90,13 +96,14 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
                                                                      return_as_list=True)
         return self.predicted_actions, self.action_scores
 
-    def create_reinforcement_training_model(self):
+    def create_reinforcement_training_model(self, model_input=None):
+        converted_input = self.get_input(model_input)
         if self.batch_size > self.mini_batch_size:
-            ds = tf.data.Dataset.from_tensor_slices((self.input, self.taken_actions)).batch(self.mini_batch_size)
+            ds = tf.data.Dataset.from_tensor_slices((converted_input, self.taken_actions)).batch(self.mini_batch_size)
             self.iterator = ds.make_initializable_iterator()
             batched_input, batched_taken_actions = self.iterator.get_next()
         else:
-            batched_input = self.input
+            batched_input = converted_input
             batched_taken_actions = self.taken_actions
         with tf.name_scope("training_network"):
             self.discounted_rewards = self.discount_rewards(self.input_rewards, batched_input)
@@ -117,9 +124,6 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
 
     def sample_action(self, input_state):
         # TODO: use this code piece when tf.multinomial gets better
-        # sample action from current policy
-        # actions = self.session.run(self.predicted_actions, {self.input: input})[0]
-        # return actions[0]
 
         # epsilon-greedy exploration strategy
         if not self.is_evaluating and (random.random() * (self.forced_frame_action - self.frames_since_last_random_action)) < self.exploration:

@@ -2,6 +2,7 @@ import hashlib
 import os
 import tensorflow as tf
 import numpy as np
+from modelHelpers.data_normalizer import DataNormalizer
 
 MODEL_CONFIGURATION_HEADER = 'Model Configuration'
 
@@ -19,6 +20,8 @@ class BaseModel:
     train_op = no_op
     model = None
     logits = None
+    is_normalizing = True
+    normalizer = None
 
     """"
     This is a base class for all models It has a couple helper methods but is mainly used to provide a standard
@@ -55,6 +58,8 @@ class BaseModel:
         self.state_dim = state_dim
 
         self.is_training = is_training
+
+        self.normalizer = DataNormalizer()
 
         if self.config_file is not None:
             self.load_config_file()
@@ -119,6 +124,24 @@ class BaseModel:
         labels = None
         return loss, input, labels
 
+    def get_input(self, model_input=None):
+        """
+        Gets the input for the model.
+        Also applies normalization
+        :param model_input: input to be used if another input is not None
+        :return:
+        """
+        # use default in case
+        if model_input is None:
+            safe_input = self.input_placeholder
+        else:
+            safe_input = model_input
+
+        if self.is_normalizing:
+            safe_input = self.normalizer.apply_normalization(safe_input)
+
+        return safe_input
+
     def create_model(self, model_input=None):
         """
         Called to create the model, this is called in the constructor
@@ -131,13 +154,9 @@ class BaseModel:
             And a tensorflow object representing the logits of the model
             This output should be able to be used in training
         """
-        # use default in case
-        if model_input is None:
-            safe_input = self.input_placeholder
-        else:
-            safe_input = model_input
+        input = self.get_input(model_input)
 
-        self.model, self.logits = self._create_model(safe_input)
+        self.model, self.logits = self._create_model(input)
         return self.model, self.logits
 
     def _create_model(self, model_input):
@@ -265,6 +284,12 @@ class BaseModel:
                                                              'is_evaluating')
         except Exception as e:
             print('unable to load if it should be evaluating')
+
+        try:
+            self.is_normalizing = self.config_file.getboolean(MODEL_CONFIGURATION_HEADER,
+                                                              'is_normalizing')
+        except Exception as e:
+            print('unable to load if it should be normalizing defaulting to true')
 
     def add_saver(self, name, variable_list):
         self.savers_map[name] = tf.train.Saver(variable_list)
