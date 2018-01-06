@@ -18,10 +18,11 @@ class InputFormatter:
         self.index = index
         self.total_score = [0, 0]
 
-    def create_input_array(self, game_tick_packet):
+    def create_input_array(self, game_tick_packet, passed_time=0):
         """
 
         :param game_tick_packet: A game packet for a single point in time
+        :param passed_time: Time between the last frame and this one
         :return: A massive array representing that packet
         """
 
@@ -32,6 +33,8 @@ class InputFormatter:
 
         ball_data = self.get_ball_info(game_tick_packet)
         game_info = self.get_game_info(game_tick_packet)
+        game_info.append(passed_time)
+
         boost_info = self.get_boost_info(game_tick_packet)
 
         # we subtract so that when they score it becomes negative for this frame
