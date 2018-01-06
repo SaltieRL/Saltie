@@ -82,9 +82,9 @@ class ActionHandler:
         pitch = np.arange(-1, 1.5, .5)
         roll = np.arange(-1, 1.5, .5)
         throttle = np.arange(-1, 2, 1)
-        jump = [True, False]
-        boost = [True, False]
-        handbrake = [True, False]
+        jump = [False, True]
+        boost = [False, True]
+        handbrake = [False, True]
         action_list = [throttle, jump, boost, handbrake]
         self.action_list_size = len(action_list)
         # 24 + 5 + 5 + 5 = 39
@@ -401,9 +401,9 @@ class ActionHandler:
         return tf.cast(index, tf.float32)
 
     def _find_button_combo_match(self, button_combo):
-        jump = [True, False]
-        boost = [True, False]
-        handbrake = [True, False]
+        jump = [False, True]
+        boost = [False, True]
+        handbrake = [False, True]
         throttle = np.arange(-1.0, 2.0, 1.0)
         action_list = [throttle, jump, boost, handbrake]
         # 24 + 5 + 5 + 5 = 39
@@ -444,11 +444,12 @@ class ActionHandler:
 
         rounded_throttle = tf.maximum(-1.0, tf.minimum(1.0, tf.round(throttle * 1.5)))
 
-        stacked_value = tf.concat([rounded_throttle, jump, boost, handbrake], axis=1)
+        # throttle, jump, boost, handbrake -> index number
+        binary_combo_index = tf.squeeze(tf.constant(16.0) * tf.cast(tf.equal(rounded_throttle, 1), tf.float32) +
+                              tf.constant(8.0) * tf.cast(tf.equal(rounded_throttle, 0), tf.float32) +
+                              tf.constant(4.0) * jump +
+                              tf.constant(2.0) * boost +
+                              tf.constant(1.0) * handbrake)
 
-        button_combo_index = tf.map_fn(self._find_button_combo_match, stacked_value,
-                                 parallel_iterations=100)
-        button_combo_index = tf.reshape(button_combo_index, [tf.shape(real_action)[0]])
-
-        result = tf.stack([steer_index, pitch_index, roll_index, button_combo_index], axis=1)
+        result = tf.stack([steer_index, pitch_index, roll_index, binary_combo_index], axis=1)
         return result
