@@ -221,7 +221,6 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
                              variable_list=None):
         with tf.variable_scope(self.hidden_layer_name):
             inner_layer = input_layer
-            print('num layers', self.num_layers)
             for i in range(0, self.num_layers - 2):
                 inner_layer, _ = self.create_layer(activation_function, inner_layer, i + 2, network_size,
                                                    network_size, network_prefix, variable_list=variable_list)
