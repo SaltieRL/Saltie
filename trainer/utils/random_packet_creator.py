@@ -332,6 +332,8 @@ class TensorflowPacketGenerator:
         with tf.name_scope("Boost"):
             game_tick_packet.gameBoosts = self.get_boost_info(batch_size)
 
+        game_tick_packet.time_diff = tf.random_normal(shape=[batch_size, ], mean=1.0/45.0, dtype=tf.float32)
+
         return game_tick_packet
 
     def get_kickoff_data(self):

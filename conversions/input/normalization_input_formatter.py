@@ -36,3 +36,8 @@ class NormalizationInputFormatter(tensorflow_input_formatter.TensorflowInputForm
         # the change in score can only be -1 to 1
         result[len(result) - 1] = [-1, 1]
         return result
+
+    def create_input_array(self, game_tick_packet, passed_time=None):
+        if passed_time is not None:
+            return super().create_input_array(game_tick_packet, passed_time)
+        return super().create_input_array(game_tick_packet, tf.constant([0.0, 1.0]))
