@@ -11,7 +11,7 @@ from tqdm import tqdm
 
 def get_random_data(packet_generator, input_formatter):
     game_tick_packet = packet_generator.get_random_array()
-    output_array = input_formatter.create_input_array(game_tick_packet)[0]
+    output_array = input_formatter.create_input_array(game_tick_packet, game_tick_packet.time_diff)[0]
     # reverse the shape of the array
     return output_array, game_tick_packet
 
