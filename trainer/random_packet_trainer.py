@@ -108,7 +108,7 @@ def run():
 
             if model.summary_writer is not None:
                 model.summary_writer.add_summary(summaries, i)
-            if ((i + 1) * batch_size) % 100000 == 0:
+            if ((i + 1) * batch_size) % 500000 == 0:
                 model.save_model(model.get_model_path(model.get_default_file_name()))
         model.save_model(model.get_model_path(model.get_default_file_name()))
 
