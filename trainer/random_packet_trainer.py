@@ -112,17 +112,20 @@ def run():
             if model.summary_writer is not None:
                 model.summary_writer.add_summary(summaries, i)
             if ((i + 1) * batch_size) % 500000 == 0:
-                model.save_model(model.get_model_path(model.get_default_file_name()))
-                print('saving')
+                print('stats at', (i + 1) * batch_size, 'frames')
                 checks.get_amounts()
+                print('saving model')
+                model.save_model(model.get_model_path(model.get_default_file_name()))
+
         model.save_model(model.get_model_path(model.get_default_file_name()))
 
         total_time = time.time() - start
         print('total time: ', total_time)
         print('time per batch: ', total_time / (float(total_batches)))
 
-        checks = controller_statistics.OutputChecks(batch_size, model, sess, actions)
+        print('final stats')
         checks.get_amounts()
+        checks.get_final_stats()
 
 if __name__ == '__main__':
     run()

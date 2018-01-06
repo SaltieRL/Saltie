@@ -8,6 +8,8 @@ import numpy as np
 class OutputChecks:
     model_output = None
     game_tick_packet = None
+    accuracy_over_time = None
+    bot_data_over_time = None
 
     def __init__(self, packets, model, tf_session, action_handler):
         self.sess = tf_session
@@ -19,6 +21,9 @@ class OutputChecks:
         self.actionHandler = action_handler
 
     def create_model(self):
+        # clear history
+        self.accuracy_over_time = []
+        self.bot_data_over_time = []
         input_state, game_tick_packet = self.get_random_data()
         self.game_tick_packet = game_tick_packet
         self.model.batch_size = self.packets
@@ -40,6 +45,8 @@ class OutputChecks:
         output, bot_output = self.sess.run([controls, expected])
 
         accuracy = np.sum(np.isclose(output, bot_output, 0.01), 1) / np.size(output[1])
+        self.accuracy_over_time.append(accuracy)
+        self.bot_data_over_time.append((output, bot_output))
 
         analog_buckets = [-1.0001, -0.50001, -0.0001, 0.0001, 0.50001, 1.0001]
         boolean_buckets = [-0.001, 0.50001, 1.0001]
@@ -80,3 +87,8 @@ class OutputChecks:
         print("     Expt:  ", np.histogram(bot_output[7], boolean_buckets)[0])
         print("     Acc.: ",  accuracy[7])
         print("Overall accuracy: ", np.sum(accuracy) / 8.0)
+
+    def get_final_stats(self):
+        print('this is where we would put final stats.  IF WE HAD ANY')
+        #todo present data over time :)
+        pass
