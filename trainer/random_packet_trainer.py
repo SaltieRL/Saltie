@@ -123,7 +123,6 @@ def run():
                 print('saving model')
                 model.save_model(model.get_model_path(model.get_default_file_name() + str(model_counter)))
                 model_counter += 1
-                print()
 
         model.save_model(model.get_model_path(model.get_default_file_name()))
 
