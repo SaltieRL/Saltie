@@ -83,9 +83,9 @@ class PolicyGradient(BaseActorCritic):
 
             if reduced:
                 pg_loss = tf.reduce_mean(pg_loss, name='pg_loss')
-                tf.summary.scalar("actor_x_entropy_loss", pg_loss)
+                tf.summary.scalar("actor_x_entropy_loss", cross_entropy_loss)
             else:
-                tf.summary.scalar("actor_x_entropy_loss", tf.reduce_mean(pg_loss))
+                tf.summary.scalar("actor_x_entropy_loss", tf.reduce_mean(cross_entropy_loss))
 
             actor_reg_loss = self.get_regularization_loss(actor_network_variables, prefix="actor")
 
