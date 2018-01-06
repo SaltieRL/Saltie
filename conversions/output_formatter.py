@@ -20,8 +20,26 @@ def get_car_info_index():
 def get_ball_info_index():
     return GAME_INFO_OFFSET + SCORE_INFO_OFFSET + CAR_INFO_OFFSET
 
+def get_basic_state(array):
+    score_info = get_score_info(array, GAME_INFO_OFFSET)
+    car_location = create_3D_point(array, GAME_INFO_OFFSET + SCORE_INFO_OFFSET)
 
-def create_output_array(array):
+    ball_location = create_3D_point(array,
+                                    GAME_INFO_OFFSET +
+                                    SCORE_INFO_OFFSET +
+                                    CAR_INFO_OFFSET)
+    has_last_touched_ball = array[GAME_INFO_OFFSET +
+                                  SCORE_INFO_OFFSET +
+                                  CAR_INFO_OFFSET - 1]
+    result = create_object()
+    result.score_info = score_info
+    result.car_location = car_location
+    result.ball_location = ball_location
+    result.has_last_touched_ball = has_last_touched_ball
+    return result
+
+
+def create_game_tick_packet(array):
     gameTickPacket = create_object()
     gameTickPacket.gamecars = []
     total_offset = 0

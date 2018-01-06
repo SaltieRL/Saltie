@@ -71,22 +71,7 @@ class RewardManager:
         return max(0, has_last_touched_ball - past_has_last_touched_ball) / 2.0
 
     def get_state(self, array):
-        score_info = output_formatter.get_score_info(array, output_formatter.GAME_INFO_OFFSET)
-        car_location = output_formatter.create_3D_point(array,
-                                                        output_formatter.GAME_INFO_OFFSET + output_formatter.SCORE_INFO_OFFSET)
-
-        ball_location = output_formatter.create_3D_point(array,
-                                                         output_formatter.GAME_INFO_OFFSET +
-                                                         output_formatter.SCORE_INFO_OFFSET +
-                                                         output_formatter.CAR_INFO_OFFSET)
-        has_last_touched_ball = array[output_formatter.GAME_INFO_OFFSET +
-                                      output_formatter.SCORE_INFO_OFFSET +
-                                      output_formatter.CAR_INFO_OFFSET - 1]
-        result = output_formatter.create_object()
-        result.score_info = score_info
-        result.car_location = car_location
-        result.ball_location = ball_location
-        result.has_last_touched_ball = has_last_touched_ball
+        result = output_formatter.get_basic_state(array)
         return result
 
     def calculate_rewards(self, current_info, previous_info):
