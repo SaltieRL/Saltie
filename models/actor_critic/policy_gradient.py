@@ -79,7 +79,7 @@ class PolicyGradient(BaseActorCritic):
         if not reduced:
             tf.summary.histogram('actor_wrongness', wrongNess)
         with tf.name_scope("compute_pg_gradients"):
-            pg_loss = cross_entropy_loss * wrongNess
+            pg_loss = cross_entropy_loss * (wrongNess * wrongNess)
 
             if reduced:
                 pg_loss = tf.reduce_mean(pg_loss, name='pg_loss')
