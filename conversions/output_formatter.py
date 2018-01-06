@@ -1,6 +1,5 @@
-
 # the length each of these takes in the array
-GAME_INFO_OFFSET = 1
+GAME_INFO_OFFSET = 2
 SCORE_INFO_OFFSET = 8
 CAR_INFO_OFFSET = 20
 BALL_INFO_OFFSET = 21

@@ -30,3 +30,8 @@ class TensorflowInputFormatter(input_formatter.InputFormatter):
         result = tf.stack(converted_array, axis=1)
 
         return result
+
+    def create_input_array(self, game_tick_packet, passed_time=None):
+        if passed_time is not None:
+            return super().create_input_array(game_tick_packet, passed_time)
+        return super().create_input_array(game_tick_packet, tf.constant([0.0] * self.batch_size))

@@ -3,7 +3,7 @@ import game_data_struct
 
 
 def get_state_dim_with_features():
-    return 218
+    return 219
 
 
 class InputFormatter:
@@ -18,7 +18,7 @@ class InputFormatter:
         self.index = index
         self.total_score = [0, 0]
 
-    def create_input_array(self, game_tick_packet, passed_time=0):
+    def create_input_array(self, game_tick_packet, passed_time=0.0):
         """
 
         :param game_tick_packet: A game packet for a single point in time

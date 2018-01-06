@@ -104,7 +104,7 @@ class Agent:
         return reward[0] + reward[1]
 
     def get_output_vector(self, game_tick_packet):
-        frame_time = 0
+        frame_time = 0.0
         if self.last_frame_time is not None:
             frame_time = time.time() - self.last_frame_time
         self.last_frame_time = time.time()
