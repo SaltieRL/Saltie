@@ -262,7 +262,7 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
             self.add_saver(saver_name, reshaped_list[i].tolist())
 
     def _create_layer_saver(self, network_name, layer_name):
-        saver_name = network_name + '_' + layer_name
+        saver_name = network_name + '_' + layer_name + '_' + str(self.network_size)
         scope_name = network_name + "/" + layer_name
         self.add_saver(saver_name,
                        tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope=scope_name))
