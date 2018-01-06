@@ -61,11 +61,13 @@ class TutorialModel(PolicyGradient):
         if self.action_handler.action_list_names[index] != 'combo':
             wrongNess += tf.cast(tf.abs(tf.cast(self.argmax[index], tf.int32) - taken_actions), tf.float32)
         else:
-            argmax = self.argmax[index]
-            number = tf.bitwise.bitwise_xor(tf.cast(self.argmax[index], tf.int32), taken_actions)
+            # use temporarily
+            wrongNess += tf.cast(tf.abs(tf.cast(self.argmax[index], tf.int32) - taken_actions), tf.float32) / 5.0
+            #argmax = self.argmax[index]
+            #number = tf.bitwise.bitwise_xor(tf.cast(self.argmax[index], tf.int32), taken_actions)
             # result = self.fancy_calculate_number_of_ones(number) # can't use until version 1.5
-            result = tf.map_fn(self.normal_calculate_number_of_ones, number)
-            wrongNess += tf.cast(result, tf.float32)
+            #result = tf.map_fn(self.normal_calculate_number_of_ones, number)
+            #wrongNess += tf.cast(result, tf.float32)
 
         return cross_entropy_loss, wrongNess, False
 
