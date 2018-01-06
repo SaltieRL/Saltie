@@ -2,7 +2,7 @@ import io
 import os
 import struct
 
-from conversions.input_formatter import get_state_dim_with_features
+from conversions.input.input_formatter import get_state_dim_with_features
 import numpy as np
 import time
 import logging

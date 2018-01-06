@@ -110,15 +110,15 @@ class TensorflowPacketGenerator:
 
     def get_on_ground_info(self, is_on_ground):
         return tf.cond(is_on_ground,
-                       lambda: tf.random_uniform(shape=[], maxval=16.7, dtype=tf.float32),  # Z on ground
+                       lambda: tf.random_uniform(shape=[], minval=0.0, maxval=16.7, dtype=tf.float32),  # Z on ground
                        lambda: tf.random_uniform(shape=[], minval=16.7, maxval=2000, dtype=tf.float32))  # Z in air
 
     def get_normal_car_values(self, is_on_ground):
         batch_size = self.batch_size
         car_z = tf.map_fn(self.get_on_ground_info, is_on_ground, dtype=tf.float32)
         location = self.create_3D_point(
-            tf.random_uniform(shape=[batch_size, ], minval=-3800, maxval=7600, dtype=tf.float32),  # X
-            tf.random_uniform(shape=[batch_size, ], minval=-3800, maxval=7600, dtype=tf.float32),  # Y
+            tf.random_uniform(shape=[batch_size, ], minval=-8100, maxval=8100, dtype=tf.float32),  # X
+            tf.random_uniform(shape=[batch_size, ], minval=-11800, maxval=11800, dtype=tf.float32),  # Y
             car_z)
 
         rotation, velocity, angularVelocity = self.createRotVelAng()
@@ -140,6 +140,7 @@ class TensorflowPacketGenerator:
         car.bOnGround = is_on_ground
 
         car.bJumped = tf.round(tf.random_uniform(shape=[batch_size, ], maxval=0.6, dtype=tf.float32))  # Jumped
+        car.bSuperSonic = self.false # Jumped
 
         car.bDoubleJumped = tf.round(
             tf.random_uniform(shape=[batch_size, ], maxval=0.55, dtype=tf.float32))  # Double jumped
@@ -178,6 +179,8 @@ class TensorflowPacketGenerator:
 
         car.bOnGround = is_on_ground
 
+        car.bSuperSonic = self.false # Jumped
+
         car.bJumped = self.false  # Jumped
 
         car.bDoubleJumped = self.false  # Double jumped
@@ -194,8 +197,8 @@ class TensorflowPacketGenerator:
     def get_ball_info(self, batch_size):
         ball = self.create_object()
         ball.Location = self.create_3D_point(
-            tf.random_uniform(shape=[batch_size, ], minval=-4050, maxval=8100, dtype=tf.float32),  # Location X
-            tf.random_uniform(shape=[batch_size, ], minval=-5900, maxval=11800, dtype=tf.float32),  # Y
+            tf.random_uniform(shape=[batch_size, ], minval=-8100, maxval=8100, dtype=tf.float32),  # Location X
+            tf.random_uniform(shape=[batch_size, ], minval=-11800, maxval=11800, dtype=tf.float32),  # Y
             tf.random_uniform(shape=[batch_size, ], minval=0, maxval=2000, dtype=tf.float32))  # Z
 
         ball.Rotation, ball.Velocity, ball.AngularVelocity = self.createRotVelAng()
@@ -214,14 +217,14 @@ class TensorflowPacketGenerator:
 
         with tf.name_scope("HitLocation"):
             ball.LatestTouch.sHitLocation = self.create_3D_point(
-                tf.random_uniform(shape=[batch_size, ], minval=-4050, maxval=8100, dtype=tf.float32),  # Location X
-                tf.random_uniform(shape=[batch_size, ], minval=-5900, maxval=11800, dtype=tf.float32),  # Y
+                tf.random_uniform(shape=[batch_size, ], minval=-8100, maxval=8100, dtype=tf.float32),  # Location X
+                tf.random_uniform(shape=[batch_size, ], minval=-11800, maxval=11800, dtype=tf.float32),  # Y
                 tf.random_uniform(shape=[batch_size, ], minval=0, maxval=2000, dtype=tf.float32), )  # Z
         with tf.name_scope("HitNormal"):
             ball.LatestTouch.sHitNormal = self.create_3D_point(
-                tf.random_uniform(shape=[batch_size, ], minval=-2300, maxval=4600, dtype=tf.float32),  # Velocity X
-                tf.random_uniform(shape=[batch_size, ], minval=-2300, maxval=4600, dtype=tf.float32),  # Y
-                tf.random_uniform(shape=[batch_size, ], minval=-2300, maxval=4600, dtype=tf.float32))  # Z
+                tf.random_uniform(shape=[batch_size, ], minval=-6000, maxval=6000, dtype=tf.float32),  # Velocity X
+                tf.random_uniform(shape=[batch_size, ], minval=-6000, maxval=6000, dtype=tf.float32),  # Y
+                tf.random_uniform(shape=[batch_size, ], minval=-6000, maxval=6000, dtype=tf.float32))  # Z
         return ball
 
     def get_boost_info(self, batch_size):

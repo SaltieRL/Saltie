@@ -1,4 +1,4 @@
-from conversions import input_formatter
+from conversions.input import input_formatter
 import tensorflow as tf
 
 
@@ -22,8 +22,11 @@ class TensorflowInputFormatter(input_formatter.InputFormatter):
     def create_result_array(self, array):
         converted_array = []
         for i in range(len(array)):
-            casted_number = tf.cast(array[i], tf.float32)
-            #casted_number = tf.Print(casted_number, [tf.shape(casted_number)], 'index: ' + str(i) + ' name: ' + array[i].name + ' ')
+            casted_number = array[i]
+            if array[i].dtype != tf.float32:
+                casted_number = tf.cast(array[i], tf.float32)
             converted_array.append(casted_number)
-        result = tf.stack(converted_array)
-        return tf.reshape(result, [self.batch_size, tf.shape(result)[0]])
+
+        result = tf.stack(converted_array, axis=1)
+
+        return result

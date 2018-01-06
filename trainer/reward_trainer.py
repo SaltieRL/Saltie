@@ -1,9 +1,8 @@
 import os
 
-from conversions.input_formatter import get_state_dim_with_features
+from conversions.input.input_formatter import get_state_dim_with_features
 from modelHelpers import action_handler
 from modelHelpers import reward_manager
-import random
 import time
 
 import tensorflow as tf

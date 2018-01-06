@@ -16,6 +16,9 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
     is_graphing = False
     keep_prob = 0.5
     reg_param = 0.001
+    first_layer_name = 'first_layer'
+    hidden_layer_name = 'hidden_layer'
+    last_layer_name = 'last_layer'
 
     def __init__(self, session,
                  state_dim,
@@ -54,15 +57,21 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
         except:
             print('unable to load exploration_factor')
 
+    def get_input(self, model_input=None):
+        if model_input is None:
+            return super().get_input(self.input)
+        else:
+            return super().get_input(model_input)
+
     def _create_model(self, model_input):
         all_variable_list = []
         last_layer_list = []
         with tf.name_scope("predict_actions"):
             # initialize actor-critic network
             with tf.variable_scope("actor_network", reuse=tf.AUTO_REUSE):
-                self.policy_outputs = self.actor_network(self.input, all_variable_list, last_layer_list)
+                self.policy_outputs = self.actor_network(model_input, all_variable_list, last_layer_list)
             with tf.variable_scope("critic_network", reuse=tf.AUTO_REUSE):
-                self.value_outputs = tf.reduce_mean(self.critic_network(self.input), name="Value_estimation")
+                self.value_outputs = tf.reduce_mean(self.critic_network(model_input), name="Value_estimation")
 
             # predict actions from policy network
             self.action_scores = tf.identity(self.policy_outputs, name="action_scores")
@@ -87,13 +96,14 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
                                                                      return_as_list=True)
         return self.predicted_actions, self.action_scores
 
-    def create_reinforcement_training_model(self):
+    def create_reinforcement_training_model(self, model_input=None):
+        converted_input = self.get_input(model_input)
         if self.batch_size > self.mini_batch_size:
-            ds = tf.data.Dataset.from_tensor_slices((self.input, self.taken_actions)).batch(self.mini_batch_size)
+            ds = tf.data.Dataset.from_tensor_slices((converted_input, self.taken_actions)).batch(self.mini_batch_size)
             self.iterator = ds.make_initializable_iterator()
             batched_input, batched_taken_actions = self.iterator.get_next()
         else:
-            batched_input = self.input
+            batched_input = converted_input
             batched_taken_actions = self.taken_actions
         with tf.name_scope("training_network"):
             self.discounted_rewards = self.discount_rewards(self.input_rewards, batched_input)
@@ -114,9 +124,6 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
 
     def sample_action(self, input_state):
         # TODO: use this code piece when tf.multinomial gets better
-        # sample action from current policy
-        # actions = self.session.run(self.predicted_actions, {self.input: input})[0]
-        # return actions[0]
 
         # epsilon-greedy exploration strategy
         if not self.is_evaluating and (random.random() * (self.forced_frame_action - self.frames_since_last_random_action)) < self.exploration:
@@ -161,14 +168,16 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
     def actor_network(self, input_states, variable_list=None, last_layer_list=None):
         # define policy neural network
         actor_prefix = 'actor'
-        layer1 = self.create_layer(tf.nn.relu6, input_states, 1, self.state_dim, self.network_size, actor_prefix,
-                                   variable_list=variable_list, dropout=False)
-        inner_layer = layer1
-        print('num layers', self.num_layers)
-        for i in range(0, self.num_layers - 2):
-            inner_layer = self.create_layer(tf.nn.relu6, inner_layer, i + 2, self.network_size,
-                                            self.network_size, actor_prefix, variable_list=variable_list)
-        with tf.variable_scope("last_layer"):
+        with tf.variable_scope(self.first_layer_name):
+            layer1 = self.create_layer(tf.nn.relu6, input_states, 1, self.state_dim, self.network_size, actor_prefix,
+                                       variable_list=variable_list, dropout=False)
+        with tf.variable_scope(self.hidden_layer_name):
+            inner_layer = layer1
+            print('num layers', self.num_layers)
+            for i in range(0, self.num_layers - 2):
+                inner_layer = self.create_layer(tf.nn.relu6, inner_layer, i + 2, self.network_size,
+                                                self.network_size, actor_prefix, variable_list=variable_list)
+        with tf.variable_scope(self.last_layer_name):
             output_layer = self.create_last_layer(tf.nn.sigmoid, inner_layer, self.network_size,
                                                   self.num_actions, actor_prefix, last_layer_list)
 
@@ -181,14 +190,16 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
         # four sets of actions why not! :)
         critic_layers = self.num_layers
         output_size = 1
-        layer1 = self.create_layer(tf.nn.relu6, input_states, 1, self.state_dim, critic_size, critic_prefix,
-                                   dropout=False)
-        inner_layer = layer1
-        for i in range(0, critic_layers - 2):
-            inner_layer = self.create_layer(tf.nn.relu6, inner_layer, i + 2, critic_size,
-                                            critic_size, critic_prefix)
-        with tf.variable_scope("last_layer"):
-            output_layer = self.create_layer(tf.nn.sigmoid, inner_layer, 'last_layer',
+        with tf.variable_scope(self.first_layer_name):
+            layer1 = self.create_layer(tf.nn.relu6, input_states, 1, self.state_dim, critic_size, critic_prefix,
+                                       dropout=False)
+        with tf.variable_scope(self.hidden_layer_name):
+            inner_layer = layer1
+            for i in range(0, critic_layers - 2):
+                inner_layer = self.create_layer(tf.nn.relu6, inner_layer, i + 2, critic_size,
+                                                critic_size, critic_prefix)
+        with tf.variable_scope(self.last_layer_name):
+            output_layer = self.create_layer(tf.nn.sigmoid, inner_layer, self.last_layer_name,
                                          critic_size, output_size, critic_prefix)
         return output_layer * 2.0 - 1.0
 
@@ -221,10 +232,23 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
                                                                network_size, item, actor_prefix + str(i),
                                                                variable_list=last_layer_list, dropout=False))
 
-        last_row_variables = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope="actor_network/last_layer")
+        last_row_variables = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope="actor_network/"
+                                                                                       + self.last_layer_name)
         reshaped_list = np.reshape(np.array(last_row_variables), [int(len(last_row_variables) / 2), 2])
         self.last_row_variables = reshaped_list.tolist()
         return tf.concat(self.actor_last_row_layer, 1)
 
     def create_savers(self):
-        self.add_saver('default', self.stored_variables)
+        self._create_network_saver('actor_network')
+        self._create_network_saver('critic_network')
+
+    def _create_network_saver(self, network_name):
+        self._create_layer_saver(network_name, self.last_layer_name)
+        self._create_layer_saver(network_name, self.first_layer_name)
+        self._create_layer_saver(network_name, self.hidden_layer_name)
+
+    def _create_layer_saver(self, network_name, layer_name):
+        saver_name = network_name + '_' + layer_name
+        scope_name = network_name + "/" + layer_name
+        self.add_saver(saver_name,
+                       tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope=scope_name))

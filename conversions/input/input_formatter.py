@@ -3,7 +3,7 @@ import game_data_struct
 
 
 def get_state_dim_with_features():
-    return 206
+    return 218
 
 
 class InputFormatter:
@@ -28,44 +28,50 @@ class InputFormatter:
         if self.team == 1:
             game_data_struct.rotate_game_tick_packet_boost_omitted(game_tick_packet)
 
-        team_members = []
-        enemies = []
-        ownTeamScore = 0
-        enemyTeamScore = 0
-        player_car = self.return_emtpy_player_array()
-        for index in range(game_tick_packet.numCars):
-            if index == self.index:
-                ownTeamScore += self.get_player_goals(game_tick_packet, index)
-                enemyTeamScore += self.get_own_goals(game_tick_packet, index)
-                player_car = self.get_car_info(game_tick_packet, index)
-            elif game_tick_packet.gamecars[index].Team == self.team:
-                ownTeamScore += self.get_player_goals(game_tick_packet, index)
-                enemyTeamScore += self.get_own_goals(game_tick_packet, index)
-                team_members.append(self.get_car_info(game_tick_packet, index))
-            else:
-                enemies.append(self.get_car_info(game_tick_packet, index))
-                enemyTeamScore += self.get_player_goals(game_tick_packet, index)
-                ownTeamScore += self.get_own_goals(game_tick_packet, index)
-        while len(team_members) < 2:
-            team_members.append(self.return_emtpy_player_array())
-        while len(enemies) < 3:
-            enemies.append(self.return_emtpy_player_array())
+        player_car, team_members, enemies, own_team_score, enemy_team_score = self.split_teams(game_tick_packet)
 
         ball_data = self.get_ball_info(game_tick_packet)
         game_info = self.get_game_info(game_tick_packet)
         boost_info = self.get_boost_info(game_tick_packet)
-        score_info = self.get_score_info(game_tick_packet.gamecars[self.index].Score)
-        total_score = enemyTeamScore - ownTeamScore
+
         # we subtract so that when they score it becomes negative for this frame
         # and when we score it is positive
+        total_score = enemy_team_score - own_team_score
         diff_in_score = self.last_total_score - total_score
-        score_info.append(diff_in_score)
+
+        score_info = self.get_score_info(game_tick_packet.gamecars[self.index].Score, diff_in_score)
+
         self.last_total_score = total_score
         # extra_features = feature_creator.get_extra_features(game_tick_packet, self.index)
 
         return self.create_result_array(game_info + score_info + player_car + ball_data +
                         self.flattenArrays(team_members) + self.flattenArrays(enemies) + boost_info), \
                []
+
+    def split_teams(self, game_tick_packet):
+        team_members = []
+        enemies = []
+        own_team_score = 0
+        enemy_team_score = 0
+        player_car = self.return_emtpy_player_array()
+        for index in range(game_tick_packet.numCars):
+            if index == self.index:
+                own_team_score += self.get_player_goals(game_tick_packet, index)
+                enemy_team_score += self.get_own_goals(game_tick_packet, index)
+                player_car = self.get_car_info(game_tick_packet, index)
+            elif game_tick_packet.gamecars[index].Team == self.team:
+                own_team_score += self.get_player_goals(game_tick_packet, index)
+                enemy_team_score += self.get_own_goals(game_tick_packet, index)
+                team_members.append(self.get_car_info(game_tick_packet, index))
+            else:
+                enemies.append(self.get_car_info(game_tick_packet, index))
+                enemy_team_score += self.get_player_goals(game_tick_packet, index)
+                own_team_score += self.get_own_goals(game_tick_packet, index)
+        while len(team_members) < 2:
+            team_members.append(self.return_emtpy_player_array())
+        while len(enemies) < 3:
+            enemies.append(self.return_emtpy_player_array())
+        return player_car, team_members, enemies, own_team_score, enemy_team_score
 
     def create_result_array(self, array):
         return np.array(array, dtype=np.float32)
@@ -80,7 +86,7 @@ class InputFormatter:
         """
         :return: An array representing a car with no data
         """
-        return [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+        return [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
 
     def get_car_info(self, game_tick_packet, index):
         player_x = game_tick_packet.gamecars[index].Location.X
@@ -95,16 +101,20 @@ class InputFormatter:
         player_angular_speed_x = game_tick_packet.gamecars[index].AngularVelocity.X
         player_angular_speed_y = game_tick_packet.gamecars[index].AngularVelocity.Y
         player_angular_speed_z = game_tick_packet.gamecars[index].AngularVelocity.Z
+        player_on_ground = game_tick_packet.gamecars[self.index].bOnGround
+        player_supersonic = game_tick_packet.gamecars[self.index].bSuperSonic
         player_demolished = game_tick_packet.gamecars[index].bDemolished
         player_jumped = game_tick_packet.gamecars[index].bJumped
         player_double_jumped = game_tick_packet.gamecars[index].bDoubleJumped
         player_team = game_tick_packet.gamecars[index].Team
         player_boost = game_tick_packet.gamecars[index].Boost
         last_touched_ball = self.get_last_touched_ball(game_tick_packet.gamecars[index], game_tick_packet.gameball.LatestTouch)
-        return [player_x, player_y, player_z, player_pitch, player_yaw, player_roll,
+        car_array = [player_x, player_y, player_z, player_pitch, player_yaw, player_roll,
                 player_speed_x, player_speed_y, player_speed_z, player_angular_speed_x,
-                player_angular_speed_y, player_angular_speed_z, player_demolished, player_jumped,
+                player_angular_speed_y, player_angular_speed_z,
+                player_on_ground, player_supersonic, player_demolished, player_jumped,
                 player_double_jumped, player_team, player_boost, last_touched_ball]
+        return car_array
 
     def get_last_touched_ball(self, car, latest_touch):
         return (car.wName == latest_touch.wPlayerName)
@@ -160,7 +170,7 @@ class InputFormatter:
             game_inputs.append(game_tick_packet.gameBoosts[i].Timer)
         return game_inputs
 
-    def get_score_info(self, Score):
+    def get_score_info(self, Score, diff_in_score):
         score = Score.Score
         goals = Score.Goals
         own_goals = Score.OwnGoals
@@ -169,7 +179,7 @@ class InputFormatter:
         shots = Score.Shots
         demolitions = Score.Demolitions
 
-        return [score, goals, own_goals, assists, saves, shots, demolitions]
+        return [score, goals, own_goals, assists, saves, shots, demolitions, diff_in_score]
 
     def flattenArrays(self, array_of_array):
         """

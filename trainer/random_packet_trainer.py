@@ -1,6 +1,6 @@
 import tensorflow as tf
 import time
-from conversions import input_formatter, tensorflow_input_formatter
+from conversions.input import input_formatter, tensorflow_input_formatter
 from TutorialBot import tutorial_bot_output
 from trainer.utils import random_packet_creator as r
 from models.actor_critic import tutorial_model
@@ -74,27 +74,21 @@ def run():
         model = tutorial_model.TutorialModel(sess, n_input, n_output, action_handler=actions, is_training=True)
         model.num_layers = 10
         model.summary_writer = tf.summary.FileWriter(
-            model.get_event_path('events7'))
+            model.get_event_path('random_packet'))
         model.batch_size = batch_size
         model.mini_batch_size = batch_size
 
         # start model construction
         input_state, game_tick_packet = get_random_data(packet_generator, formatter)
 
-        #logits = multilayer_perceptron(input_state)
-
-        # the indexes
-        # created_actions = actions.create_tensorflow_controller_output_from_actions(model.argmax, batch_size)
-
         real_output = output_creator.get_output_vector(game_tick_packet)
 
         real_indexes = actions.create_indexes_graph(tf.stack(real_output, axis=1))
 
-        model.input = input_state
         reshaped = tf.cast(real_indexes, tf.int32)
         model.taken_actions = reshaped
-        model.create_model()
-        model.create_reinforcement_training_model()
+        model.create_model(input_state)
+        model.create_reinforcement_training_model(input_state)
 
         model.create_savers()
 

@@ -1,10 +1,7 @@
-from conversions import output_formatter
-from conversions.input_formatter import get_state_dim_with_features
+from conversions.input.input_formatter import get_state_dim_with_features
 from modelHelpers import action_handler
 from modelHelpers import feature_creator
-from models.atbas import rnn_atba
 from models.actor_critic import base_actor_critic
-from models.atbas import nnatba
 
 import numpy as np
 import tensorflow as tf
