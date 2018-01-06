@@ -27,7 +27,7 @@ class TutorialBotOutput:
         angle_front_to_target = angle_between_bot_and_target - bot_yaw
 
         angle_front_to_target += (tf.cast(tf.less(angle_front_to_target, -180.0), tf.float32) * 360.0 +
-                                  tf.cast(tf.less(angle_front_to_target, 180.0), tf.float32) * -360.0)
+                                  tf.cast(tf.greater(angle_front_to_target, 180.0), tf.float32) * -360.0)
 
         full_turn_angle = 80
         half_turn_angle = 40
@@ -36,14 +36,13 @@ class TutorialBotOutput:
 
         # if between half_turn_angle and full_turn_angle
         half_turn = tf.logical_and(tf.greater_equal(absolute_angle, half_turn_angle),
-                                   tf.less(full_turn_angle, full_turn_angle))
+                                   tf.less(absolute_angle, full_turn_angle))
 
-        half_turn_mult = 1.0 - tf.cast(half_turn, tf.float32) * 0.5
+        half_turn_mult = 1.0 - (tf.cast(half_turn, tf.float32) * 0.5)
 
-        turn_left = tf.cast(tf.less(angle_front_to_target, -half_turn_mult), tf.float32) # if angle < -full_turn_angle
-        turn_right = tf.cast(tf.greater(angle_front_to_target, half_turn_mult), tf.float32) # if angle > full_turn_angle
+        full_turn = tf.cast(tf.greater_equal(absolute_angle, half_turn_angle), tf.float32)
 
-        steer = - turn_left * half_turn_mult + turn_right * half_turn_mult
+        steer = tf.sign(angle_front_to_target) * full_turn * half_turn_mult
 
         vertical_distance = target_z - bot_Z
         should_jump = tf.logical_and(tf.greater(vertical_distance, 100), is_on_ground)
