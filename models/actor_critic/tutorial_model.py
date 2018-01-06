@@ -4,6 +4,7 @@ import tensorflow as tf
 
 class TutorialModel(PolicyGradient):
     num_split_layers = 1
+    network_size = 256
     split_hidden_layer_name = "split_hidden_layer"
     gated_layer_name = "gated_layer"
 
