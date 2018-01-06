@@ -18,7 +18,7 @@ def get_random_data(packet_generator, input_formatter):
 
 learning_rate = 0.3
 total_batches = 2000
-batch_size = 2000
+batch_size = 5000
 display_step = 1
 
 # Network Parameters
@@ -102,7 +102,11 @@ def run():
         checks.create_model()
 
         # untrained bot
+        start = time.time()
         checks.get_amounts()
+        #print('time to get stats', time.time() - start)
+        #for i in tqdm(range(total_batches)):
+        #    sess.run([real_indexes])
 
         # RUNNING
         for i in tqdm(range(total_batches)):
