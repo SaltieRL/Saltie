@@ -400,23 +400,6 @@ class ActionHandler:
         index = tf.argmax(tf.cast(tf.equal(comparison, pure_number), tf.float32), axis=0)
         return tf.cast(index, tf.float32)
 
-    def _find_button_combo_match(self, button_combo):
-        jump = [False, True]
-        boost = [False, True]
-        handbrake = [False, True]
-        throttle = np.arange(-1.0, 2.0, 1.0)
-        action_list = [throttle, jump, boost, handbrake]
-        # 24 + 5 + 5 + 5 = 39
-        all_button_combo = list(itertools.product(*action_list))
-        options = tf.Variable(np.array(all_button_combo), dtype=tf.float32)
-
-     #   steer = tf.map_fn(lambda split_options: tf.
-     #                     , options, parallel_iterations=10)
-
-        matching_buttons = tf.reduce_sum(tf.cast(tf.equal(options, button_combo), tf.float32), axis=1)
-        index = tf.argmax(matching_buttons, axis=0)
-        return tf.cast(index, tf.float32)
-
     def create_indexes_graph(self, real_action):
         if self.split_mode:
             return self._create_split_indexes_graph(real_action)
@@ -445,8 +428,8 @@ class ActionHandler:
         rounded_throttle = tf.maximum(-1.0, tf.minimum(1.0, tf.round(throttle * 1.5)))
 
         # throttle, jump, boost, handbrake -> index number
-        binary_combo_index = tf.squeeze(tf.constant(16.0) * tf.cast(tf.equal(rounded_throttle, 1), tf.float32) +
-                              tf.constant(8.0) * tf.cast(tf.equal(rounded_throttle, 0), tf.float32) +
+        binary_combo_index = tf.squeeze(tf.constant(16.0) * tf.cast(tf.equal(throttle, 1), tf.float32) +
+                              tf.constant(8.0) * tf.cast(tf.equal(throttle, 0), tf.float32) +
                               tf.constant(4.0) * jump +
                               tf.constant(2.0) * boost +
                               tf.constant(1.0) * handbrake)
