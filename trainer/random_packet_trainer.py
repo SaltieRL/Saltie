@@ -17,7 +17,7 @@ def get_random_data(packet_generator, input_formatter):
 
 
 learning_rate = 0.3
-total_batches = 10000
+total_batches = 2000
 batch_size = 2000
 display_step = 1
 
@@ -25,6 +25,7 @@ display_step = 1
 n_neurons_hidden = 128  # every layer of neurons
 n_input = input_formatter.get_state_dim_with_features()  # data input
 n_output = 39  # total outputs
+
 
 def calculate_loss(self, elements):
     throttle = elements[0]
@@ -98,6 +99,8 @@ def run():
 
         model.initialize_model()
 
+        checks.create_model()
+
         # untrained bot
         checks.get_amounts()
 
@@ -110,6 +113,8 @@ def run():
                 model.summary_writer.add_summary(summaries, i)
             if ((i + 1) * batch_size) % 500000 == 0:
                 model.save_model(model.get_model_path(model.get_default_file_name()))
+                print('saving')
+                checks.get_amounts()
         model.save_model(model.get_model_path(model.get_default_file_name()))
 
         total_time = time.time() - start
