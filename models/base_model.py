@@ -208,7 +208,8 @@ class BaseModel:
         if os.path.isfile(model_file + '.keys'):
             print('loading existing model')
             try:
-                self.load_model(os.path.abspath(model_file))
+                file = os.path.abspath(model_file)
+                self.load_model(os.path.dirname(file), os.path.basename(file))
             except Exception as e:
                 self._set_variables()
                 print("Unexpected error loading model:", e)
@@ -297,7 +298,7 @@ class BaseModel:
     def create_savers(self):
         self.add_saver('default', self.stored_variables)
 
-    def _create_model_path(self, file_path):
+    def _create_model_directory(self, file_path):
         dirname = os.path.dirname(file_path)
         if not os.path.isdir(dirname):
             os.makedirs(dirname)
@@ -305,18 +306,23 @@ class BaseModel:
     def _save_model(self, session, saver, file_path):
         saver.save(session, file_path)
 
+    def _create_saved_model_path(self, model_path, file_name, key):
+        return model_path + '/' + key + '/' + file_name
+
     def save_model(self, model_path):
-        self._create_model_path(model_path)
+        self._create_model_directory(model_path)
         file_object = open(model_path + '.keys', 'w')
         for key in self.savers_map:
             file_object.write(key)
-            self._save_model(self.sess, self.savers_map[key], model_path + '-' + key)
+            keyed_path = self._create_saved_model_path( os.path.dirname(model_path), os.path.basename(model_path), key)
+            self._create_model_directory(keyed_path)
+            self._save_model(self.sess, self.savers_map[key], keyed_path)
         file_object.close()
 
-    def load_model(self, model_path):
+    def load_model(self, model_path, file_name):
         # TODO read keys
         for key in self.savers_map:
-            self._load_model(self.sess, self.savers_map[key], model_path + '-' + key)
+            self._load_model(self.sess, self.savers_map[key], self._create_saved_model_path(model_path, file_name, key))
 
     def _load_model(self, session, saver, path):
         saver.restore(session, path)

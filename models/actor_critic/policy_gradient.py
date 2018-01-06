@@ -75,14 +75,14 @@ class PolicyGradient(BaseActorCritic):
             taken_actions = tf.squeeze(taken_actions, axis=[1])
 
         # calculates the entropy loss from getting the label wrong
-        cross_entropy_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logprobs,
-                                                                            labels=taken_actions)
-        wrongNess = tf.cast(tf.abs(tf.cast(self.argmax[index], tf.int32) - taken_actions), tf.float32) + tf.constant(1.0)
-        tf.summary.histogram('actor_wrongness', wrongNess)
+        cross_entropy_loss, wrongNess, reduced = self.calculate_loss_of_actor(logprobs, taken_actions, index)
+        if not reduced:
+            tf.summary.histogram('actor_wrongness', wrongNess)
         with tf.name_scope("compute_pg_gradients"):
-            pg_loss, reduced = self.calculate_loss_of_actor(cross_entropy_loss, wrongNess, index)
+            pg_loss = cross_entropy_loss * wrongNess
 
             if reduced:
+                pg_loss = tf.reduce_mean(pg_loss, name='pg_loss')
                 tf.summary.scalar("actor_x_entropy_loss", pg_loss)
             else:
                 tf.summary.scalar("actor_x_entropy_loss", tf.reduce_mean(pg_loss))
@@ -94,7 +94,6 @@ class PolicyGradient(BaseActorCritic):
             # compute actor gradients
             actor_gradients = self.optimizer.compute_gradients(actor_loss,
                                                                [actor_network_variables])
-
 
             # compute policy gradients
             for i, (grad, var) in enumerate(actor_gradients):
@@ -197,10 +196,11 @@ class PolicyGradient(BaseActorCritic):
     def get_model_name(self):
         return 'a_c_policy_gradient' + ('_split' if self.action_handler.is_split_mode else '') + str(self.num_layers) + '-layers'
 
-    def calculate_loss_of_actor(self, cross_entropy_loss, wrongness, index):
+    def calculate_loss_of_actor(self, logprobs, taken_actions, index):
         """
         Calculates the loss of th
         :param cross_entropy_loss:
         :return: The calculated_tensor, If the result is a scalar.
         """
-        return tf.reduce_mean(cross_entropy_loss, name='pg_loss'), True
+        return tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logprobs,
+                                                       labels=taken_actions), 1.0, True
