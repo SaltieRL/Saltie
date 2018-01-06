@@ -59,8 +59,6 @@ class BaseModel:
 
         self.is_training = is_training
 
-        self.normalizer = DataNormalizer()
-
         if self.config_file is not None:
             self.load_config_file()
 
@@ -138,6 +136,8 @@ class BaseModel:
             safe_input = model_input
 
         if self.is_normalizing:
+            if self.normalizer is None:
+                self.normalizer = DataNormalizer(self.mini_batch_size)
             safe_input = self.normalizer.apply_normalization(safe_input)
 
         return safe_input

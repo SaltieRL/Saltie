@@ -4,8 +4,11 @@ from conversions.input.normalization_input_formatter import NormalizationInputFo
 
 class DataNormalizer:
     normalization_array = None
-    formatter = NormalizationInputFormatter(0, 0, None)
     boolean = [0.0, 1.0]
+
+    def __init__(self, batch_size):
+        self.batch_size = batch_size
+        self.formatter = NormalizationInputFormatter(0, 0, self.batch_size)
 
     # game_info + score_info + player_car + ball_data +
     # self.flattenArrays(team_members) + self.flattenArrays(enemies) + boost_info
