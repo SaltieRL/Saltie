@@ -2,7 +2,7 @@ import io
 import os
 import struct
 
-from conversions.input.input_formatter import get_state_dim_with_features
+from conversions.input.input_formatter import get_state_dim
 import numpy as np
 import time
 import logging
@@ -136,8 +136,8 @@ def read_data(file, process_pair_function, batching=False):
                 break
             output_array, num_bytes = get_array(file, chunk)
             total_time += time.time() - start
-            batch_size = int(len(input_array) / get_state_dim_with_features())
-            input_array = np.reshape(input_array, (batch_size, int(get_state_dim_with_features())))
+            batch_size = int(len(input_array) / get_state_dim())
+            input_array = np.reshape(input_array, (batch_size, int(get_state_dim())))
             output_array = np.reshape(output_array, (batch_size, 8))
             if not batching:
                 for i in range(len(input_array)):

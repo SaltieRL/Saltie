@@ -1,4 +1,4 @@
-from conversions.input.input_formatter import get_state_dim_with_features
+from conversions.input.input_formatter import get_state_dim
 from modelHelpers import action_handler
 from modelHelpers import feature_creator
 from models.actor_critic import base_actor_critic
@@ -30,7 +30,7 @@ class CopyTrainer:
 
         self.action_handler = action_handler.ActionHandler(split_mode=True)
 
-        self.state_dim = get_state_dim_with_features()
+        self.state_dim = get_state_dim()
         print('state size ' + str(self.state_dim))
         self.num_actions = self.action_handler.get_action_size()
         self.agent = self.get_model()(self.sess, self.state_dim, self.num_actions, self.action_handler, is_training=True, optimizer=tf.train.AdamOptimizer())

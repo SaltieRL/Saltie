@@ -214,8 +214,9 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
                                 for x in variables]
 
         reg_loss = tf.reduce_sum(normalized_variables, name=(prefix + '_reg_loss'))
+        reg_loss = tf.check_numerics(reg_loss, 'nan reg loss')
         tf.summary.scalar(prefix + '_reg_loss', reg_loss)
-        return reg_loss
+        return tf.constant(0.0)
 
     def create_hidden_layers(self, activation_function, input_layer, network_size, network_prefix,
                              variable_list=None):

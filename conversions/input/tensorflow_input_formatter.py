@@ -3,9 +3,16 @@ import tensorflow as tf
 
 
 class TensorflowInputFormatter(input_formatter.InputFormatter):
-    def __init__(self, team, index, batch_size):
+    def __init__(self, team, index, batch_size, feature_creator=None):
+        """
+        :param team: Which team the bot is on
+        :param index: Which index is the bot inside the game_tick_packet
+        :param batch_size: size of the batch
+        :param feature_creator: used to create_features if features exist
+        """
         super().__init__(team, index)
         self.batch_size = batch_size
+        self.feature_creator = feature_creator
 
     def get_last_touched_ball(self, car, latest_touch):
         return tf.equal(car.wName, latest_touch.wPlayerName)
@@ -20,6 +27,8 @@ class TensorflowInputFormatter(input_formatter.InputFormatter):
         return array
 
     def create_result_array(self, array):
+        if self.feature_creator is not None:
+            array += self.feature_creator.generate_features(array)
         converted_array = []
         for i in range(len(array)):
             casted_number = array[i]

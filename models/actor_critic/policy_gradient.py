@@ -5,7 +5,7 @@ import numpy as np
 
 
 class PolicyGradient(BaseActorCritic):
-    max_gradient = 1
+    max_gradient = 3.0
 
     def __init__(self, session,
                  state_dim,
@@ -18,7 +18,7 @@ class PolicyGradient(BaseActorCritic):
                  summary_every=100,
                  discount_factor=0.99,  # discount future rewards
                  ):
-        self.reward_manager = tensorflow_reward_manager.TensorflowRewardManager()
+        self.reward_manager = tensorflow_reward_manager.TensorflowRewardManager(state_dim)
 
         super().__init__(session, state_dim, num_actions, player_index, action_handler, is_training,
                          optimizer, summary_writer, summary_every, discount_factor)
@@ -59,9 +59,14 @@ class PolicyGradient(BaseActorCritic):
 
         total_loss += actor_reg_loss
 
+        total_loss = tf.Print(total_loss, [total_loss], 'total_loss')
+
         total_loss = tf.identity(total_loss, 'total_actor_loss_with_reg')
 
         all_but_last_row = self.all_but_last_actor_layer
+
+        total_loss = tf.check_numerics(total_loss, 'nan loss is being created')
+        total_loss = tf.Print(total_loss, [total_loss], 'total_loss')
 
         actor_gradients = self.optimizer.compute_gradients(total_loss,
                                                            all_but_last_row)
@@ -80,6 +85,8 @@ class PolicyGradient(BaseActorCritic):
             tf.summary.histogram('actor_wrongness', wrongNess)
         with tf.name_scope("compute_pg_gradients"):
             pg_loss = cross_entropy_loss * (wrongNess * wrongNess)
+
+            pg_loss = tf.check_numerics(pg_loss, 'nan pg_loss')
 
             if reduced:
                 pg_loss = tf.reduce_mean(pg_loss, name='pg_loss')
@@ -132,9 +139,10 @@ class PolicyGradient(BaseActorCritic):
 
         # summarize gradients
         for grad, var in gradients:
-            tf.summary.histogram(var.name, var)
-            if grad is not None:
-                tf.summary.histogram(var.name + '/gradients', grad)
+            pass
+            #tf.summary.histogram(var.name, var)
+            #if grad is not None:
+            #    tf.summary.histogram(var.name + '/gradients', grad)
 
         # emit summaries
         tf.summary.histogram("estimated_values", self.estimated_values)

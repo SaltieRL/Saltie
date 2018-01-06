@@ -11,31 +11,21 @@ class OutputChecks:
     accuracy_over_time = None
     bot_data_over_time = None
 
-    def __init__(self, packets, model, tf_session, action_handler):
+    def __init__(self, packets, model_output, game_tick_packet, input_array, tf_session, action_handler):
         self.sess = tf_session
         self.packets = packets
-        self.formatter = tensorflow_input_formatter.TensorflowInputFormatter(0, 0, packets)
+        self.game_tick_packet = game_tick_packet
+        self.input_array = input_array
         self.packet_generator = random_packet_creator.TensorflowPacketGenerator(packets)
         self.tutorial_bot = tutorial_bot_output.TutorialBotOutput(packets)
-        self.model = model
+        self.model_output = model_output
         self.actionHandler = action_handler
 
     def create_model(self):
         # clear history
         self.accuracy_over_time = []
         self.bot_data_over_time = []
-        input_state, game_tick_packet = self.get_random_data()
-        self.game_tick_packet = game_tick_packet
-        self.model.batch_size = self.packets
-        self.model.mini_batch_size = self.packets
-        self.model.create_model(input_state)
-        self.model_output = self.model.argmax
 
-    def get_random_data(self):
-        game_tick_packet = self.packet_generator.get_random_array()
-        output_array = self.formatter.create_input_array(game_tick_packet)[0]
-        # reverse the shape of the array
-        return output_array, game_tick_packet
 
     def get_amounts(self):
         controls = tf.transpose(

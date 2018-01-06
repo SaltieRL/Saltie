@@ -2,6 +2,7 @@ import tensorflow as tf
 import time
 from conversions.input import input_formatter, tensorflow_input_formatter
 from TutorialBot import tutorial_bot_output
+from modelHelpers.tensorflow_feature_creator import TensorflowFeatureCreator
 from trainer.utils import random_packet_creator as r
 from models.actor_critic import tutorial_model
 from modelHelpers import action_handler
@@ -11,7 +12,7 @@ from tqdm import tqdm
 
 def get_random_data(packet_generator, input_formatter):
     game_tick_packet = packet_generator.get_random_array()
-    output_array = input_formatter.create_input_array(game_tick_packet, game_tick_packet.time_diff)[0]
+    output_array = input_formatter.create_input_array(game_tick_packet, game_tick_packet.time_diff)
     # reverse the shape of the array
     return output_array, game_tick_packet
 
@@ -23,7 +24,6 @@ save_step = 2000000
 
 # Network Parameters
 n_neurons_hidden = 128  # every layer of neurons
-n_input = input_formatter.get_state_dim_with_features()  # data input
 n_output = 39  # total outputs
 
 
@@ -67,12 +67,14 @@ def calculate_loss(self, elements):
 
 def run():
     with tf.Session() as sess:
-        formatter = tensorflow_input_formatter.TensorflowInputFormatter(0, 0, batch_size)
+        feature_creator = TensorflowFeatureCreator()
+        formatter = tensorflow_input_formatter.TensorflowInputFormatter(0, 0, batch_size, feature_creator)
         packet_generator = r.TensorflowPacketGenerator(batch_size)
         output_creator = tutorial_bot_output.TutorialBotOutput(batch_size)
         actions = action_handler.ActionHandler(split_mode=True)
 
-        model = tutorial_model.TutorialModel(sess, n_input, n_output, action_handler=actions, is_training=True)
+        model = tutorial_model.TutorialModel(sess, formatter.get_state_dim_with_features(),
+                                             n_output, action_handler=actions, is_training=True)
         model.num_layers = 10
         model.summary_writer = tf.summary.FileWriter(
             model.get_event_path('random_packet'))
@@ -93,7 +95,8 @@ def run():
 
         model.create_savers()
 
-        checks = controller_statistics.OutputChecks(batch_size, model, sess, actions)
+        checks = controller_statistics.OutputChecks(batch_size, model.argmax, game_tick_packet,
+                                                    input_state, sess, actions)
 
         model.initialize_model()
 

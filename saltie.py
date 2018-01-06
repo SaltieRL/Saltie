@@ -108,8 +108,7 @@ class Agent:
         if self.last_frame_time is not None:
             frame_time = time.time() - self.last_frame_time
         self.last_frame_time = time.time()
-        input_state, features = self.inp.create_input_array(game_tick_packet, frame_time)
-        input_state = np.append(input_state, features)
+        input_state = self.inp.create_input_array(game_tick_packet, frame_time)
         if self.state_dim != len(input_state):
             print('wrong input size', self.index, len(input_state))
             return self.actions_handler.create_controller_from_selection(

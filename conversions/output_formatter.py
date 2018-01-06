@@ -20,6 +20,7 @@ def get_car_info_index():
 def get_ball_info_index():
     return GAME_INFO_OFFSET + SCORE_INFO_OFFSET + CAR_INFO_OFFSET
 
+
 def get_basic_state(array):
     score_info = get_score_info(array, GAME_INFO_OFFSET)
     car_location = create_3D_point(array, GAME_INFO_OFFSET + SCORE_INFO_OFFSET)
@@ -39,53 +40,16 @@ def get_basic_state(array):
     return result
 
 
-def create_game_tick_packet(array):
-    gameTickPacket = create_object()
-    gameTickPacket.gamecars = []
-    total_offset = 0
-    game_info, offset = get_game_info(array, 0)
-    total_offset += offset
-    gameTickPacket.gameInfo = game_info
-    score_info, offset = get_score_info(array, total_offset)
-    total_offset += offset
-    player_car, offset = get_car_info(array, total_offset)
-    total_offset += offset
-    player_car.Score = score_info
-    # always put player car at 0
-    gameTickPacket.gamecars.append(player_car)
+def get_advanced_state(input_array):
+    car_info = get_car_info(input_array, GAME_INFO_OFFSET + SCORE_INFO_OFFSET)
+    ball_info = get_ball_info(input_array, GAME_INFO_OFFSET +
+                              SCORE_INFO_OFFSET +
+                              CAR_INFO_OFFSET)
+    result = create_object()
+    result.car_info = car_info
+    result.ball_info = ball_info
 
-    ball_info = get_ball_info(array, total_offset)
-    total_offset += offset
-    gameTickPacket.gameball = ball_info
-
-    team_member1 = get_car_info(array, total_offset)
-    total_offset += offset
-    if team_member1 is not None:
-        gameTickPacket.gamecars.append(team_member1)
-
-    team_member2 = get_car_info(array, total_offset)
-    total_offset += offset
-    if team_member2 is not None:
-        gameTickPacket.gamecars.append(team_member2)
-
-    enemy1 = get_car_info(array, total_offset)
-    total_offset += offset
-    if enemy1 is not None:
-        gameTickPacket.gamecars.append(enemy1)
-
-    enemy2 = get_car_info(array, total_offset)
-    total_offset += offset
-    if enemy2 is not None:
-        gameTickPacket.gamecars.append(enemy2)
-
-    enemy3 = get_car_info(array, total_offset)
-    total_offset += offset
-    if enemy3 is not None:
-        gameTickPacket.gamecars.append(enemy3)
-
-    gameTickPacket.gameBoosts = get_boost_info(array, total_offset)
-
-    return gameTickPacket
+    return result
 
 
 def is_empty_player_array(array, index, offset):
@@ -121,11 +85,14 @@ def get_car_info(array, index):
     car_info.Rotation = create_3D_rotation(array, index + 3)
     car_info.Velocity = create_3D_point(array, index + 6)
     car_info.AngularVelocity = create_3D_point(array, index + 9)
-    car_info.bDemolished = (array[12] == 1)
-    car_info.bJumped = (array[13] == 1)
-    car_info.bDoubleJumped = (array[14] == 1)
-    car_info.Team = int(array[15])
-    car_info.Boost = array[16]
+    car_info.bOnGround = array[12]
+    car_info.bSuperSonic = array[13]
+    car_info.bDemolished = array[14]
+    car_info.bJumped = array[15]
+    car_info.bDoubleJumped = array[16]
+    car_info.Team = array[17]
+    car_info.Boost = array[18]
+    car_info.bLastTouchedBall = array[19]
     return car_info
 
 
@@ -172,4 +139,3 @@ def get_score_info(array, index):
     score_info.Demolitions = array[index + 6]
     score_info.FrameScoreDiff = array[index + 7]
     return score_info
-

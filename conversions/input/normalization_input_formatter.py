@@ -3,8 +3,8 @@ from conversions.input import tensorflow_input_formatter
 
 
 class NormalizationInputFormatter(tensorflow_input_formatter.TensorflowInputFormatter):
-    def __init__(self, team, index, batch_size):
-        super().__init__(team, index, batch_size)
+    def __init__(self, team, index, batch_size, feature_creator=None):
+        super().__init__(team, index, batch_size, feature_creator)
 
     def split_teams(self, game_tick_packet):
         team_members = []
@@ -23,6 +23,8 @@ class NormalizationInputFormatter(tensorflow_input_formatter.TensorflowInputForm
         return tf.constant([0.0, 1.0])
 
     def create_result_array(self, array):
+        if self.feature_creator is not None:
+            array += self.feature_creator.generate_features_normalizers()
         converted_array = []
         for i in range(len(array)):
             casted_number = tf.cast(array[i], tf.float32)
@@ -34,7 +36,7 @@ class NormalizationInputFormatter(tensorflow_input_formatter.TensorflowInputForm
         result = super().get_score_info(score, diff_in_score)
 
         # the change in score can only be -1 to 1
-        result[len(result) - 1] = [-1, 1]
+        result[len(result) - 1] = tf.constant([-1, 1])
         return result
 
     def create_input_array(self, game_tick_packet, passed_time=None):
