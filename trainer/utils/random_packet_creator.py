@@ -18,7 +18,7 @@ class TensorflowPacketGenerator:
     def create_object(self):
         return lambda: None
 
-    def get_game_info(self):
+    def get_game_info(self, is_kickoff):
         info = self.create_object()
         # Game info
         batch_size = self.batch_size
@@ -27,7 +27,7 @@ class TensorflowPacketGenerator:
         info.bOverTime = self.false
         info.bUnlimitedTime = self.false
         info.bRoundActive = self.true
-        info.bBallHasBeenHit = self.true
+        info.bBallHasBeenHit = is_kickoff
         info.bMatchEnded = self.false
 
         return info
@@ -301,7 +301,7 @@ class TensorflowPacketGenerator:
         game_tick_packet = self.create_object()
         # Game info
         with tf.name_scope("Game_Info"):
-            game_tick_packet.gameInfo = self.get_game_info()
+            game_tick_packet.gameInfo = self.get_game_info(is_kickoff)
         # Score info
 
         # Player car info
