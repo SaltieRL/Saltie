@@ -102,6 +102,7 @@ class TutorialBotOutput:
         bot_rot = values.gamecars[0].Rotation
         ball_pos = values.gameball.Location
         is_on_ground = values.gamecars[0].bOnGround
+        car_boost = values.gamecars[0].Boost
 
         # Get car's yaw and convert from Unreal Rotator units to degrees
         bot_yaw = (tf.abs(bot_rot.Yaw) % 65536.0) * self.unreal_to_degrees
@@ -109,8 +110,11 @@ class TutorialBotOutput:
         bot_yaw *= tf.sign(bot_rot.Yaw)
         xy_distance = self.distance(bot_pos.X, bot_pos.Y, ball_pos.X, ball_pos.Y)
 
+        throttle = tf.cast(is_on_ground, tf.float32)
+
         # Boost when ball is far enough away
-        boost = tf.greater(xy_distance, self.distance_from_ball_to_boost)
+        boost = tf.logical_and(tf.greater(xy_distance, self.distance_from_ball_to_boost),
+                               tf.greater(car_boost, 34))
 
         elements = [(ball_pos.X, ball_pos.Y, ball_pos.Z),
                     (bot_pos.X, bot_pos.Y, bot_pos.Z, bot_yaw),
