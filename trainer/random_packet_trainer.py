@@ -19,7 +19,7 @@ def get_random_data(packet_generator, input_formatter):
 learning_rate = 0.3
 total_batches = 2000
 batch_size = 5000
-display_step = 1
+save_step = 2000000
 
 # Network Parameters
 n_neurons_hidden = 128  # every layer of neurons
@@ -93,8 +93,6 @@ def run():
 
         model.create_savers()
 
-        start = time.time()
-
         checks = controller_statistics.OutputChecks(batch_size, model, sess, actions)
 
         model.initialize_model()
@@ -106,8 +104,11 @@ def run():
         checks.get_amounts()
         #print('time to get stats', time.time() - start)
         #for i in tqdm(range(total_batches)):
-        #    sess.run([real_indexes])
+        #    sess.run([model.train_op])
 
+        print_every_x_batches = (total_batches * batch_size) / save_step
+        print('prints at this percentage', print_every_x_batches)
+        model_counter = 0
         # RUNNING
         for i in tqdm(range(total_batches)):
             result, summaries = sess.run([model.train_op,
@@ -115,11 +116,14 @@ def run():
 
             if model.summary_writer is not None:
                 model.summary_writer.add_summary(summaries, i)
-            if ((i + 1) * batch_size) % 500000 == 0:
+            if ((i + 1) * batch_size) % save_step == 0:
+                print()
                 print('stats at', (i + 1) * batch_size, 'frames')
                 checks.get_amounts()
                 print('saving model')
-                model.save_model(model.get_model_path(model.get_default_file_name()))
+                model.save_model(model.get_model_path(model.get_default_file_name() + str(model_counter)))
+                model_counter += 1
+                print()
 
         model.save_model(model.get_model_path(model.get_default_file_name()))
 
