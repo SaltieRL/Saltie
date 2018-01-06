@@ -139,10 +139,9 @@ class PolicyGradient(BaseActorCritic):
 
         # summarize gradients
         for grad, var in gradients:
-            pass
-            #tf.summary.histogram(var.name, var)
-            #if grad is not None:
-            #    tf.summary.histogram(var.name + '/gradients', grad)
+            tf.summary.histogram(var.name, var)
+            if grad is not None:
+                tf.summary.histogram(var.name + '/gradients', grad)
 
         # emit summaries
         tf.summary.histogram("estimated_values", self.estimated_values)

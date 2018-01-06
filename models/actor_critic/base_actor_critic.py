@@ -64,6 +64,7 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
             return super().get_input(model_input)
 
     def _create_model(self, model_input):
+        model_input = tf.check_numerics(model_input, 'model inputs')
         all_variable_list = []
         last_layer_list = [[] for _ in range(len(self.action_handler.get_split_sizes()))]
         with tf.name_scope("predict_actions"):
@@ -214,9 +215,8 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
                                 for x in variables]
 
         reg_loss = tf.reduce_sum(normalized_variables, name=(prefix + '_reg_loss'))
-        reg_loss = tf.check_numerics(reg_loss, 'nan reg loss')
         tf.summary.scalar(prefix + '_reg_loss', reg_loss)
-        return tf.constant(0.0)
+        return reg_loss
 
     def create_hidden_layers(self, activation_function, input_layer, network_size, network_prefix,
                              variable_list=None):
