@@ -78,7 +78,7 @@ class TutorialBotOutput:
         boost = tf.logical_and(tf.greater(xy_distance, self.distance_from_ball_to_boost),
                                tf.greater(car_boost, 34))
 
-        throttle = tf.cast(is_on_ground, tf.float32)
+        #throttle = tf.cast(is_on_ground, tf.float32)
         blue_goal = tf.constant(-5000.0)
         go_to_ball = tf.cast(tf.less(bot_pos.Y, ball_pos.Y), tf.float32)
         go_to_goal = 1 - go_to_ball

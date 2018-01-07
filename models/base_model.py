@@ -343,10 +343,10 @@ class BaseModel:
             self._load_model(self.sess, self.savers_map[key], self._create_saved_model_path(model_path, file_name, key))
 
     def _load_model(self, session, saver, path):
-        if os.path.exists(path):
+        if os.path.exists(os.path.dirname(path)):
             saver.restore(session, path)
         else:
-            print('model for saver not found:', + saver)
+            print('model for saver not found:', path)
 
     def create_model_hash(self):
         # BUF_SIZE is totally arbitrary, change for your app!

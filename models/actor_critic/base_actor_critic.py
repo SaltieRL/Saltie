@@ -250,19 +250,19 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
         self._create_network_saver('critic_network')
 
     def _create_network_saver(self, network_name):
-        self._create_layer_saver(network_name, self.last_layer_name)
-        self._create_layer_saver(network_name, self.first_layer_name) # + str(self.state_feature_dim)
+        self._create_layer_saver(network_name, self.last_layer_name, self.num_actions)
+        self._create_layer_saver(network_name, self.first_layer_name, self.state_feature_dim)
 
         hidden_layers = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,
                                           scope=network_name + '/' + self.hidden_layer_name)
         reshaped_list = np.reshape(np.array(hidden_layers), [int(len(hidden_layers) / 2), 2])
         for i in range(len(reshaped_list)):
             layer_name = self.hidden_layer_name + str(i)
-            saver_name = network_name + '_' + layer_name # + str(self.network_size)
+            saver_name = network_name + '_' + layer_name + str(self.network_size)
             self.add_saver(saver_name, reshaped_list[i].tolist())
 
-    def _create_layer_saver(self, network_name, layer_name):
-        saver_name = network_name + '_' + layer_name + '_' + str(self.network_size)
+    def _create_layer_saver(self, network_name, layer_name, extra_info=''):
+        saver_name = network_name + '_' + layer_name + '_' + str(self.network_size) + '_' + str(extra_info)
         scope_name = network_name + "/" + layer_name
         self.add_saver(saver_name,
                        tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope=scope_name))

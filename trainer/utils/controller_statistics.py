@@ -41,7 +41,7 @@ class OutputChecks:
         analog_buckets = [-1.0001, -0.50001, -0.0001, 0.0001, 0.50001, 1.0001]
         boolean_buckets = [-0.001, 0.50001, 1.0001]
         np.set_printoptions(formatter={'int': '{0:5}'.format})
-        print("Splitting up everything in ranges: [-1, -0.5>, [-0.5, 0->, [0], <0+, 0.5], <0.5, 1]")
+        print("Splitting up everything in ranges: [-1, -0.5>, [-0.5, -0>, [0], <0+, 0.5], <0.5, 1]")
         print("Real is model output, Expt is tutorialbot output and Acc. is accuracy")
         print("Throttle :  ")
         print("     Real:  ", np.histogram(output[0], analog_buckets)[0])
