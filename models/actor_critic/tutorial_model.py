@@ -132,9 +132,9 @@ class TutorialModel(PolicyGradient):
             for j, item in enumerate(self.action_handler.get_action_sizes()):
                 name = str(self.action_handler.action_list_names[j]) + str(i)
                 split_layers.append(self.create_layer(activation_function, inner_layer, 'split' + name,
-                                                      network_size, network_size / num_actions, network_prefix + name,
+                                                      network_size, network_size // num_actions, network_prefix + name,
                                                       variable_list=variable_list[j])[0])
-            return split_layers, network_size / num_actions
+            return split_layers, network_size // num_actions
 
     def get_model_name(self):
         return 'tutorial_bot' + ('_split' if self.action_handler.is_split_mode else '') + str(self.num_layers) + '-layers'

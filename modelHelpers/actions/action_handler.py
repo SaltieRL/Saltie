@@ -49,6 +49,12 @@ class ActionHandler:
         """
         return [len(self.actions)]
 
+    def get_number_actions(self):
+        """
+        :return: How many different actions there are
+        """
+        return 1
+
     def get_action_size(self):
         """
         :return: the size of the logits layer in a model

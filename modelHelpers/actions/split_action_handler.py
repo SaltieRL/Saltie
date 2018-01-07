@@ -8,7 +8,7 @@ from modelHelpers.actions.action_handler import ActionHandler, ActionMap
 
 
 class SplitActionHandler(ActionHandler):
-    actions_split = []
+    actions = []
     action_sizes = []
     movement_actions = []
     tensorflow_combo_actions = []
@@ -18,7 +18,7 @@ class SplitActionHandler(ActionHandler):
         super().__init__()
 
     def reset(self):
-        self.actions_split = []
+        self.actions = []
         self.action_sizes = []
         self.action_list_size = 0
         self.movement_actions = []
@@ -56,7 +56,6 @@ class SplitActionHandler(ActionHandler):
         actions.append(button_combo)
         for i in actions:
             split_actions_sizes.append(len(i))
-        self.actions_split = actions
         self.action_sizes = split_actions_sizes
         return actions
 
@@ -65,6 +64,9 @@ class SplitActionHandler(ActionHandler):
 
     def is_split_mode(self):
         return True
+
+    def get_number_actions(self):
+        return len(self.actions)
 
     def get_action_sizes(self):
         return self.action_sizes
@@ -75,7 +77,7 @@ class SplitActionHandler(ActionHandler):
         """
 
         counter = 0
-        for action in self.actions_split:
+        for action in self.actions:
             counter += len(action)
         return counter
 
@@ -105,10 +107,10 @@ class SplitActionHandler(ActionHandler):
         if len(action_selection) != len(self.actions):
             print('ACTION SELECTION IS NOT THE SAME LENGTH returning invalid action data')
             return [0, 0, 0, 0, 0, False, False, False]
-        steer = self.actions_split[0][action_selection[0]]
-        pitch = self.actions_split[1][action_selection[1]]
-        roll = self.actions_split[2][action_selection[2]]
-        button_combo = self.actions_split[3][action_selection[3]]
+        steer = self.actions[0][action_selection[0]]
+        pitch = self.actions[1][action_selection[1]]
+        roll = self.actions[2][action_selection[2]]
+        button_combo = self.actions[3][action_selection[3]]
         throttle = button_combo[0]
         jump = button_combo[1]
         boost = button_combo[2]
@@ -177,6 +179,7 @@ class SplitActionHandler(ActionHandler):
         for tensor in input_tensors:
             total_action_size = 0
             for i, val in enumerate(self.action_sizes):
+                starting_length = len(total_input[i])
                 if isinstance(tensor, collections.Sequence):
                     if len(tensor) == self.get_action_size():
                         # grabs each slice of tensor
@@ -190,11 +193,13 @@ class SplitActionHandler(ActionHandler):
                         total_input[i].append(tf.slice(tensor, [total_action_size], [val]))
                     elif tensor.get_shape()[1] == self.get_action_size():
                         total_input[i].append(tf.slice(tensor, [0, total_action_size], [-1, val]))
-                    elif tensor.get_shape()[1] == 4:
+                    elif tensor.get_shape()[1] == self.get_number_actions():
                         total_input[i].append(tf.slice(tensor, [0, i], [-1, 1]))
                     elif tensor.get_shape()[1] == 1:
                         total_input[i].append(tf.identity(tensor, name='copy' + str(i)))
                 total_action_size += val
+                if starting_length == len(total_input[i]):
+                    print('tensor ignored', tensor)
 
         if len(total_input[0]) != len(input_tensors):
             print('mis match in tensor length')
@@ -203,7 +208,8 @@ class SplitActionHandler(ActionHandler):
         for i, val in enumerate(self.action_list_names):
             with tf.name_scope(val):
                 try:
-                    results.append(split_func(*total_input[i]))
+                    functional_input = total_input[i]
+                    results.append(split_func(*functional_input))
                 except Exception as e:
                     print('exception in split func ', val)
                     raise e

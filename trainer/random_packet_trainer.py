@@ -7,7 +7,7 @@ from conversions.input import tensorflow_input_formatter
 from modelHelpers.tensorflow_feature_creator import TensorflowFeatureCreator
 from trainer.utils import random_packet_creator as r
 from models.actor_critic import tutorial_model
-from modelHelpers.actions import action_handler, action_factory
+from modelHelpers.actions import action_handler, action_factory, dynamic_action_handler
 from trainer.utils import controller_statistics
 from tqdm import tqdm
 
@@ -73,7 +73,7 @@ def run():
         formatter = tensorflow_input_formatter.TensorflowInputFormatter(0, 0, batch_size, feature_creator)
         packet_generator = r.TensorflowPacketGenerator(batch_size)
         output_creator = TutorialBotOutput(batch_size)
-        actions = action_factory.get_handler(split_mode=True)
+        actions = action_factory.get_handler(split_mode=True, control_scheme=dynamic_action_handler.super_split_scheme)
 
         model = tutorial_model.TutorialModel(sess, formatter.get_state_dim_with_features(),
                                              n_output, action_handler=actions, is_training=True)
