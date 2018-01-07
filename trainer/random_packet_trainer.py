@@ -3,12 +3,11 @@ import time
 
 from TutorialBot.atba2_demo_output import TutorialBotOutput_2
 from TutorialBot.tutorial_bot_output import TutorialBotOutput
-from conversions.input import input_formatter, tensorflow_input_formatter
-from TutorialBot import tutorial_bot_output
+from conversions.input import tensorflow_input_formatter
 from modelHelpers.tensorflow_feature_creator import TensorflowFeatureCreator
 from trainer.utils import random_packet_creator as r
 from models.actor_critic import tutorial_model
-from modelHelpers import action_handler
+from modelHelpers.actions import action_handler
 from trainer.utils import controller_statistics
 from tqdm import tqdm
 
@@ -21,7 +20,7 @@ def get_random_data(packet_generator, input_formatter):
 
 
 learning_rate = 0.01
-total_batches = 4000
+total_batches = 2000
 batch_size = 5000
 save_step = 2000000
 
@@ -73,7 +72,7 @@ def run():
         feature_creator = TensorflowFeatureCreator()
         formatter = tensorflow_input_formatter.TensorflowInputFormatter(0, 0, batch_size, feature_creator)
         packet_generator = r.TensorflowPacketGenerator(batch_size)
-        output_creator = TutorialBotOutput_2(batch_size)
+        output_creator = TutorialBotOutput(batch_size)
         actions = action_handler.ActionHandler(split_mode=True)
 
         model = tutorial_model.TutorialModel(sess, formatter.get_state_dim_with_features(),
@@ -112,7 +111,7 @@ def run():
         #    sess.run([model.train_op])
 
         print_every_x_batches = (total_batches * batch_size) / save_step
-        print('prints at this percentage', print_every_x_batches)
+        print('prints at this percentage', 100.0 / print_every_x_batches)
         model_counter = 0
         # RUNNING
         for i in tqdm(range(total_batches)):

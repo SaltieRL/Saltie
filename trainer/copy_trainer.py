@@ -1,5 +1,5 @@
 from conversions.input.input_formatter import get_state_dim
-from modelHelpers import action_handler
+from modelHelpers.actions import action_handler
 from modelHelpers import feature_creator
 from models.actor_critic import base_actor_critic
 

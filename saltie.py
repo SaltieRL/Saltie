@@ -3,7 +3,7 @@ from conversions.input import input_formatter
 from conversions.input.input_formatter import InputFormatter
 import importlib
 import inspect
-from modelHelpers import action_handler
+from modelHelpers.actions import action_handler
 from modelHelpers import reward_manager
 from modelHelpers.tensorflow_feature_creator import TensorflowFeatureCreator
 from models.actor_critic import policy_gradient

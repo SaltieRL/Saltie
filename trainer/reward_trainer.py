@@ -1,7 +1,7 @@
 import os
 
 from conversions.input.input_formatter import get_state_dim
-from modelHelpers import action_handler
+from modelHelpers.actions import action_handler
 from modelHelpers import reward_manager
 import time
 

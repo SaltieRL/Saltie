@@ -28,6 +28,7 @@ class ActionMap:
 class ActionHandler:
     range_size = 5
     action_list_names = ['actions']
+    control_names = ['throttle', 'steer', 'pitch', 'steer', 'roll', 'jump', 'boost', 'handbrake']
 
     def __init__(self, split_mode=False):
         self.split_mode = split_mode
@@ -75,6 +76,8 @@ class ActionHandler:
     def create_actions_split(self):
         """
         Creates all variations of all of the actions.
+
+        controller options = [throttle, steer, pitch, steer, roll, jump, boost, handbrake]
         :return: A combination of all actions. This is an array of an array
         """
 
@@ -94,10 +97,7 @@ class ActionHandler:
         actions.append(steer)
         actions.append(pitch)
         actions.append(roll)
-        self.movement_actions = tf.constant(np.array(actions), shape=[3,5])
-        self.yaw_actions = self.movement_actions[0]
-        self.pitch_actions = self.movement_actions[1]
-        self.roll_actions = self.movement_actions[2]
+        self.movement_actions = tf.constant(np.array(actions), shape=[len(actions), len(steer)])
         self.combo_actions = tf.constant(button_combo)
         self.action_list_names = ['steer', 'pitch', 'yaw', 'combo']
         actions.append(button_combo)
