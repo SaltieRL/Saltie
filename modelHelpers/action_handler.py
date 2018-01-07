@@ -338,6 +338,65 @@ class ActionHandler:
 
         return tf.stack([result1, result2, result3, result4], axis=1)
 
+
+    def run_func_on_split_tensors_fancy(self, input_tensors, split_func, return_as_list = False):
+        """
+        Optionally splits the tensor and runs a function on the split tensor
+        If the tensor should not be split it runs the function on the entire tensor
+        :param tf: tensorflow
+        :param input_tensors: needs to have shape of (?, num_actions)
+        :param split_func: a function that is called with a tensor or array the same rank as input_tensor.
+            It should return a tensor with the same rank as input_tensor
+        :return: a stacked tensor (see tf.stack) or the same tensor depending on if it is in split mode or not.
+        """
+
+        if not isinstance(input_tensors, collections.Sequence):
+            input_tensors = [input_tensors]
+
+        if not self.split_mode:
+            return split_func(*input_tensors)
+
+        total_output = []
+        for i in self.split_action_sizes:
+            total_output.append([])
+
+        for tensor in input_tensors:
+            total_action_size = 0
+            for i, val in enumerate(self.split_action_sizes):
+                if isinstance(tensor, collections.Sequence):
+                    if len(tensor) == self.get_action_size():
+                        # grabs each slice of tensor
+                        total_output[i].append(tensor[total_action_size:total_action_size + val])
+                    else:
+                        total_output[i].append(tensor[i])
+                else:
+                    if len(tensor.get_shape()) == 0:
+                        total_output[i].append(tf.identity(tensor, name='copy' + str(i)))
+                    elif tensor.get_shape()[0] == self.get_action_size():
+                        total_output[i].append(tf.slice(tensor, [total_action_size], [val]))
+                    elif tensor.get_shape()[1] == self.get_action_size():
+                        total_output[i].append(tf.slice(tensor, [0, total_action_size], [-1, val]))
+                    elif tensor.get_shape()[1] == 4:
+                        total_output[i].append(tf.slice(tensor, [0, i], [-1, 1]))
+                    elif tensor.get_shape()[1] == 1:
+                        total_output[i].append(tf.identity(tensor, name='copy' + str(i)))
+                total_action_size += val
+            print('tensor ignored', tensor)
+
+        with tf.name_scope("steer"):
+            result1 = split_func(*output1)
+        with tf.name_scope("pitch"):
+            result2 = split_func(*output2)
+        with tf.name_scope("roll"):
+            result3 = split_func(*output3)
+        with tf.name_scope("combo"):
+            result4 = split_func(*output4)
+
+        if return_as_list:
+            return [result1, result2, result3, result4]
+
+        return tf.stack([result1, result2, result3, result4], axis=1)
+
     def optionally_split_numpy_arrays(self, numpy_array, split_func, is_already_split=False):
         """
         Optionally splits the tensor and runs a function on the split tensor
