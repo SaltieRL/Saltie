@@ -18,7 +18,7 @@ class TensorflowPacketGenerator:
     def create_object(self):
         return lambda: None
 
-    def get_game_info(self):
+    def get_game_info(self, is_kickoff):
         info = self.create_object()
         # Game info
         batch_size = self.batch_size
@@ -27,7 +27,7 @@ class TensorflowPacketGenerator:
         info.bOverTime = self.false
         info.bUnlimitedTime = self.false
         info.bRoundActive = self.true
-        info.bBallHasBeenHit = self.true
+        info.bBallHasBeenHit = is_kickoff
         info.bMatchEnded = self.false
 
         return info
@@ -45,6 +45,13 @@ class TensorflowPacketGenerator:
 
         return point
 
+    def remove_number(self, input, not_on_ground):
+        scale_amount = tf.constant(1000.0, dtype=tf.float32)
+        input_scaled = tf.cast(input * scale_amount, tf.int32)
+        post_bitwise = tf.bitwise.bitwise_and(input_scaled, not_on_ground)
+        output = tf.cast(post_bitwise, tf.float32) / scale_amount
+        return output
+
     def create_3D_rotation(self, pitch, yaw, roll, convert_name=True):
         rotator = self.create_object()
         if convert_name:
@@ -58,7 +65,15 @@ class TensorflowPacketGenerator:
 
         return rotator
 
-    def createRotVelAng(self):
+    def create_mask(self, value):
+        value = tf.cast(tf.equal(value, False), tf.int32)
+        added_value = tf.constant(0)
+        two = tf.constant(2, dtype=tf.int32)
+        for i in range(32):
+            added_value += value * tf.pow(two, tf.constant(i, dtype=tf.int32))
+        return added_value
+
+    def createRotVelAng(self, is_on_ground):
         batch_size = self.batch_size
         with tf.name_scope("Rotation"):
             rotation = self.create_3D_rotation(
@@ -67,17 +82,24 @@ class TensorflowPacketGenerator:
                 tf.random_uniform(shape=[batch_size, ], minval=-32768, maxval=32768, dtype=tf.float32))  # Roll
 
         with tf.name_scope("Velocity"):
-            velocity = self.create_3D_point(
-                tf.random_uniform(shape=[batch_size, ], minval=-2300, maxval=2300, dtype=tf.float32),  # Velocity X
-                tf.random_uniform(shape=[batch_size, ], minval=-2300, maxval=2300, dtype=tf.float32),  # Y
-                tf.random_uniform(shape=[batch_size, ], minval=-2300, maxval=2300, dtype=tf.float32))  # Z
+            vel_rand = tf.random_uniform(shape=[3, batch_size, ], minval=-2300, maxval=2300, dtype=tf.float32)
+            velocity = self.create_3D_point(vel_rand[0],  # Velocity X
+                                            vel_rand[1],  # Y
+                                            vel_rand[2])  # Z
 
         with tf.name_scope("AngularVelocity"):
-            angular = self.create_3D_point(
-                tf.random_uniform(shape=[batch_size, ], minval=-5.5, maxval=5.5, dtype=tf.float32),
-                # Angular velocity X
-                tf.random_uniform(shape=[batch_size, ], minval=-5.5, maxval=5.5, dtype=tf.float32),  # Y
-                tf.random_uniform(shape=[batch_size, ], minval=-5.5, maxval=5.5, dtype=tf.float32))  # Z
+            ang_rand = tf.random_uniform(shape=[3, batch_size, ], minval=-5.5, maxval=5.5, dtype=tf.float32)
+            angular = self.create_3D_point(ang_rand[0], # Angular velocity X
+                                           ang_rand[1],  # Y
+                                           ang_rand[2])  # Z
+
+        #reverse ground data
+        mask = self.create_mask(is_on_ground)
+
+        rotation.Pitch = self.remove_number(rotation.Pitch, mask)
+        rotation.Roll = self.remove_number(rotation.Roll, mask)
+        velocity.Z = self.remove_number(velocity.Z, mask)
+        angular.Z = self.remove_number(angular.Z, mask)
 
         return (rotation, velocity, angular)
 
@@ -121,19 +143,20 @@ class TensorflowPacketGenerator:
             tf.random_uniform(shape=[batch_size, ], minval=-11800, maxval=11800, dtype=tf.float32),  # Y
             car_z)
 
-        rotation, velocity, angularVelocity = self.createRotVelAng()
+        rotation, velocity, angularVelocity = self.createRotVelAng(is_on_ground)
 
         return self.decompose(location, rotation, velocity, angularVelocity)
 
-    def get_car_info(self, batch_size, is_on_ground, team, index):
+    def get_car_info(self, batch_size, is_on_ground, team, index, is_kickoff):
         car = self.create_object()
 
         get_normal_car_values = self.get_normal_car_values
 
         car.Location, car.Rotation, car.Velocity, car.AngularVelocity = self.convert_to_objects(tf.cond(
-            tf.logical_and(team == 0, tf.greater_equal(tf.random_uniform(shape=[], maxval=0.6, dtype=tf.float32), 0.5)),
-            lambda: get_normal_car_values(is_on_ground),
-            self.get_kickoff_data))
+            tf.logical_and(team == 0, is_kickoff[0]),
+            self.get_kickoff_data,
+            lambda: get_normal_car_values(is_on_ground)))
+
 
         car.bDemolished = self.false  # Demolished
 
@@ -194,14 +217,19 @@ class TensorflowPacketGenerator:
 
         return car
 
-    def get_ball_info(self, batch_size):
+    def get_ball_info(self, batch_size, is_on_ground, is_kickoff):
         ball = self.create_object()
         ball.Location = self.create_3D_point(
             tf.random_uniform(shape=[batch_size, ], minval=-8100, maxval=8100, dtype=tf.float32),  # Location X
             tf.random_uniform(shape=[batch_size, ], minval=-11800, maxval=11800, dtype=tf.float32),  # Y
             tf.random_uniform(shape=[batch_size, ], minval=0, maxval=2000, dtype=tf.float32))  # Z
 
-        ball.Rotation, ball.Velocity, ball.AngularVelocity = self.createRotVelAng()
+        kick_off_mask = self.create_mask(is_kickoff)
+        on_ground_mask = self.create_mask(is_on_ground)
+
+        merged_mask = tf.bitwise.bitwise_and(kick_off_mask, on_ground_mask)
+
+        ball.Rotation, ball.Velocity, ball.AngularVelocity = self.createRotVelAng(is_on_ground)
 
         with tf.name_scope("BallAccerlation"):
             ball.Acceleration = self.create_3D_point(
@@ -225,6 +253,15 @@ class TensorflowPacketGenerator:
                 tf.random_uniform(shape=[batch_size, ], minval=-6000, maxval=6000, dtype=tf.float32),  # Velocity X
                 tf.random_uniform(shape=[batch_size, ], minval=-6000, maxval=6000, dtype=tf.float32),  # Y
                 tf.random_uniform(shape=[batch_size, ], minval=-6000, maxval=6000, dtype=tf.float32))  # Z
+
+        ball.Location.Z = self.remove_number(ball.Velocity.Z, on_ground_mask)
+
+        ball.Location.X = self.remove_number(ball.Location.X, kick_off_mask)
+        ball.Location.Y = self.remove_number(ball.Location.Y, kick_off_mask)
+        ball.Velocity.X = self.remove_number(ball.Velocity.X, kick_off_mask)
+        ball.Velocity.Y = self.remove_number(ball.Velocity.Y, kick_off_mask)
+
+        ball.Velocity.Z = self.remove_number(ball.Velocity.Z, merged_mask)
         return ball
 
     def get_boost_info(self, batch_size):
@@ -257,39 +294,45 @@ class TensorflowPacketGenerator:
 
     def get_random_array(self):
         batch_size = self.batch_size
-        is_on_ground = tf.greater(tf.random_uniform(shape=[batch_size, ], maxval=2, dtype=tf.int32), 1)
+        is_car_on_ground = tf.greater_equal(tf.random_uniform(shape=[batch_size, ], minval=0, maxval=2, dtype=tf.int32), 1)
+        is_ball_on_ground = tf.greater_equal(tf.random_uniform(shape=[batch_size, ], minval=0, maxval=2, dtype=tf.int32), 1)
+        is_kickoff = tf.greater_equal(tf.random_uniform(shape=[batch_size, ], minval=0, maxval=10, dtype=tf.int32), 8)
 
         game_tick_packet = self.create_object()
         # Game info
         with tf.name_scope("Game_Info"):
-            game_tick_packet.gameInfo = self.get_game_info()
+            game_tick_packet.gameInfo = self.get_game_info(is_kickoff)
         # Score info
 
         # Player car info
         game_tick_packet.gamecars = []
         with tf.name_scope("Player_Car"):
-            game_tick_packet.gamecars.append(self.get_car_info(batch_size, is_on_ground, self.zero, self.zero))
+            game_tick_packet.gamecars.append(self.get_car_info(batch_size, is_car_on_ground, self.zero, self.zero,
+                                                               is_kickoff))
 
         game_tick_packet.numCars = len(game_tick_packet.gamecars)
 
         # Ball info
         with tf.name_scope("Ball_Info"):
-            game_tick_packet.gameball = self.get_ball_info(batch_size)
+            game_tick_packet.gameball = self.get_ball_info(batch_size, is_ball_on_ground, is_kickoff)
 
         # Teammates info, 1v1 so empty
         with tf.name_scope("Team_0"):
-            self.get_empty_car_info(is_on_ground, self.zero, self.two)
-            self.get_empty_car_info(is_on_ground, self.zero, self.four)
+            self.get_empty_car_info(is_car_on_ground, self.zero, self.two)
+            self.get_empty_car_info(is_car_on_ground, self.zero, self.four)
 
         # Enemy info, 1 enemy
         with tf.name_scope("Enemy"):
-            game_tick_packet.gamecars.append(self.get_car_info(batch_size, is_on_ground, self.one, self.one))
+            game_tick_packet.gamecars.append(self.get_car_info(batch_size, is_car_on_ground, self.one, self.one,
+                                                               is_kickoff))
         with tf.name_scope("Enemy1"):
-            self.get_empty_car_info(is_on_ground, self.one, self.three)
-            self.get_empty_car_info(is_on_ground, self.one, self.five)
+            self.get_empty_car_info(is_car_on_ground, self.one, self.three)
+            self.get_empty_car_info(is_car_on_ground, self.one, self.five)
 
         with tf.name_scope("Boost"):
             game_tick_packet.gameBoosts = self.get_boost_info(batch_size)
+
+        game_tick_packet.time_diff = tf.random_normal(shape=[batch_size, ], mean=1.0/45.0, dtype=tf.float32)
 
         return game_tick_packet
 

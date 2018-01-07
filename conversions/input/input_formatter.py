@@ -1,9 +1,10 @@
 import numpy as np
 import game_data_struct
+from modelHelpers.tensorflow_feature_creator import get_feature_dim
 
 
-def get_state_dim_with_features():
-    return 218
+def get_state_dim():
+    return 219
 
 
 class InputFormatter:
@@ -18,10 +19,11 @@ class InputFormatter:
         self.index = index
         self.total_score = [0, 0]
 
-    def create_input_array(self, game_tick_packet):
+    def create_input_array(self, game_tick_packet, passed_time=0.0):
         """
-
+        Creates an array for the model from the game_tick_packet
         :param game_tick_packet: A game packet for a single point in time
+        :param passed_time: Time between the last frame and this one
         :return: A massive array representing that packet
         """
 
@@ -32,6 +34,8 @@ class InputFormatter:
 
         ball_data = self.get_ball_info(game_tick_packet)
         game_info = self.get_game_info(game_tick_packet)
+        game_info.append(passed_time)
+
         boost_info = self.get_boost_info(game_tick_packet)
 
         # we subtract so that when they score it becomes negative for this frame
@@ -45,8 +49,7 @@ class InputFormatter:
         # extra_features = feature_creator.get_extra_features(game_tick_packet, self.index)
 
         return self.create_result_array(game_info + score_info + player_car + ball_data +
-                        self.flattenArrays(team_members) + self.flattenArrays(enemies) + boost_info), \
-               []
+                        self.flattenArrays(team_members) + self.flattenArrays(enemies) + boost_info)
 
     def split_teams(self, game_tick_packet):
         team_members = []
@@ -190,4 +193,4 @@ class InputFormatter:
         return [item for sublist in array_of_array for item in sublist]
 
     def get_state_dim_with_features(self):
-        return get_state_dim_with_features()
+        return get_state_dim() + get_feature_dim()

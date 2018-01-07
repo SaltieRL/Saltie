@@ -1,16 +1,18 @@
 # Defined as a generic bot, can use multiple models
-
+from conversions.input import input_formatter
 from conversions.input.input_formatter import InputFormatter
 import importlib
 import inspect
 from modelHelpers import action_handler
 from modelHelpers import reward_manager
+from modelHelpers.tensorflow_feature_creator import TensorflowFeatureCreator
 from models.actor_critic import policy_gradient
 import livedata.live_data_util as live_data_util
 
 import numpy as np
 import random
 import tensorflow as tf
+import time
 
 MODEL_CONFIGURATION_HEADER = 'Model Configuration'
 
@@ -26,6 +28,7 @@ class Agent:
     is_graphing = True
 
     def __init__(self, name, team, index, config_file=None):
+        self.last_frame_time = None
         self.config_file = config_file
         self.index = index
         self.load_config_file()
@@ -35,10 +38,10 @@ class Agent:
             device_count={'GPU': 0}
         )
         self.sess = tf.Session(config=config)
-        #self.sess = tf.Session()
+        # self.sess = tf.Session()
         writer = tf.summary.FileWriter('tmp/{}-experiment'.format(random.randint(0, 1000000)))
         self.actions_handler = action_handler.ActionHandler(split_mode=True)
-        self.state_dim = self.inp.get_state_dim_with_features()
+        self.state_dim = input_formatter.get_state_dim()
         self.num_actions = self.actions_handler.get_action_size()
         print('num_actions', self.num_actions)
         self.model = self.get_model_class()(self.sess,
@@ -53,6 +56,8 @@ class Agent:
 
         self.model.is_online_training = self.is_online_training
 
+        self.model.apply_feature_creation(TensorflowFeatureCreator())
+
         self.model.create_model()
 
         if self.model.is_training and self.model.is_online_training:
@@ -65,7 +70,7 @@ class Agent:
     def load_config_file(self):
         if self.config_file is None:
             return
-        #read file code here
+        # read file code here
 
         model_package = self.config_file.get(MODEL_CONFIGURATION_HEADER, 'model_package')
         model_name = self.config_file.get(MODEL_CONFIGURATION_HEADER, 'model_name')
@@ -75,7 +80,6 @@ class Agent:
         except:
             print('not generating graph data')
 
-
         try:
             self.is_online_training = self.config_file.getboolean(MODEL_CONFIGURATION_HEADER, 'train_online')
         except:
@@ -84,7 +88,7 @@ class Agent:
         print('getting model from', model_package)
         print('name of model', model_name)
         model_package = importlib.import_module(model_package)
-        module_classes = inspect.getmembers(model_package,  inspect.isclass)
+        module_classes = inspect.getmembers(model_package, inspect.isclass)
         for class_group in module_classes:
             if class_group[0] == model_name:
                 self.model_class = class_group[1]
@@ -103,12 +107,15 @@ class Agent:
         return reward[0] + reward[1]
 
     def get_output_vector(self, game_tick_packet):
-        input_state, features = self.inp.create_input_array(game_tick_packet)
-        input_state = np.append(input_state, features)
+        frame_time = 0.0
+        if self.last_frame_time is not None:
+            frame_time = time.time() - self.last_frame_time
+        self.last_frame_time = time.time()
+        input_state = self.inp.create_input_array(game_tick_packet, frame_time)
         if self.state_dim != len(input_state):
             print('wrong input size', self.index, len(input_state))
             return self.actions_handler.create_controller_from_selection(
-                self.actions_handler.get_random_option()) # do not return anything
+                self.actions_handler.get_random_option())  # do not return anything
 
         if self.model.is_training and self.is_online_training:
             if self.previous_action is not None:

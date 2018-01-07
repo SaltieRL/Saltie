@@ -1,11 +1,14 @@
 import tensorflow as tf
 from conversions.input.normalization_input_formatter import NormalizationInputFormatter
-
+from modelHelpers import tensorflow_feature_creator
 
 class DataNormalizer:
     normalization_array = None
-    formatter = NormalizationInputFormatter(0, 0, None)
     boolean = [0.0, 1.0]
+
+    def __init__(self, batch_size):
+        self.batch_size = batch_size
+        self.formatter = NormalizationInputFormatter(0, 0, self.batch_size, tensorflow_feature_creator.TensorflowFeatureCreator())
 
     # game_info + score_info + player_car + ball_data +
     # self.flattenArrays(team_members) + self.flattenArrays(enemies) + boost_info
@@ -153,7 +156,7 @@ class DataNormalizer:
 
         with tf.name_scope("Boost"):
             game_tick_packet.gameBoosts = self.get_boost_info()
-        return self.formatter.create_input_array(game_tick_packet)[0]
+        return self.formatter.create_input_array(game_tick_packet)
 
     def apply_normalization(self, input_array):
         if self.normalization_array is None:
@@ -162,5 +165,10 @@ class DataNormalizer:
         min = self.normalization_array[0]
         max = self.normalization_array[1]
 
-        result = (input_array - min) / (max - min)
+        diff = max - min
+
+        # error_prevention = tf.cast(tf.equal(diff, 0.0), tf.float32)
+        # diff = diff + error_prevention
+
+        result = (input_array - min) / diff
         return result

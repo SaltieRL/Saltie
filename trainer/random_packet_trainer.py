@@ -2,6 +2,7 @@ import tensorflow as tf
 import time
 from conversions.input import input_formatter, tensorflow_input_formatter
 from TutorialBot import tutorial_bot_output
+from modelHelpers.tensorflow_feature_creator import TensorflowFeatureCreator
 from trainer.utils import random_packet_creator as r
 from models.actor_critic import tutorial_model
 from modelHelpers import action_handler
@@ -11,20 +12,20 @@ from tqdm import tqdm
 
 def get_random_data(packet_generator, input_formatter):
     game_tick_packet = packet_generator.get_random_array()
-    output_array = input_formatter.create_input_array(game_tick_packet)[0]
+    output_array = input_formatter.create_input_array(game_tick_packet, game_tick_packet.time_diff)
     # reverse the shape of the array
     return output_array, game_tick_packet
 
 
-learning_rate = 0.3
-total_batches = 5000
-batch_size = 2000
-display_step = 1
+learning_rate = 0.01
+total_batches = 2000
+batch_size = 5000
+save_step = 2000000
 
 # Network Parameters
 n_neurons_hidden = 128  # every layer of neurons
-n_input = input_formatter.get_state_dim_with_features()  # data input
 n_output = 39  # total outputs
+
 
 def calculate_loss(self, elements):
     throttle = elements[0]
@@ -66,12 +67,14 @@ def calculate_loss(self, elements):
 
 def run():
     with tf.Session() as sess:
-        formatter = tensorflow_input_formatter.TensorflowInputFormatter(0, 0, batch_size)
+        feature_creator = TensorflowFeatureCreator()
+        formatter = tensorflow_input_formatter.TensorflowInputFormatter(0, 0, batch_size, feature_creator)
         packet_generator = r.TensorflowPacketGenerator(batch_size)
         output_creator = tutorial_bot_output.TutorialBotOutput(batch_size)
         actions = action_handler.ActionHandler(split_mode=True)
 
-        model = tutorial_model.TutorialModel(sess, n_input, n_output, action_handler=actions, is_training=True)
+        model = tutorial_model.TutorialModel(sess, formatter.get_state_dim_with_features(),
+                                             n_output, action_handler=actions, is_training=True)
         model.num_layers = 10
         model.summary_writer = tf.summary.FileWriter(
             model.get_event_path('random_packet'))
@@ -92,15 +95,23 @@ def run():
 
         model.create_savers()
 
-        start = time.time()
-
-        checks = controller_statistics.OutputChecks(batch_size, model, sess, actions)
+        checks = controller_statistics.OutputChecks(batch_size, model.argmax, game_tick_packet,
+                                                    input_state, sess, actions)
 
         model.initialize_model()
 
-        # untrained bot
-        checks.get_amounts()
+        checks.create_model()
 
+        # untrained bot
+        start = time.time()
+        checks.get_amounts()
+        #print('time to get stats', time.time() - start)
+        #for i in tqdm(range(total_batches)):
+        #    sess.run([model.train_op])
+
+        print_every_x_batches = (total_batches * batch_size) / save_step
+        print('prints at this percentage', print_every_x_batches)
+        model_counter = 0
         # RUNNING
         for i in tqdm(range(total_batches)):
             result, summaries = sess.run([model.train_op,
@@ -108,16 +119,23 @@ def run():
 
             if model.summary_writer is not None:
                 model.summary_writer.add_summary(summaries, i)
-            if ((i + 1) * batch_size) % 100000 == 0:
-                model.save_model(model.get_model_path(model.get_default_file_name()))
+            if ((i + 1) * batch_size) % save_step == 0:
+                print()
+                print('stats at', (i + 1) * batch_size, 'frames')
+                checks.get_amounts()
+                print('saving model')
+                model.save_model(model.get_model_path(model.get_default_file_name() + str(model_counter)))
+                model_counter += 1
+
         model.save_model(model.get_model_path(model.get_default_file_name()))
 
         total_time = time.time() - start
         print('total time: ', total_time)
         print('time per batch: ', total_time / (float(total_batches)))
 
-        checks = controller_statistics.OutputChecks(batch_size, model, sess, actions)
+        print('final stats')
         checks.get_amounts()
+        checks.get_final_stats()
 
 if __name__ == '__main__':
     run()

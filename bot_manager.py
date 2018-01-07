@@ -135,7 +135,7 @@ class BotManager:
             current_time = game_tick_packet.gameInfo.TimeSeconds
 
             if self.save_data and game_tick_packet.gameInfo.bRoundActive and not old_time == current_time and not current_time == -10:
-                np_input, _ = self.input_converter.create_input_array(game_tick_packet)
+                np_input = self.input_converter.create_input_array(game_tick_packet)
                 np_output = np.array(controller_input, dtype=np.float32)
                 self.input_array = np.append(self.input_array, np_input)
                 self.output_array = np.append(self.output_array, np_output)

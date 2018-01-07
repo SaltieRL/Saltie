@@ -1,10 +1,11 @@
 import tensorflow as tf
 from models.actor_critic.base_actor_critic import BaseActorCritic
 from modelHelpers import tensorflow_reward_manager
+import numpy as np
 
 
 class PolicyGradient(BaseActorCritic):
-    max_gradient = 1
+    max_gradient = 1.0
 
     def __init__(self, session,
                  state_dim,
@@ -17,7 +18,7 @@ class PolicyGradient(BaseActorCritic):
                  summary_every=100,
                  discount_factor=0.99,  # discount future rewards
                  ):
-        self.reward_manager = tensorflow_reward_manager.TensorflowRewardManager()
+        self.reward_manager = tensorflow_reward_manager.TensorflowRewardManager(state_dim)
 
         super().__init__(session, state_dim, num_actions, player_index, action_handler, is_training,
                          optimizer, summary_writer, summary_every, discount_factor)
@@ -38,8 +39,10 @@ class PolicyGradient(BaseActorCritic):
         advantages = self.create_advantages()
 
         actor_reg_loss = self.get_regularization_loss(self.all_but_last_actor_layer, prefix="actor_hidden")
+        indexes = np.arange(0, len(self.action_handler.get_split_sizes()), 1).tolist()
 
-        result = self.action_handler.run_func_on_split_tensors([logprobs,
+        result = self.action_handler.run_func_on_split_tensors([indexes,
+                                                                logprobs,
                                                                 taken_actions,
                                                                 advantages,
                                                                 self.last_row_variables],
@@ -56,9 +59,14 @@ class PolicyGradient(BaseActorCritic):
 
         total_loss += actor_reg_loss
 
+        total_loss = tf.Print(total_loss, [total_loss], 'total_loss')
+
         total_loss = tf.identity(total_loss, 'total_actor_loss_with_reg')
 
         all_but_last_row = self.all_but_last_actor_layer
+
+        total_loss = tf.check_numerics(total_loss, 'nan loss is being created')
+        total_loss = tf.Print(total_loss, [total_loss], 'total_loss')
 
         actor_gradients = self.optimizer.compute_gradients(total_loss,
                                                            all_but_last_row)
@@ -67,20 +75,24 @@ class PolicyGradient(BaseActorCritic):
 
         return merged_gradient_list, total_loss, actor_reg_loss
 
-    def create_split_actor_loss(self, logprobs, taken_actions, advantages, actor_network_variables):
+    def create_split_actor_loss(self, index, logprobs, taken_actions, advantages, actor_network_variables):
         if len(taken_actions.get_shape()) == 2:
             taken_actions = tf.squeeze(taken_actions, axis=[1])
 
         # calculates the entropy loss from getting the label wrong
-        cross_entropy_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logprobs,
-                                                                            labels=taken_actions)
+        cross_entropy_loss, wrongNess, reduced = self.calculate_loss_of_actor(logprobs, taken_actions, index)
+        if not reduced:
+            tf.summary.histogram('actor_wrongness', wrongNess)
         with tf.name_scope("compute_pg_gradients"):
-            pg_loss, reduced = self.calculate_loss_of_actor(cross_entropy_loss)
+            pg_loss = cross_entropy_loss * (wrongNess * wrongNess)
+
+            pg_loss = tf.check_numerics(pg_loss, 'nan pg_loss')
 
             if reduced:
-                tf.summary.scalar("actor_x_entropy_loss", pg_loss)
+                pg_loss = tf.reduce_mean(pg_loss, name='pg_loss')
+                tf.summary.scalar("actor_x_entropy_loss", cross_entropy_loss)
             else:
-                tf.summary.scalar("actor_x_entropy_loss", tf.reduce_mean(pg_loss))
+                tf.summary.scalar("actor_x_entropy_loss", tf.reduce_mean(cross_entropy_loss))
 
             actor_reg_loss = self.get_regularization_loss(actor_network_variables, prefix="actor")
 
@@ -89,7 +101,6 @@ class PolicyGradient(BaseActorCritic):
             # compute actor gradients
             actor_gradients = self.optimizer.compute_gradients(actor_loss,
                                                                [actor_network_variables])
-
 
             # compute policy gradients
             for i, (grad, var) in enumerate(actor_gradients):
@@ -192,10 +203,12 @@ class PolicyGradient(BaseActorCritic):
     def get_model_name(self):
         return 'a_c_policy_gradient' + ('_split' if self.action_handler.is_split_mode else '') + str(self.num_layers) + '-layers'
 
-    def calculate_loss_of_actor(self, cross_entropy_loss):
+    def calculate_loss_of_actor(self, logprobs, taken_actions, index):
         """
         Calculates the loss of th
         :param cross_entropy_loss:
         :return: The calculated_tensor, If the result is a scalar.
         """
-        return tf.reduce_mean(cross_entropy_loss, name='pg_loss'), True
+        return tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logprobs,
+                                                       labels=taken_actions), 1.0, True
+

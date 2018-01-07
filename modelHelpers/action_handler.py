@@ -27,6 +27,7 @@ class ActionMap:
 
 class ActionHandler:
     range_size = 5
+    action_list_names = ['actions']
 
     def __init__(self, split_mode=False):
         self.split_mode = split_mode
@@ -81,9 +82,9 @@ class ActionHandler:
         pitch = np.arange(-1, 1.5, .5)
         roll = np.arange(-1, 1.5, .5)
         throttle = np.arange(-1, 2, 1)
-        jump = [True, False]
-        boost = [True, False]
-        handbrake = [True, False]
+        jump = [False, True]
+        boost = [False, True]
+        handbrake = [False, True]
         action_list = [throttle, jump, boost, handbrake]
         self.action_list_size = len(action_list)
         # 24 + 5 + 5 + 5 = 39
@@ -383,37 +384,12 @@ class ActionHandler:
         return tf.nn.softmax_cross_entropy_with_logits(
             labels=labels, logits=logits, name=name + 'ns')
 
-    def steer_vs_yaw(self, stacked_action):
-        steer = tf.slice(stacked_action, [0], [1])
-        yaw = tf.slice(stacked_action, [1], [1])
-        conditional = tf.logical_and(tf.not_equal(steer, yaw), tf.less(tf.abs(steer), tf.abs(yaw)))
-        conditional = tf.reshape(conditional, [])
-        result = tf.cond(conditional,
-                       lambda: yaw, lambda: steer)
-        return result
-
     def _find_closet_real_number_graph(self, number):
         pure_number = tf.round(number * 2.0) / 2.0
         comparison = tf.Variable(np.array([-1.0, -0.5, 0.0, 0.5, 1.0]), dtype=tf.float32)
         pure_number = tf.cast(pure_number, tf.float32)
-        index = tf.argmax(tf.cast(tf.equal(comparison, pure_number), tf.float32), axis=0)
-        return tf.cast(index, tf.float32)
-
-    def _find_button_combo_match(self, button_combo):
-        jump = [True, False]
-        boost = [True, False]
-        handbrake = [True, False]
-        throttle = np.arange(-1.0, 2.0, 1.0)
-        action_list = [throttle, jump, boost, handbrake]
-        # 24 + 5 + 5 + 5 = 39
-        all_button_combo = list(itertools.product(*action_list))
-        options = tf.Variable(np.array(all_button_combo), dtype=tf.float32)
-
-     #   steer = tf.map_fn(lambda split_options: tf.
-     #                     , options, parallel_iterations=10)
-
-        matching_buttons = tf.reduce_sum(tf.cast(tf.equal(options, button_combo), tf.float32), axis=1)
-        index = tf.argmax(matching_buttons, axis=0)
+        equal = tf.equal(comparison, pure_number)
+        index = tf.argmax(tf.cast(equal, tf.float32), axis=1)
         return tf.cast(index, tf.float32)
 
     def create_indexes_graph(self, real_action):
@@ -433,21 +409,23 @@ class ActionHandler:
         boost = tf.slice(real_action, [0, 6], [-1, 1])
         handbrake = tf.slice(real_action, [0, 7], [-1, 1])
 
-        stacked_value = tf.concat([steer, yaw], axis=1)
+        conditional = tf.logical_and(tf.not_equal(steer, yaw), tf.less(tf.abs(steer), tf.abs(yaw)))
+        use_yaw = tf.cast(conditional, tf.float32)
+        use_steer = 1.0 - use_yaw
+        steer = use_yaw * yaw + use_steer * steer
 
-        steer = tf.map_fn(self.steer_vs_yaw, stacked_value, parallel_iterations=100)
-
-        steer_index = tf.map_fn(self._find_closet_real_number_graph, steer, parallel_iterations=100)
-        pitch_index = tf.map_fn(self._find_closet_real_number_graph, pitch, parallel_iterations=100)
-        roll_index = tf.map_fn(self._find_closet_real_number_graph, roll, parallel_iterations=100)
+        steer_index = self._find_closet_real_number_graph(steer)
+        pitch_index = self._find_closet_real_number_graph(pitch)
+        roll_index = self._find_closet_real_number_graph(roll)
 
         rounded_throttle = tf.maximum(-1.0, tf.minimum(1.0, tf.round(throttle * 1.5)))
 
-        stacked_value = tf.concat([rounded_throttle, jump, boost, handbrake], axis=1)
+        # throttle, jump, boost, handbrake -> index number
+        binary_combo_index = tf.squeeze(tf.constant(16.0) * tf.cast(tf.equal(rounded_throttle, 1), tf.float32) +
+                              tf.constant(8.0) * tf.cast(tf.equal(rounded_throttle, 0), tf.float32) +
+                              tf.constant(4.0) * jump +
+                              tf.constant(2.0) * boost +
+                              tf.constant(1.0) * handbrake)
 
-        button_combo_index = tf.map_fn(self._find_button_combo_match, stacked_value,
-                                 parallel_iterations=100)
-        button_combo_index = tf.reshape(button_combo_index, [tf.shape(real_action)[0]])
-
-        result = tf.stack([steer_index, pitch_index, roll_index, button_combo_index], axis=1)
+        result = tf.stack([steer_index, pitch_index, roll_index, binary_combo_index], axis=1)
         return result

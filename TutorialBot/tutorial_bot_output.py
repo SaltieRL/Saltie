@@ -1,17 +1,17 @@
 import math
 import tensorflow as tf
-
+from modelHelpers import tensorflow_feature_creator
 
 class TutorialBotOutput:
     # Constants
     distance_from_ball_to_boost = tf.constant(1500.0)  # Minimum distance to ball for using boost
-    powerslide_angle = tf.constant(170.0)  # The angle (from the front of the bot to the ball) to start to powerslide.
     unreal_to_degrees = tf.constant(
         1.0 / 65536.0 * 360.0)  # The numbers used to convert unreal rotation units to degrees
     true = tf.constant(1.0)
     one = true
     false = tf.constant(0.0)
     zero = false
+    feature_creator = tensorflow_feature_creator.TensorflowFeatureCreator()
 
     def __init__(self, batch_size):
         self.batch_size = batch_size
@@ -19,56 +19,35 @@ class TutorialBotOutput:
     def distance(self, x1, y1, x2, y2):
         return tf.sqrt(tf.square(x2 - x1) + tf.square(y2 - y1))
 
-    def to_degrees(self, radians):
-        return radians * 180 / math.pi
+    def aim(self, bot_position, bot_rotation, target_x, target_y, target_z, is_on_ground):
+        full_turn_angle = 80
+        half_turn_angle = 40
+        powerslide_angle = 160 # The angle (from the front of the bot to the ball) to start to powerslide.
 
-    def aim(self, bot_X, bot_Y, bot_yaw, target_x, target_y):
-        angle_between_bot_and_target = self.to_degrees(
-            tf.atan2(tf.subtract(target_y, bot_Y), tf.subtract(target_x, bot_X)))
-        angle_front_to_target = angle_between_bot_and_target - bot_yaw
+        angle_front_to_target = self.feature_creator.generate_angle_to_target(bot_position.X, bot_position.Y,
+                                                                              bot_rotation,
+                                                                              target_x, target_y)
 
-        # Correct the values
-        angle_front_to_target += tf.cond(tf.less(angle_front_to_target, -180.0), lambda: 360.0,
-                                         lambda: tf.cond(tf.greater(angle_front_to_target, 180.0), lambda: -360.0,
-                                                         lambda: 0.0))
+        absolute_angle = tf.abs(angle_front_to_target)
 
-        full_turn_angle = 50
-        half_turn_angle = 10
+        # if between half_turn_angle and full_turn_angle
+        half_turn = tf.logical_and(tf.greater_equal(absolute_angle, half_turn_angle),
+                                   tf.less(absolute_angle, full_turn_angle))
 
-        st = tf.cond(tf.less(angle_front_to_target, -full_turn_angle), lambda: -1.0,
-                     lambda: tf.cond(tf.less(angle_front_to_target, -half_turn_angle), lambda: -0.5,
-                     lambda: tf.cond(tf.greater(angle_front_to_target, full_turn_angle), lambda: 1.0,
-                     lambda: tf.cond(tf.greater(angle_front_to_target, half_turn_angle), lambda: 0.5,
-                                     lambda: 0.0))))
+        half_turn_mult = 1.0 - (tf.cast(half_turn, tf.float32) * 0.5)
 
-        ps = tf.cond(tf.less(tf.abs(self.to_degrees(angle_front_to_target)), self.powerslide_angle), lambda: self.true,
-                     lambda: self.false)
-        return (st, ps)
+        full_turn = tf.cast(tf.greater_equal(absolute_angle, half_turn_angle), tf.float32)
 
-    def get_car_on_ground_direction(self, elements):
-        ball_X, ball_Y = elements[0]
-        bot_X, bot_Y, bot_yaw = elements[1]
-        st, ps = tf.cond(tf.less(bot_Y, ball_Y),
-                         lambda: self.aim(bot_X, bot_Y, bot_yaw, ball_X, ball_Y),
-                         lambda: self.aim(bot_X, bot_Y, bot_yaw, 0.0, -5000.0))
+        steer = tf.sign(angle_front_to_target) * full_turn * half_turn_mult
 
-        return [(st, ps), elements[1]]
+        vertical_distance = target_z - bot_position.Z
+        should_jump = tf.logical_and(tf.greater(vertical_distance, 100), is_on_ground)
 
-    def hand_kickoff(self, elements):
-        throttle, steer, powerslide = elements[0]
-        is_kickoff, decomposed_elements = elements[1]
+        jump = tf.cast(should_jump, tf.float32)
 
-        ball_X, ball_Y = decomposed_elements[0]
-        bot_X, bot_Y, bot_yaw = decomposed_elements[1]
-
-        throttle = tf.cond(is_kickoff,
-                           lambda: self.one,
-                           lambda: throttle)
-
-        steer, powerslide = tf.cond(is_kickoff,
-                                    lambda: self.aim(bot_X, bot_Y, bot_yaw, ball_X, ball_Y),
-                                    lambda: (steer, powerslide))
-        return [(throttle, steer, powerslide), (is_kickoff, decomposed_elements)]
+        ps = tf.greater(tf.abs(angle_front_to_target), powerslide_angle)
+        power_slide = tf.cast(ps, tf.float32)
+        return (steer, power_slide, jump)
 
     def get_output_vector(self, values):
         # Controller inputs
@@ -86,40 +65,30 @@ class TutorialBotOutput:
         bot_pos = values.gamecars[0].Location
         bot_rot = values.gamecars[0].Rotation
         ball_pos = values.gameball.Location
+        is_on_ground = values.gamecars[0].bOnGround
+        car_boost = values.gamecars[0].Boost
 
         # Get car's yaw and convert from Unreal Rotator units to degrees
         bot_yaw = (tf.abs(bot_rot.Yaw) % 65536.0) * self.unreal_to_degrees
         # multiple by sign or raw data
         bot_yaw *= tf.sign(bot_rot.Yaw)
-
-        boost_cond = tf.greater(self.distance(bot_pos.X, bot_pos.Y, ball_pos.X, ball_pos.Y),
-                                self.distance_from_ball_to_boost)
+        xy_distance = self.distance(bot_pos.X, bot_pos.Y, ball_pos.X, ball_pos.Y)
 
         # Boost when ball is far enough away
-        boost = boost_cond
+        boost = tf.logical_and(tf.greater(xy_distance, self.distance_from_ball_to_boost),
+                               tf.greater(car_boost, 34))
 
-        # Blue has their goal at -5000 (Y axis) and orange has their goal at 5000 (Y axis). This means that:
-        # - Blue is behind the ball if the ball's Y axis is greater than blue's Y axis
-        # - Orange is behind the ball if the ball's Y axis is smaller than orange's Y axis
+        #throttle = tf.cast(is_on_ground, tf.float32)
+        blue_goal = tf.constant(-5000.0)
+        go_to_ball = tf.cast(tf.less(bot_pos.Y, ball_pos.Y), tf.float32)
+        go_to_goal = 1 - go_to_ball
+        target_x = ball_pos.X * go_to_ball # + self.zero * go_to_goal
+        target_y = ball_pos.Y * go_to_ball # + blue_goal * go_to_goal
+        target_z = ball_pos.Z * go_to_ball # + self.zero * go_to_goal
 
-        elements = [(ball_pos.X, ball_pos.Y),
-                    (bot_pos.X, bot_pos.Y, bot_yaw)]
-
-        steer, powerslide = tf.map_fn(self.get_car_on_ground_direction, elements)[0]
+        steer, powerslide, jump = self.aim(bot_pos, bot_yaw,
+                                           target_x, target_y, target_z, is_on_ground)
 
         # Boost on kickoff
-
-        is_kickoff = tf.logical_and(tf.equal(ball_pos.X, 0.0), tf.equal(ball_pos.Y, 0.0))
-
-        elements = [(throttle, steer, powerslide),
-                    (is_kickoff, elements)]
-
-        boost = tf.logical_or(is_kickoff, tf.cast(boost, tf.bool))
-
-        throttle, steer, powerslide = tf.map_fn(self.hand_kickoff, elements)[0]
-
-       # elements = [throttle, values.gamecars[0].bOnGround, given_output, (steer, powerslide, pitch, jump, boost)]
-
         output = [throttle, steer, pitch, yaw, roll, jump, tf.cast(boost, tf.float32), powerslide]
-       # loss = tf.map_fn(self.calculate_loss, elements)[0]
         return output

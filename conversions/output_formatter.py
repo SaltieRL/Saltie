@@ -1,6 +1,5 @@
-
-
-GAME_INFO_OFFSET = 1
+# the length each of these takes in the array
+GAME_INFO_OFFSET = 2
 SCORE_INFO_OFFSET = 8
 CAR_INFO_OFFSET = 20
 BALL_INFO_OFFSET = 21
@@ -22,53 +21,35 @@ def get_ball_info_index():
     return GAME_INFO_OFFSET + SCORE_INFO_OFFSET + CAR_INFO_OFFSET
 
 
-def create_output_array(array):
-    gameTickPacket = create_object()
-    gameTickPacket.gamecars = []
-    total_offset = 0
-    game_info, offset = get_game_info(array, 0)
-    total_offset += offset
-    gameTickPacket.gameInfo = game_info
-    score_info, offset = get_score_info(array, total_offset)
-    total_offset += offset
-    player_car, offset = get_car_info(array, total_offset)
-    total_offset += offset
-    player_car.Score = score_info
-    # always put player car at 0
-    gameTickPacket.gamecars.append(player_car)
+def get_basic_state(array):
+    score_info = get_score_info(array, GAME_INFO_OFFSET)
+    car_location = create_3D_point(array, GAME_INFO_OFFSET + SCORE_INFO_OFFSET)
 
-    ball_info = get_ball_info(array, total_offset)
-    total_offset += offset
-    gameTickPacket.gameball = ball_info
+    ball_location = create_3D_point(array,
+                                    GAME_INFO_OFFSET +
+                                    SCORE_INFO_OFFSET +
+                                    CAR_INFO_OFFSET)
+    has_last_touched_ball = array[GAME_INFO_OFFSET +
+                                  SCORE_INFO_OFFSET +
+                                  CAR_INFO_OFFSET - 1]
+    result = create_object()
+    result.score_info = score_info
+    result.car_location = car_location
+    result.ball_location = ball_location
+    result.has_last_touched_ball = has_last_touched_ball
+    return result
 
-    team_member1 = get_car_info(array, total_offset)
-    total_offset += offset
-    if team_member1 is not None:
-        gameTickPacket.gamecars.append(team_member1)
 
-    team_member2 = get_car_info(array, total_offset)
-    total_offset += offset
-    if team_member2 is not None:
-        gameTickPacket.gamecars.append(team_member2)
+def get_advanced_state(input_array):
+    car_info = get_car_info(input_array, GAME_INFO_OFFSET + SCORE_INFO_OFFSET)
+    ball_info = get_ball_info(input_array, GAME_INFO_OFFSET +
+                              SCORE_INFO_OFFSET +
+                              CAR_INFO_OFFSET)
+    result = create_object()
+    result.car_info = car_info
+    result.ball_info = ball_info
 
-    enemy1 = get_car_info(array, total_offset)
-    total_offset += offset
-    if enemy1 is not None:
-        gameTickPacket.gamecars.append(enemy1)
-
-    enemy2 = get_car_info(array, total_offset)
-    total_offset += offset
-    if enemy2 is not None:
-        gameTickPacket.gamecars.append(enemy2)
-
-    enemy3 = get_car_info(array, total_offset)
-    total_offset += offset
-    if enemy3 is not None:
-        gameTickPacket.gamecars.append(enemy3)
-
-    gameTickPacket.gameBoosts = get_boost_info(array, total_offset)
-
-    return gameTickPacket
+    return result
 
 
 def is_empty_player_array(array, index, offset):
@@ -97,18 +78,19 @@ def create_3D_rotation(array, index):
 
 
 def get_car_info(array, index):
-    if is_empty_player_array(array, index, CAR_INFO_OFFSET):
-        return None
     car_info = create_object()
     car_info.Location = create_3D_point(array, index)
     car_info.Rotation = create_3D_rotation(array, index + 3)
     car_info.Velocity = create_3D_point(array, index + 6)
     car_info.AngularVelocity = create_3D_point(array, index + 9)
-    car_info.bDemolished = (array[12] == 1)
-    car_info.bJumped = (array[13] == 1)
-    car_info.bDoubleJumped = (array[14] == 1)
-    car_info.Team = int(array[15])
-    car_info.Boost = array[16]
+    car_info.bOnGround = array[12]
+    car_info.bSuperSonic = array[13]
+    car_info.bDemolished = array[14]
+    car_info.bJumped = array[15]
+    car_info.bDoubleJumped = array[16]
+    car_info.Team = array[17]
+    car_info.Boost = array[18]
+    car_info.bLastTouchedBall = array[19]
     return car_info
 
 
@@ -155,4 +137,3 @@ def get_score_info(array, index):
     score_info.Demolitions = array[index + 6]
     score_info.FrameScoreDiff = array[index + 7]
     return score_info
-
