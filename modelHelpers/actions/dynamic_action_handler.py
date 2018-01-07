@@ -96,7 +96,7 @@ class DynamicActionHandler(ActionHandler):
                 self.indexed_controls[self.action_name_index_map[combo]]], self.action_list_names
 
     def create_controller_output_from_actions(self, action_selection):
-        if len(action_selection) != len(self.actions_split):
+        if len(action_selection) != len(self.indexed_controls):
             print('ACTION SELECTION IS NOT THE SAME LENGTH returning invalid action data')
             return [0, 0, 0, 0, 0, False, False, False]
 
