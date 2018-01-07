@@ -20,7 +20,7 @@ def get_random_data(packet_generator, input_formatter):
 
 
 learning_rate = 0.01
-total_batches = 2000
+total_batches = 4000
 batch_size = 5000
 save_step = 2000000
 

@@ -256,7 +256,8 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
 
     def _create_last_row_saver(self, network_name):
         for i, list in enumerate(self.last_row_variables):
-            self._create_layer_saver(network_name, self.last_layer_name + str(self.action_handler.action_list_names[i]), self.num_actions, variable_list=list)
+            self._create_layer_saver(network_name, self.last_layer_name + str(self.action_handler.action_list_names[i]),
+                                     self.num_actions, variable_list=list)
 
     def _create_hidden_row_saver(self, network_name):
         hidden_layers = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,
