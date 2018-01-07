@@ -10,6 +10,11 @@ current_scheme = [[('steer', (-1, 1.5, .5)), ('pitch', (-1, 1.5, .5)), ('roll', 
                   [('throttle', (-1, 2, 1)), ('jump', (0, 2, 1)), ('boost', (0, 2, 1)), ('handbrake', (0, 2, 1))],
                   [('yaw', 'steer')]]
 
+super_split_scheme = [[('throttle', (-1, 1.5, .5)), ('steer', (-1, 1.5, .5)),
+                       ('yaw', (-1, 1.5, .5)), ('pitch', (-1, 1.5, .5)), ('roll', (-1, 1.5, .5))],
+                      [('jump', (0, 2, 1)), ('boost', (0, 2, 1)), ('handbrake', (0, 2, 1))],
+                      []]
+
 combo = 'combo'
 
 class DynamicActionHandler(ActionHandler):
@@ -24,20 +29,36 @@ class DynamicActionHandler(ActionHandler):
     action_name_index_map = {}
     combo_name_index_map = {}
     action_sizes = []
+    combo_action_sizes = []
     indexed_controls = []
     combo_list = []
     button_combo = []
+    combo_name_list = []
 
     def __init__(self, control_scheme):
+
         self.control_scheme = control_scheme
         super().__init__(False)
-        pass
+
+    def reset(self):
+        self.ranged_actions = []
+        self.action_list_names = []
+        self.action_name_index_map = {}
+        self.combo_name_index_map = {}
+        self.action_sizes = []
+        self.combo_action_sizes = []
+        self.indexed_controls = []
+        self.combo_list = []
+        self.button_combo = []
+        self.combo_name_list = []
 
     def create_range_action(self, item):
         action_data = np.arange(*item[1])
         return action_data
 
     def create_actions(self):
+        self.reset()
+
         ranges = self.control_scheme[0]
         combo_scheme = self.control_scheme[1]
         copies = self.control_scheme[2]
@@ -49,13 +70,15 @@ class DynamicActionHandler(ActionHandler):
             self.action_list_names.append(item[0])
             self.indexed_controls.append(action)
 
-        self.ranged_actions = self.indexed_controls[:]
+        self.ranged_actions = list(self.indexed_controls)
 
         for item in combo_scheme:
             action = self.create_range_action(item)
+            self.combo_name_list.append(item[0])
             self.action_name_index_map[item[0]] = combo
             self.combo_name_index_map[item[0]] = len(self.combo_list)
             self.combo_list.append(action)
+            self.combo_action_sizes.append(len(action))
         self.button_combo = list(itertools.product(*self.combo_list))
         self.action_sizes.append(len(self.button_combo))
         self.action_name_index_map[combo] = len(self.action_list_names)
@@ -67,7 +90,10 @@ class DynamicActionHandler(ActionHandler):
         return self.button_combo
 
     def create_actions_split(self):
-        return self.indexed_controls, self.action_list_names
+        return [[],
+                [],
+                [],
+                self.indexed_controls[self.action_name_index_map[combo]]], self.action_list_names
 
     def create_controller_output_from_actions(self, action_selection):
         if len(action_selection) != len(self.actions_split):
@@ -129,6 +155,80 @@ class DynamicActionHandler(ActionHandler):
         controller_output = [tf.cast(option, tf.float32) for option in controller_output]
 
         return tf.stack(controller_output, axis=1)
+
+    def round_action(self, input, action_size):
+        rounded_amount = float(action_size // 2)
+        return float(round(rounded_amount * input)) / rounded_amount
+
+    def create_action_index(self, real_action):
+        combo_list = []
+        indexes = []
+        for i in range(len(self.indexed_controls)):
+            indexes.append(None)
+        for i, control in enumerate(self.control_names):
+            real_control = real_action[i]
+            action_index = self.action_name_index_map[control]
+
+            if action_index == combo:
+                real_index = self.combo_name_index_map[control]
+                action_size = self.combo_action_sizes[real_index]
+                bucketed_control = self.round_action(real_control, action_size)
+                combo_list.append(bucketed_control)
+            else:
+                if indexes[action_index] is None:
+                    indexes[action_index] = (self._find_closet_real_number(real_control))
+
+        button_combo = self.action_map_split.get_key(combo_list)
+        indexes[self.action_name_index_map[combo]] = button_combo
+
+        return indexes
+
+    def round_action_graph(self, input, action_size):
+        rounded_amount = float(action_size // 2)
+        return tf.maximum(-1.0, tf.minimum(1.0, tf.round(input * rounded_amount) / rounded_amount))
+
+    def create_indexes_graph(self, real_action):
+        indexes = []
+        combo_list = []
+        for i in range(len(self.combo_name_list)):
+            combo_list.append(None)
+        for i in range(len(self.indexed_controls)):
+            indexes.append(None)
+
+        for i, control in enumerate(self.control_names):
+            real_control = tf.slice(real_action, [0, i], [-1, 1])
+            action_index = self.action_name_index_map[control]
+
+            if action_index == combo:
+                real_index = self.combo_name_index_map[control]
+                action_size = self.combo_action_sizes[real_index]
+                bucketed_control = real_control
+                if action_size > 2:
+                    bucketed_control = self.round_action_graph(real_control, action_size)
+                combo_list[real_index] = bucketed_control
+            else:
+                if indexes[action_index] is None:
+                    indexes[action_index] = (self._find_closet_real_number_graph(real_control))
+
+        binary_combo_index = tf.constant(0.0)
+        for i, name in enumerate(reversed(self.combo_name_list)):
+            true_index = self.combo_name_index_map[name]
+            powed = tf.constant(pow(2, i), dtype=tf.float32)
+            action_taken = combo_list[true_index]
+            if self.combo_action_sizes[true_index] > 2:
+                combo_list = self.combo_list[true_index]
+                new_range = self.combo_action_sizes[true_index] // 2 + 1
+                for j in range(new_range):
+                    powed = tf.constant(pow(2, i + (new_range - 1 - j)), dtype=tf.float32)
+                    binary_combo_index += powed * (tf.cast(
+                        tf.equal(action_taken, combo_list[len(combo_list) - 1 - j]), tf.float32))
+            else:
+                binary_combo_index += powed * tf.cast(action_taken, tf.float32)
+
+        indexes[self.action_name_index_map[combo]] = tf.squeeze(binary_combo_index)
+
+        result = tf.stack(indexes, axis=1)
+        return result
 
 if __name__ == '__main__':
     action_handler = DynamicActionHandler(current_scheme)

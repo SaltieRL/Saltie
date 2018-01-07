@@ -55,8 +55,8 @@ def test2():
     #t, y, p, r,
     real_action = tf.Variable(input, dtype=tf.float32)
 
-    result = handler._create_split_indexes_graph(real_action)
-    result2 = dynamic_handler._create_split_indexes_graph(real_action)
+    result = handler.create_indexes_graph(real_action)
+    result2 = dynamic_handler.create_indexes_graph(real_action)
 
     init = tf.global_variables_initializer()
     session.run(init)
@@ -83,7 +83,6 @@ def test2():
 def test3():
     handler = action_handler.ActionHandler(split_mode=True)
     dynamic_handler = dynamic_action_handler.DynamicActionHandler(dynamic_action_handler.current_scheme)
-    # dynamic_handler2 = dynamic_action_handler.DynamicActionHandler(dynamic_action_handler.current_scheme)
 
     session = tf.Session(config=tf.ConfigProto(
         device_count={'GPU': 0}
@@ -126,5 +125,5 @@ def test3():
 
 if __name__ == '__main__':
    # test1()
-   # test2()
-   test3()
+   test2()
+   # test3()
