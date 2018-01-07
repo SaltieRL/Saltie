@@ -29,6 +29,7 @@ class ActionHandler:
     range_size = 5
     combo_list = []
     action_sizes = []
+    actions = []
     action_list_names = ['actions']
     control_names = ['throttle', 'steer', 'pitch', 'steer', 'roll', 'jump', 'boost', 'handbrake']
 
@@ -43,6 +44,9 @@ class ActionHandler:
         return False
 
     def get_action_sizes(self):
+        """
+        :return: A list of the sizes of each action
+        """
         return [len(self.actions)]
 
     def get_action_size(self):

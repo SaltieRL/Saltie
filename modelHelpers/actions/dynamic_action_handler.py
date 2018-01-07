@@ -26,7 +26,6 @@ class DynamicActionHandler(SplitActionHandler):
     combo_name_index_map = {}
     action_sizes = []
     combo_action_sizes = []
-    indexed_controls = []
     combo_list = []
     button_combo = []
     combo_name_list = []
@@ -42,7 +41,7 @@ class DynamicActionHandler(SplitActionHandler):
         self.combo_name_index_map = {}
         self.action_sizes = []
         self.combo_action_sizes = []
-        self.indexed_controls = []
+        self.actions = []
         self.combo_list = []
         self.button_combo = []
         self.combo_name_list = []
@@ -63,9 +62,9 @@ class DynamicActionHandler(SplitActionHandler):
             self.action_sizes.append(len(action))
             self.action_name_index_map[item[0]] = len(self.action_list_names)
             self.action_list_names.append(item[0])
-            self.indexed_controls.append(action)
+            self.actions.append(action)
 
-        self.ranged_actions = list(self.indexed_controls)
+        self.ranged_actions = list(self.actions)
 
         for item in combo_scheme:
             action = self.create_range_action(item)
@@ -78,17 +77,17 @@ class DynamicActionHandler(SplitActionHandler):
         self.action_sizes.append(len(self.button_combo))
         self.action_name_index_map[COMBO] = len(self.action_list_names)
         self.action_list_names.append(COMBO)
-        self.indexed_controls.append(self.button_combo)
+        self.actions.append(self.button_combo)
 
         for item in copies:
             self.action_name_index_map[item[0]] = self.action_name_index_map[item[1]]
-        return self.indexed_controls
+        return self.actions
 
     def create_action_map(self):
         return ActionMap(self.button_combo)
 
     def create_controller_from_selection(self, action_selection):
-        if len(action_selection) != len(self.indexed_controls):
+        if len(action_selection) != len(self.actions):
             print('ACTION SELECTION IS NOT THE SAME LENGTH returning invalid action data')
             return [0, 0, 0, 0, 0, False, False, False]
 
@@ -98,9 +97,9 @@ class DynamicActionHandler(SplitActionHandler):
             if index == COMBO:
                 combo_index = self.action_name_index_map[COMBO]
                 true_index = self.combo_name_index_map[control]
-                controller_output.append(self.indexed_controls[combo_index][action_selection[combo_index]][true_index])
+                controller_output.append(self.actions[combo_index][action_selection[combo_index]][true_index])
                 continue
-            controller_output.append(self.indexed_controls[index][action_selection[index]])
+            controller_output.append(self.actions[index][action_selection[index]])
         # print(controller_output)
         return controller_output
 
@@ -157,7 +156,7 @@ class DynamicActionHandler(SplitActionHandler):
     def create_action_index(self, real_action):
         combo_list = []
         indexes = []
-        for i in range(len(self.indexed_controls)):
+        for i in range(len(self.actions)):
             indexes.append(None)
         for i, control in enumerate(self.control_names):
             real_control = real_action[i]
@@ -199,7 +198,7 @@ class DynamicActionHandler(SplitActionHandler):
         combo_list = []
         for i in range(len(self.combo_name_list)):
             combo_list.append(None)
-        for i in range(len(self.indexed_controls)):
+        for i in range(len(self.actions)):
             indexes.append(None)
 
         for i, control in enumerate(self.control_names):
