@@ -47,7 +47,10 @@ class TutorialBotOutput:
 
         ps = tf.greater(tf.abs(angle_front_to_target), powerslide_angle)
         power_slide = tf.cast(ps, tf.float32)
-        return (steer, power_slide, jump)
+
+        # if jump is 1 then we should not execute a turn
+        safe_steer = steer * (1.0 - jump)
+        return (safe_steer, power_slide, jump)
 
     def get_output_vector(self, values):
         # Controller inputs
