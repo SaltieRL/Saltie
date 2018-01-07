@@ -1,4 +1,5 @@
 import random
+import itertools
 import collections
 import numpy as np
 import tensorflow as tf
@@ -43,7 +44,7 @@ class SplitActionHandler(ActionHandler):
         action_list = [throttle, jump, boost, handbrake]
         self.action_list_size = len(action_list)
         # 24 + 5 + 5 + 5 = 39
-        button_combo = list(np.itertools.product(*action_list))
+        button_combo = list(itertools.product(*action_list))
         actions = []
         split_actions_sizes = []
         actions.append(steer)

@@ -39,7 +39,7 @@ class PolicyGradient(BaseActorCritic):
         advantages = self.create_advantages()
 
         actor_reg_loss = self.get_regularization_loss(self.all_but_last_actor_layer, prefix="actor_hidden")
-        indexes = np.arange(0, len(self.action_handler.get_split_sizes()), 1).tolist()
+        indexes = np.arange(0, len(self.action_handler.get_action_sizes()), 1).tolist()
 
         result = self.action_handler.run_func_on_split_tensors([indexes,
                                                                 logprobs,

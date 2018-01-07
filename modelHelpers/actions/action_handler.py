@@ -95,7 +95,7 @@ class ActionHandler:
         return self._create_one_hot_encoding(index)
 
     def create_action_index(self, real_action):
-        return self._find_matching_action(real_action)
+        return [self._find_matching_action(real_action)]
 
     def _find_closet_real_number(self, number):
         if number <= -0.25:
@@ -200,19 +200,18 @@ class ActionHandler:
         rounded_amount = float(action_size // 2)
         return tf.maximum(-1.0, tf.minimum(1.0, tf.round(input * rounded_amount) / rounded_amount))
 
-    def _create_combo_index(self, combo_list):
+    def _create_combo_index(self, real_actions):
         binary_combo_index = tf.constant(0.0)
-        for i, action_set in enumerate(reversed(self.actions)):
-            true_index = i
+        for i, action_set in enumerate(reversed(self.combo_list)):
             powed = tf.constant(pow(2, i), dtype=tf.float32)
-            action_taken = combo_list[true_index]
-            if self.action_sizes[true_index] > 2:
-                combo_list = self.combo_list[true_index]
-                new_range = self.action_sizes[true_index] // 2 + 1
+            action_taken = real_actions[i]
+            if self.action_sizes[i] > 2:
+                action_set = self.combo_list[i]
+                new_range = self.action_sizes[i] // 2 + 1
                 for j in range(new_range):
                     powed = tf.constant(pow(2, i + (new_range - 1 - j)), dtype=tf.float32)
                     binary_combo_index += powed * (tf.cast(
-                        tf.equal(action_taken, combo_list[len(combo_list) - 1 - j]), tf.float32))
+                        tf.equal(action_taken, action_set[len(action_set) - 1 - j]), tf.float32))
             else:
                 binary_combo_index += powed * tf.cast(action_taken, tf.float32)
         return binary_combo_index

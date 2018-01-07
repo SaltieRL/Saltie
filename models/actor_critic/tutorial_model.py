@@ -126,10 +126,10 @@ class TutorialModel(PolicyGradient):
     def create_split_layers(self, activation_function, inner_layer, network_size,
                             num_split_layers, network_prefix, variable_list=None):
         split_layers = []
-        num_actions = len(self.action_handler.get_split_sizes())
+        num_actions = len(self.action_handler.get_action_sizes())
 
         for i in range(num_split_layers):
-            for j, item in enumerate(self.action_handler.get_split_sizes()):
+            for j, item in enumerate(self.action_handler.get_action_sizes()):
                 name = str(self.action_handler.action_list_names[j]) + str(i)
                 split_layers.append(self.create_layer(activation_function, inner_layer, 'split' + name,
                                                       network_size, network_size / num_actions, network_prefix + name,

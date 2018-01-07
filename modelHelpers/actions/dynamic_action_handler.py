@@ -4,17 +4,16 @@ import numpy as np
 import tensorflow as tf
 
 from modelHelpers.actions.action_handler import ActionHandler, ActionMap
-
-
+from modelHelpers.actions.split_action_handler import SplitActionHandler
 
 super_split_scheme = [[('throttle', (-1, 1.5, .5)), ('steer', (-1, 1.5, .5)),
                        ('yaw', (-1, 1.5, .5)), ('pitch', (-1, 1.5, .5)), ('roll', (-1, 1.5, .5))],
                       [('jump', (0, 2, 1)), ('boost', (0, 2, 1)), ('handbrake', (0, 2, 1))],
                       []]
+COMBO = 'combo'
 
-combo = 'combo'
 
-class DynamicActionHandler(ActionHandler):
+class DynamicActionHandler(SplitActionHandler):
     """Very dynamic for controls and splitting.
         Assumes everything is in tensorflow
     """
@@ -33,9 +32,8 @@ class DynamicActionHandler(ActionHandler):
     combo_name_list = []
 
     def __init__(self, control_scheme):
-
         self.control_scheme = control_scheme
-        super().__init__(False)
+        super().__init__()
 
     def reset(self):
         self.ranged_actions = []
@@ -72,14 +70,14 @@ class DynamicActionHandler(ActionHandler):
         for item in combo_scheme:
             action = self.create_range_action(item)
             self.combo_name_list.append(item[0])
-            self.action_name_index_map[item[0]] = combo
+            self.action_name_index_map[item[0]] = COMBO
             self.combo_name_index_map[item[0]] = len(self.combo_list)
             self.combo_list.append(action)
             self.combo_action_sizes.append(len(action))
         self.button_combo = list(itertools.product(*self.combo_list))
         self.action_sizes.append(len(self.button_combo))
-        self.action_name_index_map[combo] = len(self.action_list_names)
-        self.action_list_names.append(combo)
+        self.action_name_index_map[COMBO] = len(self.action_list_names)
+        self.action_list_names.append(COMBO)
         self.indexed_controls.append(self.button_combo)
 
         for item in copies:
@@ -97,8 +95,8 @@ class DynamicActionHandler(ActionHandler):
         controller_output = []
         for control in self.control_names:
             index = self.action_name_index_map[control]
-            if index == combo:
-                combo_index = self.action_name_index_map[combo]
+            if index == COMBO:
+                combo_index = self.action_name_index_map[COMBO]
                 true_index = self.combo_name_index_map[control]
                 controller_output.append(self.indexed_controls[combo_index][action_selection[combo_index]][true_index])
                 continue
@@ -133,8 +131,8 @@ class DynamicActionHandler(ActionHandler):
         # actually decoding the controls now the startup is done
         for control in self.control_names:
             index = self.action_name_index_map[control]
-            if index == combo:
-                combo_index = self.action_name_index_map[combo]
+            if index == COMBO:
+                combo_index = self.action_name_index_map[COMBO]
                 true_index = self.combo_name_index_map[control]
 
                 single_element = combo_actions[true_index]
@@ -142,7 +140,9 @@ class DynamicActionHandler(ActionHandler):
                 controller_output.append(
                     tf.gather_nd(single_element, tf.stack([indexer, action_selection[combo_index]], axis=1)))
                 continue
-            output = tf.gather_nd(ranged_actions[index], tf.stack([indexer, action_selection[index]], axis=1))
+            ranged_action = ranged_actions[index]
+            selection = action_selection[index]
+            output = tf.gather_nd(ranged_action, tf.stack([indexer, selection], axis=1))
             controller_output.append(output)
 
         # make sure everything is the same type
@@ -163,7 +163,7 @@ class DynamicActionHandler(ActionHandler):
             real_control = real_action[i]
             action_index = self.action_name_index_map[control]
 
-            if action_index == combo:
+            if action_index == COMBO:
                 real_index = self.combo_name_index_map[control]
                 action_size = self.combo_action_sizes[real_index]
                 bucketed_control = self.round_action(real_control, action_size)
@@ -173,7 +173,7 @@ class DynamicActionHandler(ActionHandler):
                     indexes[action_index] = (self._find_closet_real_number(real_control))
 
         button_combo = self.action_map.get_key(combo_list)
-        indexes[self.action_name_index_map[combo]] = button_combo
+        indexes[self.action_name_index_map[COMBO]] = button_combo
 
         return indexes
 
@@ -206,7 +206,7 @@ class DynamicActionHandler(ActionHandler):
             real_control = tf.slice(real_action, [0, i], [-1, 1])
             action_index = self.action_name_index_map[control]
 
-            if action_index == combo:
+            if action_index == COMBO:
                 real_index = self.combo_name_index_map[control]
                 action_size = self.combo_action_sizes[real_index]
                 bucketed_control = real_control
@@ -217,7 +217,7 @@ class DynamicActionHandler(ActionHandler):
                 if indexes[action_index] is None:
                     indexes[action_index] = (self._find_closet_real_number_graph(real_control))
 
-        indexes[self.action_name_index_map[combo]] = tf.squeeze(self._create_combo_index(combo_list))
+        indexes[self.action_name_index_map[COMBO]] = tf.squeeze(self._create_combo_index(combo_list))
 
         result = tf.stack(indexes, axis=1)
         return result

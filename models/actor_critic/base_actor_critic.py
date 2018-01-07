@@ -66,7 +66,7 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
     def _create_model(self, model_input):
         model_input = tf.check_numerics(model_input, 'model inputs')
         all_variable_list = []
-        last_layer_list = [[] for _ in range(len(self.action_handler.get_split_sizes()))]
+        last_layer_list = [[] for _ in range(len(self.action_handler.get_action_sizes()))]
         with tf.name_scope("predict_actions"):
             # initialize actor-critic network
             with tf.variable_scope("actor_network", reuse=tf.AUTO_REUSE):
@@ -170,7 +170,7 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
 
     def actor_network(self, input_states, variable_list=None, last_layer_list=None):
         if last_layer_list is None:
-            last_layer_list = [[] for _ in range(len(self.action_handler.get_split_sizes()))]
+            last_layer_list = [[] for _ in range(len(self.action_handler.get_action_sizes()))]
         # define policy neural network
         actor_prefix = 'actor'
         with tf.variable_scope(self.first_layer_name):
@@ -238,7 +238,7 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
                 return self.actor_last_row_layer
 
             self.actor_last_row_layer = []
-            for i, item in enumerate(self.action_handler.get_split_sizes()):
+            for i, item in enumerate(self.action_handler.get_action_sizes()):
                 self.actor_last_row_layer.append(self.create_layer(activation_function, inner_layer[i], last_layer_name,
                                                                    network_size, item, network_prefix + str(i),
                                                                    variable_list=last_layer_list[i], dropout=False)[0])

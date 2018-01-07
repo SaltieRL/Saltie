@@ -7,9 +7,10 @@ default_scheme = [[('steer', (-1, 1.5, .5)), ('pitch', (-1, 1.5, .5)), ('roll', 
                   [('yaw', 'steer')]]
 
 
-def get_handler(split_mode, control_scheme=None):
+def get_handler(split_mode=True, control_scheme=default_scheme):
     """
-    Creates a handler based on the options given
+    Creates a handler based on the options given.
+    This defaults to returning SplitActionHandler
     :param split_mode: If False control_scheme is ignored.
                        False means that everything is rolled up into a single action
     :param control_scheme:  A dynamic control scheme,  if it is the default scheme an optimized split handler is used.

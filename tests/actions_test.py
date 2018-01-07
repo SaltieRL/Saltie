@@ -3,6 +3,10 @@ import tensorflow as tf
 import numpy as np
 
 def test1():
+    """
+    Test that handler and split handler return the same results
+    :return:
+    """
     handler = action_factory.get_handler(False)
     split_handler = action_factory.get_handler(True, action_factory.default_scheme)
 
@@ -20,24 +24,31 @@ def test1():
     #t, y, p, r,
     real_action = tf.Variable(input, dtype=tf.float32)
 
-    result = handler._create_split_indexes_graph(real_action)
+    result = handler.create_action_indexes_graph(real_action)
+    result_split = handler.create_action_indexes_graph(real_action)
 
     init = tf.global_variables_initializer()
     session.run(init)
 
-    indexes = session.run(result)
+    indexes, indexes_split = session.run(result, result_split)
 
     for index in range(5):
         row = input[index]
         print('blank row')
-   #     print('input row    ', np.array(row, dtype=np.float32))
+        # print('input row    ', np.array(row, dtype=np.float32))
         result = handler.create_action_index(row)
+        split_result = split_handler.create_action_index(row)
         print('numpy result ', np.array(result, dtype=np.float32))
         print('tensor result', np.array(indexes[index], dtype=np.float32))
-
+        print('split numpy result ', np.array(split_result, dtype=np.float32))
+        print('split tensor result', np.array(indexes_split[index], dtype=np.float32))
 
 
 def test2():
+    """
+    Test that handler and dynamic handler return the same results
+    :return:
+    """
     handler = action_factory.get_handler(False)
     dynamic_handler = action_factory.get_handler(True, dynamic_action_handler.super_split_scheme)
     # dynamic_handler2 = dynamic_action_handler.DynamicActionHandler(dynamic_action_handler.current_scheme)
@@ -77,9 +88,9 @@ def test2():
 
         print('and back again')
         print('correct answer', row)
-        print('numpy result', handler._create_controller_output_from_actions(result))
+        print('numpy result', handler.create_controller_from_selection(result))
         # purposely using the working result
-        print('dynamic result', dynamic_handler._create_controller_output_from_actions(dynamic_result))
+        print('dynamic result', dynamic_handler.create_controller_from_selection(dynamic_result))
 
 
 def test3():
@@ -103,25 +114,25 @@ def test3():
     #t, y, p, r,
     real_action = tf.Variable(input, dtype=tf.float32)
 
-    result = handler.create_action_indexes_graph(real_action)
-    back_again = dynamic_handler.create_tensorflow_controller_from_selection(tf.transpose(result), batch_size=9)
+    action_index = dynamic_handler.create_action_indexes_graph(real_action)
+    back_again = dynamic_handler.create_tensorflow_controller_from_selection(tf.transpose(action_index), batch_size=9)
 
     init = tf.global_variables_initializer()
     session.run(init)
 
-    indexes, dynamic_results = session.run([result, back_again])
+    indexes, dynamic_results = session.run([action_index, back_again])
 
     for index in range(9):
         row = input[index]
         print('blank row')
         #     print('input row    ', np.array(row, dtype=np.float32))
-        result = handler.create_action_index(row)
-        print('numpy result ', np.array(result, dtype=np.float32))
-        print('tensor result', np.array(indexes[index], dtype=np.float32))
+        action_index = handler.create_action_index(row)
+        print('numpy result ', np.array(action_index, dtype=np.float32))
+        print('dynamic result', np.array(indexes[index], dtype=np.float32))
 
         print('and back again')
         print('correct answer', row)
-        print('numpy result', handler._create_controller_output_from_actions(result))
+        print('numpy result', handler.create_controller_from_selection(action_index))
         # purposely using the working result
         print('dynamic result', dynamic_results[index])
 
