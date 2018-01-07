@@ -32,7 +32,7 @@ class OutputChecks:
 
     def get_amounts(self):
         controls = tf.transpose(
-            self.actionHandler.create_tensorflow_controller_output_from_actions(self.model_output, self.packets))
+            self.actionHandler.create_tensorflow_controller_from_selection(self.model_output, self.packets))
         expected = self.tutorial_bot.get_output_vector(self.game_tick_packet)
 
         output, bot_output = self.sess.run([controls, expected])

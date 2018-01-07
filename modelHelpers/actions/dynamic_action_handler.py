@@ -3,8 +3,7 @@ import itertools
 import numpy as np
 import tensorflow as tf
 
-from modelHelpers.actions.action_handler import ActionHandler
-
+from modelHelpers.actions.action_handler import ActionHandler, ActionMap
 
 current_scheme = [[('steer', (-1, 1.5, .5)), ('pitch', (-1, 1.5, .5)), ('roll', (-1, 1.5, .5))],
                   [('throttle', (-1, 2, 1)), ('jump', (0, 2, 1)), ('boost', (0, 2, 1)), ('handbrake', (0, 2, 1))],
@@ -87,15 +86,12 @@ class DynamicActionHandler(ActionHandler):
 
         for item in copies:
             self.action_name_index_map[item[0]] = self.action_name_index_map[item[1]]
-        return self.button_combo
+        return self.indexed_controls
 
-    def create_actions_split(self):
-        return [[],
-                [],
-                [],
-                self.indexed_controls[self.action_name_index_map[combo]]], self.action_list_names
+    def create_action_map(self):
+        return ActionMap(self.button_combo)
 
-    def create_controller_output_from_actions(self, action_selection):
+    def create_controller_from_selection(self, action_selection):
         if len(action_selection) != len(self.indexed_controls):
             print('ACTION SELECTION IS NOT THE SAME LENGTH returning invalid action data')
             return [0, 0, 0, 0, 0, False, False, False]
@@ -112,7 +108,7 @@ class DynamicActionHandler(ActionHandler):
         # print(controller_output)
         return controller_output
 
-    def create_tensorflow_controller_output_from_actions(self, action_selection, batch_size=1):
+    def create_tensorflow_controller_from_selection(self, action_selection, batch_size=1):
         controller_output = []
 
         ranged_actions = []
@@ -178,14 +174,27 @@ class DynamicActionHandler(ActionHandler):
                 if indexes[action_index] is None:
                     indexes[action_index] = (self._find_closet_real_number(real_control))
 
-        button_combo = self.action_map_split.get_key(combo_list)
+        button_combo = self.action_map.get_key(combo_list)
         indexes[self.action_name_index_map[combo]] = button_combo
 
         return indexes
 
-    def round_action_graph(self, input, action_size):
-        rounded_amount = float(action_size // 2)
-        return tf.maximum(-1.0, tf.minimum(1.0, tf.round(input * rounded_amount) / rounded_amount))
+    def _create_combo_index(self, combo_list):
+        binary_combo_index = tf.constant(0.0)
+        for i, name in enumerate(reversed(self.combo_name_list)):
+            true_index = self.combo_name_index_map[name]
+            powed = tf.constant(pow(2, i), dtype=tf.float32)
+            action_taken = combo_list[true_index]
+            if self.combo_action_sizes[true_index] > 2:
+                combo_list = self.combo_list[true_index]
+                new_range = self.combo_action_sizes[true_index] // 2 + 1
+                for j in range(new_range):
+                    powed = tf.constant(pow(2, i + (new_range - 1 - j)), dtype=tf.float32)
+                    binary_combo_index += powed * (tf.cast(
+                        tf.equal(action_taken, combo_list[len(combo_list) - 1 - j]), tf.float32))
+            else:
+                binary_combo_index += powed * tf.cast(action_taken, tf.float32)
+        return binary_combo_index
 
     def create_indexes_graph(self, real_action):
         indexes = []
@@ -210,27 +219,7 @@ class DynamicActionHandler(ActionHandler):
                 if indexes[action_index] is None:
                     indexes[action_index] = (self._find_closet_real_number_graph(real_control))
 
-        binary_combo_index = tf.constant(0.0)
-        for i, name in enumerate(reversed(self.combo_name_list)):
-            true_index = self.combo_name_index_map[name]
-            powed = tf.constant(pow(2, i), dtype=tf.float32)
-            action_taken = combo_list[true_index]
-            if self.combo_action_sizes[true_index] > 2:
-                combo_list = self.combo_list[true_index]
-                new_range = self.combo_action_sizes[true_index] // 2 + 1
-                for j in range(new_range):
-                    powed = tf.constant(pow(2, i + (new_range - 1 - j)), dtype=tf.float32)
-                    binary_combo_index += powed * (tf.cast(
-                        tf.equal(action_taken, combo_list[len(combo_list) - 1 - j]), tf.float32))
-            else:
-                binary_combo_index += powed * tf.cast(action_taken, tf.float32)
-
-        indexes[self.action_name_index_map[combo]] = tf.squeeze(binary_combo_index)
+        indexes[self.action_name_index_map[combo]] = tf.squeeze(self._create_combo_index(combo_list))
 
         result = tf.stack(indexes, axis=1)
         return result
-
-if __name__ == '__main__':
-    action_handler = DynamicActionHandler(current_scheme)
-
-    print(action_handler)

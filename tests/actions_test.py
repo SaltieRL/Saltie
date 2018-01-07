@@ -76,9 +76,9 @@ def test2():
 
         print('and back again')
         print('correct answer', row)
-        print('numpy result', handler.create_controller_output_from_actions(result))
+        print('numpy result', handler._create_controller_output_from_actions(result))
         # purposely using the working result
-        print('dynamic result', dynamic_handler.create_controller_output_from_actions(dynamic_result))
+        print('dynamic result', dynamic_handler._create_controller_output_from_actions(dynamic_result))
 
 
 def test3():
@@ -103,7 +103,7 @@ def test3():
     real_action = tf.Variable(input, dtype=tf.float32)
 
     result = handler._create_split_indexes_graph(real_action)
-    back_again = dynamic_handler.create_tensorflow_controller_output_from_actions(tf.transpose(result), batch_size=9)
+    back_again = dynamic_handler.create_tensorflow_controller_from_selection(tf.transpose(result), batch_size=9)
 
     init = tf.global_variables_initializer()
     session.run(init)
@@ -120,7 +120,7 @@ def test3():
 
         print('and back again')
         print('correct answer', row)
-        print('numpy result', handler.create_controller_output_from_actions(result))
+        print('numpy result', handler._create_controller_output_from_actions(result))
         # purposely using the working result
         print('dynamic result', dynamic_results[index])
 
