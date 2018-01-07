@@ -73,7 +73,7 @@ def run():
         feature_creator = TensorflowFeatureCreator()
         formatter = tensorflow_input_formatter.TensorflowInputFormatter(0, 0, batch_size, feature_creator)
         packet_generator = r.TensorflowPacketGenerator(batch_size)
-        output_creator = tutorial_bot_output.TutorialBotOutput(batch_size)
+        output_creator = TutorialBotOutput_2(batch_size)
         actions = action_handler.ActionHandler(split_mode=True)
 
         model = tutorial_model.TutorialModel(sess, formatter.get_state_dim_with_features(),
