@@ -11,15 +11,18 @@ class OutputChecks:
     accuracy_over_time = None
     bot_data_over_time = None
 
-    def __init__(self, packets, model_output, game_tick_packet, input_array, tf_session, action_handler):
+    def __init__(self, packets, model_output, game_tick_packet, input_array, tf_session, action_handler, tutorial_bot = None):
         self.sess = tf_session
         self.packets = packets
         self.game_tick_packet = game_tick_packet
         self.input_array = input_array
         self.packet_generator = random_packet_creator.TensorflowPacketGenerator(packets)
-        self.tutorial_bot = tutorial_bot_output.TutorialBotOutput(packets)
+        self.tutorial_bot = tutorial_bot
         self.model_output = model_output
         self.actionHandler = action_handler
+
+        if self.tutorial_bot is None:
+            self.tutorial_bot = tutorial_bot_output.TutorialBotOutput(packets)
 
     def create_model(self):
         # clear history
