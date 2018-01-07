@@ -270,95 +270,9 @@ class ActionHandler:
         if not self.split_mode:
             return split_func(*input_tensors)
 
-        output1 = []
-        output2 = []
-        output3 = []
-        output4 = []
-
-        i = 0
-        for tensor in input_tensors:
-            i += 1
-            if isinstance(tensor, collections.Sequence):
-                if len(tensor) == self.get_action_size():
-                    output1.append(tensor[0:5])
-                    output2.append(tensor[5:10])
-                    output3.append(tensor[10:15])
-                    output4.append(tensor[15:])
-                    continue
-                else:
-                    output1.append(tensor[0])
-                    output2.append(tensor[1])
-                    output3.append(tensor[2])
-                    output4.append(tensor[3])
-                    continue
-            else:
-                if len(tensor.get_shape()) == 0:
-                    output1.append(tf.identity(tensor, name='copy1'))
-                    output2.append(tf.identity(tensor, name='copy2'))
-                    output3.append(tf.identity(tensor, name='copy3'))
-                    output4.append(tf.identity(tensor, name='copy4'))
-                    continue
-                elif tensor.get_shape()[0] == self.get_action_size():
-                    output1.append(tf.slice(tensor, [0], [self.range_size]))
-                    output2.append(tf.slice(tensor, [self.range_size], [self.range_size]))
-                    output3.append(tf.slice(tensor, [self.range_size * 2], [self.range_size]))
-                    output4.append(tf.slice(tensor, [self.range_size * 3], [24]))
-                    continue
-                elif tensor.get_shape()[1] == self.get_action_size():
-                    output1.append(tf.slice(tensor, [0, 0], [-1, self.range_size]))
-                    output2.append(tf.slice(tensor, [0, self.range_size], [-1, self.range_size]))
-                    output3.append(tf.slice(tensor, [0, self.range_size * 2], [-1, self.range_size]))
-                    output4.append(tf.slice(tensor, [0, self.range_size * 3], [-1, 24]))
-                    continue
-                elif tensor.get_shape()[1] == 4:
-                    output1.append(tf.slice(tensor, [0, 0], [-1, 1]))
-                    output2.append(tf.slice(tensor, [0, 1], [-1, 1]))
-                    output3.append(tf.slice(tensor, [0, 2], [-1, 1]))
-                    output4.append(tf.slice(tensor, [0, 3], [-1, 1]))
-                    continue
-                elif tensor.get_shape()[1] == 1:
-                    output1.append(tf.identity(tensor, name='copy1'))
-                    output2.append(tf.identity(tensor, name='copy2'))
-                    output3.append(tf.identity(tensor, name='copy3'))
-                    output4.append(tf.identity(tensor, name='copy4'))
-                    continue
-            print('tensor ignored', tensor)
-
-        with tf.name_scope("steer"):
-            result1 = split_func(*output1)
-        with tf.name_scope("pitch"):
-            result2 = split_func(*output2)
-        with tf.name_scope("roll"):
-            result3 = split_func(*output3)
-        with tf.name_scope("combo"):
-            result4 = split_func(*output4)
-
-        if return_as_list:
-            return [result1, result2, result3, result4]
-
-        return tf.stack([result1, result2, result3, result4], axis=1)
-
-
-    def run_func_on_split_tensors_fancy(self, input_tensors, split_func, return_as_list = False):
-        """
-        Optionally splits the tensor and runs a function on the split tensor
-        If the tensor should not be split it runs the function on the entire tensor
-        :param tf: tensorflow
-        :param input_tensors: needs to have shape of (?, num_actions)
-        :param split_func: a function that is called with a tensor or array the same rank as input_tensor.
-            It should return a tensor with the same rank as input_tensor
-        :return: a stacked tensor (see tf.stack) or the same tensor depending on if it is in split mode or not.
-        """
-
-        if not isinstance(input_tensors, collections.Sequence):
-            input_tensors = [input_tensors]
-
-        if not self.split_mode:
-            return split_func(*input_tensors)
-
-        total_output = []
+        total_input = []
         for i in self.split_action_sizes:
-            total_output.append([])
+            total_input.append([])
 
         for tensor in input_tensors:
             total_action_size = 0
@@ -366,28 +280,30 @@ class ActionHandler:
                 if isinstance(tensor, collections.Sequence):
                     if len(tensor) == self.get_action_size():
                         # grabs each slice of tensor
-                        total_output[i].append(tensor[total_action_size:total_action_size + val])
+                        total_input[i].append(tensor[total_action_size:total_action_size + val])
                     else:
-                        total_output[i].append(tensor[i])
+                        total_input[i].append(tensor[i])
                 else:
                     if len(tensor.get_shape()) == 0:
-                        total_output[i].append(tf.identity(tensor, name='copy' + str(i)))
+                        total_input[i].append(tf.identity(tensor, name='copy' + str(i)))
                     elif tensor.get_shape()[0] == self.get_action_size():
-                        total_output[i].append(tf.slice(tensor, [total_action_size], [val]))
+                        total_input[i].append(tf.slice(tensor, [total_action_size], [val]))
                     elif tensor.get_shape()[1] == self.get_action_size():
-                        total_output[i].append(tf.slice(tensor, [0, total_action_size], [-1, val]))
+                        total_input[i].append(tf.slice(tensor, [0, total_action_size], [-1, val]))
                     elif tensor.get_shape()[1] == 4:
-                        total_output[i].append(tf.slice(tensor, [0, i], [-1, 1]))
+                        total_input[i].append(tf.slice(tensor, [0, i], [-1, 1]))
                     elif tensor.get_shape()[1] == 1:
-                        total_output[i].append(tf.identity(tensor, name='copy' + str(i)))
+                        total_input[i].append(tf.identity(tensor, name='copy' + str(i)))
                 total_action_size += val
-            print('tensor ignored', tensor)
+
+        if len(total_input[0]) != len(input_tensors):
+            print('mis match in tensor length')
 
         results = []
         for i, val in enumerate(self.action_list_names):
             with tf.name_scope(val):
                 try:
-                    results.append(split_func(*total_output[i]))
+                    results.append(split_func(*total_input[i]))
                 except Exception as e:
                     print('exception in split func ', val)
                     raise e
@@ -404,28 +320,26 @@ class ActionHandler:
         :param numpy_array: needs to have shape of (?, num_actions)
         :param split_func: a function that is called with a tensor the same rank as input_tensor.
             It should return a tensor with the same rank as input_tensor
+        :param is_already_split: True if the array is already sliced by action length
         :return: a stacked tensor (see tf.stack) or the same tensor depending on if it is in split mode or not.
         """
         if not self.split_mode:
             return split_func(numpy_array)
 
-        if not is_already_split:
-            output1 = numpy_array[:, 0:5]
-            output2 = numpy_array[:, 5:10]
-            output3 = numpy_array[:, 10:15]
-            output4 = numpy_array[:, 15:]
-        else:
-            output1 = numpy_array[0]
-            output2 = numpy_array[1]
-            output3 = numpy_array[2]
-            output4 = numpy_array[3]
+        total_input = []
+        total_action_size = 0
+        for i, val in enumerate(self.split_action_sizes):
+            if not is_already_split:
+                total_input.append(numpy_array[:, total_action_size:val])
+            else:
+                total_input.append(numpy_array[i])
+            total_action_size += val
 
-        result1 = split_func(output1)
-        result2 = split_func(output2)
-        result3 = split_func(output3)
-        result4 = split_func(output4)
+        result = []
+        for element in total_input:
+            result.append(split_func(element))
 
-        return [result1, result2, result3, result4]
+        return result
 
     def get_cross_entropy_with_logits(self, labels, logits, name):
         """
