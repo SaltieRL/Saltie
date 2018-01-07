@@ -383,19 +383,19 @@ class ActionHandler:
                 total_action_size += val
             print('tensor ignored', tensor)
 
-        with tf.name_scope("steer"):
-            result1 = split_func(*output1)
-        with tf.name_scope("pitch"):
-            result2 = split_func(*output2)
-        with tf.name_scope("roll"):
-            result3 = split_func(*output3)
-        with tf.name_scope("combo"):
-            result4 = split_func(*output4)
+        results = []
+        for i, val in enumerate(self.action_list_names):
+            with tf.name_scope(val):
+                try:
+                    results.append(split_func(*total_output[i]))
+                except Exception as e:
+                    print('exception in split func ', val)
+                    raise e
 
         if return_as_list:
-            return [result1, result2, result3, result4]
+            return results
 
-        return tf.stack([result1, result2, result3, result4], axis=1)
+        return tf.stack(results, axis=1)
 
     def optionally_split_numpy_arrays(self, numpy_array, split_func, is_already_split=False):
         """
