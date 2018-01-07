@@ -1,5 +1,8 @@
 import tensorflow as tf
 import time
+
+from TutorialBot.atba2_demo_output import TutorialBotOutput_2
+from TutorialBot.tutorial_bot_output import TutorialBotOutput
 from conversions.input import input_formatter, tensorflow_input_formatter
 from TutorialBot import tutorial_bot_output
 from modelHelpers.tensorflow_feature_creator import TensorflowFeatureCreator
@@ -18,7 +21,7 @@ def get_random_data(packet_generator, input_formatter):
 
 
 learning_rate = 0.01
-total_batches = 2000
+total_batches = 4000
 batch_size = 5000
 save_step = 2000000
 
@@ -96,8 +99,7 @@ def run():
         model.create_savers()
 
         checks = controller_statistics.OutputChecks(batch_size, model.argmax, game_tick_packet,
-                                                    input_state, sess, actions)
-
+                                                    input_state, sess, actions, output_creator)
         model.initialize_model()
 
         checks.create_model()
