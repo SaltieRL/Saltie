@@ -194,7 +194,7 @@ class DynamicActionHandler(ActionHandler):
                 binary_combo_index += powed * tf.cast(action_taken, tf.float32)
         return binary_combo_index
 
-    def create_indexes_graph(self, real_action):
+    def create_action_indexes_graph(self, real_action):
         indexes = []
         combo_list = []
         for i in range(len(self.combo_name_list)):

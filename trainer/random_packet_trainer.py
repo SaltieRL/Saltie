@@ -88,7 +88,7 @@ def run():
 
         real_output = output_creator.get_output_vector(game_tick_packet)
 
-        real_indexes = actions.create_indexes_graph(tf.stack(real_output, axis=1))
+        real_indexes = actions.create_action_indexes_graph(tf.stack(real_output, axis=1))
 
         reshaped = tf.cast(real_indexes, tf.int32)
         model.taken_actions = reshaped

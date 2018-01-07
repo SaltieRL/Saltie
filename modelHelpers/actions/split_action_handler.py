@@ -251,7 +251,7 @@ class SplitActionHandler(ActionHandler):
         return tf.nn.sigmoid_cross_entropy_with_logits(
             labels=tf.cast(labels, tf.float32), logits=logits, name=name+'s')
 
-    def create_indexes_graph(self, real_action):
+    def create_action_indexes_graph(self, real_action):
         #slice each index
         throttle = tf.slice(real_action, [0, 0], [-1, 1])
         steer = tf.slice(real_action, [0, 1], [-1, 1])

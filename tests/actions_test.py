@@ -1,9 +1,10 @@
-from modelHelpers.actions import action_handler, dynamic_action_handler
+from modelHelpers.actions import action_handler, dynamic_action_handler, action_factory
 import tensorflow as tf
 import numpy as np
 
 def test1():
-    handler = action_handler.ActionHandler(split_mode=True)
+    handler = action_factory.get_handler(False)
+    split_handler = action_factory.get_handler(True, action_factory.default_scheme)
 
     session = tf.Session(config=tf.ConfigProto(
         device_count={'GPU': 0}
@@ -37,8 +38,8 @@ def test1():
 
 
 def test2():
-    handler = action_handler.ActionHandler(split_mode=True)
-    dynamic_handler = dynamic_action_handler.DynamicActionHandler(dynamic_action_handler.super_split_scheme)
+    handler = action_factory.get_handler(False)
+    dynamic_handler = action_factory.get_handler(True, dynamic_action_handler.super_split_scheme)
     # dynamic_handler2 = dynamic_action_handler.DynamicActionHandler(dynamic_action_handler.current_scheme)
 
     session = tf.Session(config=tf.ConfigProto(
@@ -55,8 +56,8 @@ def test2():
     #t, y, p, r,
     real_action = tf.Variable(input, dtype=tf.float32)
 
-    result = handler.create_indexes_graph(real_action)
-    result2 = dynamic_handler.create_indexes_graph(real_action)
+    result = handler.create_action_indexes_graph(real_action)
+    result2 = dynamic_handler.create_action_indexes_graph(real_action)
 
     init = tf.global_variables_initializer()
     session.run(init)
@@ -82,8 +83,8 @@ def test2():
 
 
 def test3():
-    handler = action_handler.ActionHandler(split_mode=True)
-    dynamic_handler = dynamic_action_handler.DynamicActionHandler(dynamic_action_handler.current_scheme)
+    handler = action_factory.get_handler(False)
+    dynamic_handler = action_factory.get_handler(True, dynamic_action_handler.super_split_scheme)
 
     session = tf.Session(config=tf.ConfigProto(
         device_count={'GPU': 0}
@@ -102,7 +103,7 @@ def test3():
     #t, y, p, r,
     real_action = tf.Variable(input, dtype=tf.float32)
 
-    result = handler._create_split_indexes_graph(real_action)
+    result = handler.create_action_indexes_graph(real_action)
     back_again = dynamic_handler.create_tensorflow_controller_from_selection(tf.transpose(result), batch_size=9)
 
     init = tf.global_variables_initializer()
