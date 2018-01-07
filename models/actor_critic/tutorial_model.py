@@ -64,7 +64,7 @@ class TutorialModel(PolicyGradient):
             wrongNess += tf.cast(tf.abs(tf.cast(self.argmax[index], tf.int32) - taken_actions), tf.float32)
         else:
             # use temporarily
-            wrongNess += tf.cast(tf.abs(tf.cast(self.argmax[index], tf.int32) - taken_actions), tf.float32) / 5.0
+            wrongNess += tf.cast(tf.abs(tf.cast(self.argmax[index], tf.int32) - taken_actions), tf.float32) / 2.0
             #argmax = self.argmax[index]
             #number = tf.bitwise.bitwise_xor(tf.cast(self.argmax[index], tf.int32), taken_actions)
             # result = self.fancy_calculate_number_of_ones(number) # can't use until version 1.5

@@ -3,7 +3,7 @@ from conversions.input import input_formatter
 from conversions.input.input_formatter import InputFormatter
 import importlib
 import inspect
-from modelHelpers.actions import action_handler
+from modelHelpers.actions import action_handler, action_factory, dynamic_action_handler
 from modelHelpers import reward_manager
 from modelHelpers.tensorflow_feature_creator import TensorflowFeatureCreator
 from models.actor_critic import policy_gradient
@@ -40,7 +40,7 @@ class Agent:
         self.sess = tf.Session(config=config)
         # self.sess = tf.Session()
         writer = tf.summary.FileWriter('tmp/{}-experiment'.format(random.randint(0, 1000000)))
-        self.actions_handler = action_handler.ActionHandler(split_mode=True)
+        self.actions_handler = action_factory.get_handler(control_scheme=dynamic_action_handler.super_split_scheme)
         self.state_dim = input_formatter.get_state_dim()
         self.num_actions = self.actions_handler.get_action_size()
         print('num_actions', self.num_actions)
