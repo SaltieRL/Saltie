@@ -38,7 +38,7 @@ def test1():
 
 def test2():
     handler = action_handler.ActionHandler(split_mode=True)
-    dynamic_handler = dynamic_action_handler.DynamicActionHandler(dynamic_action_handler.current_scheme)
+    dynamic_handler = dynamic_action_handler.DynamicActionHandler(dynamic_action_handler.super_split_scheme)
     # dynamic_handler2 = dynamic_action_handler.DynamicActionHandler(dynamic_action_handler.current_scheme)
 
     session = tf.Session(config=tf.ConfigProto(
@@ -75,9 +75,10 @@ def test2():
         print('dynamic tensor result', np.array(dynamic_indexes[index], dtype=np.float32))
 
         print('and back again')
+        print('correct answer', row)
         print('numpy result', handler.create_controller_output_from_actions(result))
         # purposely using the working result
-        print('dynamic result', dynamic_handler.create_controller_output_from_actions(result))
+        print('dynamic result', dynamic_handler.create_controller_output_from_actions(dynamic_result))
 
 
 def test3():
@@ -118,12 +119,12 @@ def test3():
         print('tensor result', np.array(indexes[index], dtype=np.float32))
 
         print('and back again')
+        print('correct answer', row)
         print('numpy result', handler.create_controller_output_from_actions(result))
         # purposely using the working result
         print('dynamic result', dynamic_results[index])
 
-
 if __name__ == '__main__':
    # test1()
-   test2()
-   # test3()
+   # test2()
+   test3()
