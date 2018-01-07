@@ -3,10 +3,11 @@ import tensorflow as tf
 
 
 class TutorialModel(PolicyGradient):
-    num_split_layers = 1
+    num_split_layers = 7
     network_size = 256
     split_hidden_layer_name = "split_hidden_layer"
     gated_layer_name = "gated_layer"
+    max_gradient = 10.0
 
     def __init__(self, session,
                  state_dim,
@@ -102,7 +103,7 @@ class TutorialModel(PolicyGradient):
         layer_size = self.network_size
         max_layer = self.num_layers - 2 - self.num_split_layers
         for i in range(0, max_layer):
-            if i == 1:
+            if i == -1:
                 inner_layer, layer_size = self.create_gated_layer(inner_layer, i + 2, layer_size, network_prefix,
                                                                   variable_list=variable_list)
             else:

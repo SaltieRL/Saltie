@@ -51,7 +51,7 @@ class RNNAtba(nnatba.NNAtba):
 
     def create_weights(self):
         self.weights = {
-            'inputW': tf.Variable(tf.random_normal([self.state_dim, self.hidden_size]), name='inputW'),
+            'inputW': tf.Variable(tf.random_normal([self.state_feature_dim, self.hidden_size]), name='inputW'),
             'rnn_outputW': tf.Variable(tf.random_normal([self.hidden_size, self.num_hidden_1]), name='rnn_outputW'),
             'out': tf.Variable(tf.random_normal([self.num_hidden_1, self.num_actions]), name='outputW'),
         }

@@ -35,7 +35,7 @@ class NNAtba(base_model.BaseModel):
 
     def create_weights(self):
         self.weights = {
-            'h1': tf.Variable(tf.random_normal([self.state_dim, self.num_hidden_1]), name='wh1'),
+            'h1': tf.Variable(tf.random_normal([self.state_feature_dim, self.num_hidden_1]), name='wh1'),
             'h2': tf.Variable(tf.random_normal([self.num_hidden_1, self.num_hidden_2]), name='wh2'),
             'out': tf.Variable(tf.random_normal([self.num_hidden_2, self.num_actions]), name='wout'),
         }

@@ -53,3 +53,11 @@ class TensorflowFeatureCreator:
         angle_front_to_target = tf.check_numerics(angle_front_to_target, 'nan angle is being created')
 
         return angle_front_to_target
+
+    def apply_features(self, model_input):
+        transposed_input = tf.transpose(model_input)
+        features = self.generate_features(transposed_input)
+        features = [tf.expand_dims(feature, axis=1) for feature in features]
+        features += [model_input]
+        new_input = tf.concat(features, axis=1)
+        return new_input

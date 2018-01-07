@@ -2,6 +2,8 @@ import hashlib
 import os
 import tensorflow as tf
 import numpy as np
+
+from modelHelpers import tensorflow_feature_creator
 from modelHelpers.data_normalizer import DataNormalizer
 
 MODEL_CONFIGURATION_HEADER = 'Model Configuration'
@@ -22,6 +24,7 @@ class BaseModel:
     logits = None
     is_normalizing = True
     normalizer = None
+    feature_creator = None
 
     """"
     This is a base class for all models It has a couple helper methods but is mainly used to provide a standard
@@ -56,6 +59,7 @@ class BaseModel:
 
         # input space
         self.state_dim = state_dim
+        self.state_feature_dim = state_dim
 
         self.is_training = is_training
 
@@ -122,6 +126,10 @@ class BaseModel:
         labels = None
         return loss, input, labels
 
+    def apply_feature_creation(self, feature_creator):
+        self.state_feature_dim += tensorflow_feature_creator.get_feature_dim()
+        self.feature_creator = feature_creator
+
     def get_input(self, model_input=None):
         """
         Gets the input for the model.
@@ -134,6 +142,8 @@ class BaseModel:
             safe_input = self.input_placeholder
         else:
             safe_input = model_input
+        if self.feature_creator is not None:
+            safe_input = self.feature_creator.apply_features(safe_input)
 
         if self.is_normalizing:
             if self.normalizer is None:
@@ -223,6 +233,7 @@ class BaseModel:
         self._add_summary_writer()
         self.is_initialized = True
 
+
     def get_model_name(self):
         """
         :return: The name of the model used for saving the file
@@ -293,7 +304,14 @@ class BaseModel:
             print('unable to load if it should be normalizing defaulting to true')
 
     def add_saver(self, name, variable_list):
-        self.savers_map[name] = tf.train.Saver(variable_list)
+        if len(variable_list) == 0:
+            print('no variables for saver ', name)
+            return
+        try:
+            self.savers_map[name] = tf.train.Saver(variable_list)
+        except Exception as e:
+            print('error for saver ', name)
+            raise e
 
     def create_savers(self):
         self.add_saver('default', self.stored_variables)
@@ -325,7 +343,10 @@ class BaseModel:
             self._load_model(self.sess, self.savers_map[key], self._create_saved_model_path(model_path, file_name, key))
 
     def _load_model(self, session, saver, path):
-        saver.restore(session, path)
+        if os.path.exists(path):
+            saver.restore(session, path)
+        else:
+            print('model for saver not found:', + saver)
 
     def create_model_hash(self):
         # BUF_SIZE is totally arbitrary, change for your app!

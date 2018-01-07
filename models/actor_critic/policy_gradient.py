@@ -5,7 +5,7 @@ import numpy as np
 
 
 class PolicyGradient(BaseActorCritic):
-    max_gradient = 3.0
+    max_gradient = 1.0
 
     def __init__(self, session,
                  state_dim,
@@ -211,3 +211,4 @@ class PolicyGradient(BaseActorCritic):
         """
         return tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logprobs,
                                                        labels=taken_actions), 1.0, True
+

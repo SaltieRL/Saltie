@@ -1,10 +1,11 @@
 # Defined as a generic bot, can use multiple models
-
+from conversions.input import input_formatter
 from conversions.input.input_formatter import InputFormatter
 import importlib
 import inspect
 from modelHelpers import action_handler
 from modelHelpers import reward_manager
+from modelHelpers.tensorflow_feature_creator import TensorflowFeatureCreator
 from models.actor_critic import policy_gradient
 import livedata.live_data_util as live_data_util
 
@@ -40,7 +41,7 @@ class Agent:
         # self.sess = tf.Session()
         writer = tf.summary.FileWriter('tmp/{}-experiment'.format(random.randint(0, 1000000)))
         self.actions_handler = action_handler.ActionHandler(split_mode=True)
-        self.state_dim = self.inp.get_state_dim_with_features()
+        self.state_dim = input_formatter.get_state_dim()
         self.num_actions = self.actions_handler.get_action_size()
         print('num_actions', self.num_actions)
         self.model = self.get_model_class()(self.sess,
@@ -54,6 +55,8 @@ class Agent:
         self.model.is_graphing = self.is_graphing
 
         self.model.is_online_training = self.is_online_training
+
+        self.model.apply_feature_creation(TensorflowFeatureCreator())
 
         self.model.create_model()
 

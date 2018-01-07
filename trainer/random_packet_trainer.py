@@ -17,7 +17,7 @@ def get_random_data(packet_generator, input_formatter):
     return output_array, game_tick_packet
 
 
-learning_rate = 0.3
+learning_rate = 0.01
 total_batches = 2000
 batch_size = 5000
 save_step = 2000000

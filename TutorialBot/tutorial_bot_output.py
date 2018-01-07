@@ -82,9 +82,9 @@ class TutorialBotOutput:
         blue_goal = tf.constant(-5000.0)
         go_to_ball = tf.cast(tf.less(bot_pos.Y, ball_pos.Y), tf.float32)
         go_to_goal = 1 - go_to_ball
-        target_x = ball_pos.X * go_to_ball + self.zero * go_to_goal
-        target_y = ball_pos.Y * go_to_ball + blue_goal * go_to_goal
-        target_z = ball_pos.Z * go_to_ball + self.zero * go_to_goal
+        target_x = ball_pos.X * go_to_ball # + self.zero * go_to_goal
+        target_y = ball_pos.Y * go_to_ball # + blue_goal * go_to_goal
+        target_z = ball_pos.Z * go_to_ball # + self.zero * go_to_goal
 
         steer, powerslide, jump = self.aim(bot_pos, bot_yaw,
                                            target_x, target_y, target_z, is_on_ground)

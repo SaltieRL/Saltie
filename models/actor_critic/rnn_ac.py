@@ -45,7 +45,7 @@ class RnnAC(PolicyGradient):
     def actor_network(self, input_states):
         # define policy neural network
         actor_prefix = 'actor'
-        layer1, _ = self.create_layer(tf.nn.relu6, input_states, 1, self.state_dim, self.network_size, actor_prefix)
+        layer1, _ = self.create_layer(tf.nn.relu6, input_states, 1, self.state_feature_dim, self.network_size, actor_prefix)
         inner_layer = layer1
         print('num layers', self.num_layers)
         state = None

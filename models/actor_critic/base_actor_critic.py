@@ -174,7 +174,7 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
         # define policy neural network
         actor_prefix = 'actor'
         with tf.variable_scope(self.first_layer_name):
-            layer1, _ = self.create_layer(tf.nn.relu6, input_states, 1, self.state_dim, self.network_size, actor_prefix,
+            layer1, _ = self.create_layer(tf.nn.relu6, input_states, 1, self.state_feature_dim, self.network_size, actor_prefix,
                                        variable_list=variable_list, dropout=False)
 
         inner_layer = self.create_hidden_layers(tf.nn.relu6, layer1, self.network_size, actor_prefix,
@@ -192,7 +192,7 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
         critic_layers = self.num_layers
         output_size = 1
         with tf.variable_scope(self.first_layer_name):
-            layer1, _ = self.create_layer(tf.nn.relu6, input_states, 1, self.state_dim, critic_size, critic_prefix,
+            layer1, _ = self.create_layer(tf.nn.relu6, input_states, 1, self.state_feature_dim, critic_size, critic_prefix,
                                           dropout=False)
         with tf.variable_scope(self.hidden_layer_name):
             inner_layer = layer1
@@ -251,14 +251,14 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
 
     def _create_network_saver(self, network_name):
         self._create_layer_saver(network_name, self.last_layer_name)
-        self._create_layer_saver(network_name, self.first_layer_name)
+        self._create_layer_saver(network_name, self.first_layer_name) # + str(self.state_feature_dim)
 
         hidden_layers = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,
                                           scope=network_name + '/' + self.hidden_layer_name)
         reshaped_list = np.reshape(np.array(hidden_layers), [int(len(hidden_layers) / 2), 2])
         for i in range(len(reshaped_list)):
             layer_name = self.hidden_layer_name + str(i)
-            saver_name = network_name + '_' + layer_name
+            saver_name = network_name + '_' + layer_name # + str(self.network_size)
             self.add_saver(saver_name, reshaped_list[i].tolist())
 
     def _create_layer_saver(self, network_name, layer_name):
