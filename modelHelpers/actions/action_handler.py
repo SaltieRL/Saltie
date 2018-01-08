@@ -20,6 +20,7 @@ class ActionMap:
     def has_key(self, action):
         tupleaction = tuple(np.array(action, dtype=np.float32))
         return tupleaction in self.action_map
+
     def get_key(self, action):
         tupleaction = tuple(np.array(action, dtype=np.float32))
         return self.action_map[tupleaction]
@@ -32,10 +33,15 @@ class ActionHandler:
     actions = []
     action_list_names = ['actions']
     control_names = ['throttle', 'steer', 'pitch', 'steer', 'roll', 'jump', 'boost', 'handbrake']
+    control_size = len(control_names)
 
     def __init__(self):
         self.actions = self.create_actions()
         self.action_map = self.create_action_map()
+
+    def reset(self):
+        self.control_names = ['throttle', 'steer', 'pitch', 'steer', 'roll', 'jump', 'boost', 'handbrake']
+        self.control_size = len(self.control_names)
 
     def create_action_map(self):
         return ActionMap(self.actions)
@@ -83,7 +89,7 @@ class ActionHandler:
     def create_controller_from_selection(self, action_selection):
         return self.actions[action_selection[0]]
 
-    def create_tensorflow_controller_from_selection(self, action_selection, batch_size=1):
+    def create_tensorflow_controller_from_selection(self, action_selection, batch_size=1, should_stack=True):
         combo_actions = self.actions
         indexer = tf.constant(1, dtype=tf.int32)
         action_selection = tf.cast(action_selection, tf.int32)
@@ -98,7 +104,9 @@ class ActionHandler:
         controller_option = button_combo
         controller_option = [tf.cast(option, tf.float32) for option in controller_option]
         # print(controller_option)
-        return tf.stack(controller_option, axis=1)
+        if should_stack:
+            return tf.stack(controller_option, axis=1)
+        return controller_option
 
     def create_action_label(self, real_action):
         index = self.create_action_index(real_action)
@@ -210,7 +218,7 @@ class ActionHandler:
         rounded_amount = float(action_size // 2)
         return tf.maximum(-1.0, tf.minimum(1.0, tf.round(input * rounded_amount) / rounded_amount))
 
-    def _create_combo_index(self, real_actions):
+    def _create_combo_index_graph(self, real_actions):
         binary_combo_index = tf.constant(0.0)
         for i, action_set in enumerate(reversed(self.combo_list)):
             powed = tf.constant(pow(2, i), dtype=tf.float32)
@@ -234,4 +242,4 @@ class ActionHandler:
                 bucketed_control = self.round_action_graph(bucketed_control, len(control_set))
             combo_list.append(bucketed_control)
 
-        return self._create_combo_index(combo_list)
+        return self._create_combo_index_graph(combo_list)

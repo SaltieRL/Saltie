@@ -6,7 +6,7 @@ import tensorflow as tf
 from modelHelpers.actions.action_handler import ActionHandler, ActionMap
 from modelHelpers.actions.split_action_handler import SplitActionHandler
 
-DODGE = 'dodge'
+
 COMBO = 'combo'
 
 super_split_scheme = [[('throttle', (-1, 1.5, .5)), ('steer', (-1, 1.5, .5)),
@@ -14,10 +14,6 @@ super_split_scheme = [[('throttle', (-1, 1.5, .5)), ('steer', (-1, 1.5, .5)),
                       [('jump', (0, 2, 1)), ('boost', (0, 2, 1)), ('handbrake', (0, 2, 1))],
                       []]
 
-dodge_suppressor = [[('throttle', (-1, 1.5, .5)), ('steer', (-1, 1.5, .5)),
-                       ('yaw', (-1, 1.5, .5)), ('pitch', (-1, 1.5, .5)), ('roll', (-1, 1.5, .5))],
-                      [('jump', (0, 2, 1)), ('boost', (0, 2, 1)), ('handbrake', (0, 2, 1)), (DODGE, (0, 2, 1))],
-                      []]
 
 
 
@@ -28,7 +24,6 @@ class DynamicActionHandler(SplitActionHandler):
         Assumes everything is in tensorflow
     """
 
-    control_names = ['throttle', 'steer', 'pitch', 'yaw', 'roll', 'jump', 'boost', 'handbrake']
     control_names_index_map = {}
     # rules, tuples mean they take the same spot
     ranged_actions = []
@@ -48,6 +43,7 @@ class DynamicActionHandler(SplitActionHandler):
         super().__init__()
 
     def reset(self):
+        super().reset()
         self.control_names_index_map = {}
         self.ranged_actions = []
         self.action_list_names = []
@@ -107,8 +103,7 @@ class DynamicActionHandler(SplitActionHandler):
 
     def create_controller_from_selection(self, action_selection):
         if len(action_selection) != len(self.actions):
-            print('ACTION SELECTION IS NOT THE SAME LENGTH returning invalid action data')
-            return [0, 0, 0, 0, 0, False, False, False]
+            raise Exception('Invalid action selection size')
 
         combo_index = self.action_name_index_map[COMBO]
         controller_output = []
@@ -120,19 +115,10 @@ class DynamicActionHandler(SplitActionHandler):
                 continue
             controller_output.append(self.actions[index][action_selection[index]])
 
-        # suppress dodges
-        if self.should_suppress_dodge:
-            supressors = self.dodge_suppressor_list[0]
-            should_suppress = self.actions[combo_index][action_selection[combo_index]][self.combo_name_index_map[DODGE]]
-            for option in supressors:
-                should_suppress = should_suppress and controller_output[self.action_name_index_map[option]]
-            if should_suppress:
-                for suppressed_control in self.dodge_suppressor_list[1]:
-                    controller_output[self.action_name_index_map[suppressed_control]] = 0.0
         # print(controller_output)
         return controller_output
 
-    def create_tensorflow_controller_from_selection(self, action_selection, batch_size=1):
+    def create_tensorflow_controller_from_selection(self, action_selection, batch_size=1, should_stack=True):
         controller_output = []
 
         ranged_actions = []
@@ -160,8 +146,6 @@ class DynamicActionHandler(SplitActionHandler):
         # actually decoding the controls now the startup is done
 
         controls = self.control_names
-        if self.should_suppress_dodge:
-            controls += [DODGE]
 
         for control in controls:
             index = self.action_name_index_map[control]
@@ -179,28 +163,27 @@ class DynamicActionHandler(SplitActionHandler):
         # make sure everything is the same type
         controller_output = [tf.cast(option, tf.float32) for option in controller_output]
 
-        if self.should_suppress_dodge:
-            should_suppress = controller_output[len(controller_output) - 1]
-            for option in self.dodge_suppressor_list[0]:
-                should_suppress = tf.logical_and(should_suppress,
-                                                 controller_output[self.control_names_index_map[option]])
-
-            for suppressed_control in self.dodge_suppressor_list[1]:
-                controller_output[self.control_names_index_map[suppressed_control]] *= tf.cast(should_suppress,
-                                                                                               tf.float32)
-
-        return tf.stack(controller_output, axis=1)
+        if should_stack:
+            return tf.stack(controller_output, axis=1)
+        return controller_output
 
     def round_action(self, input, action_size):
         rounded_amount = float(action_size // 2)
         return float(round(rounded_amount * input)) / rounded_amount
 
+    def _create_combo_index(self, real_action, combo_list):
+        return self.action_map.get_key(combo_list)
+
     def create_action_index(self, real_action):
         combo_list = []
         indexes = []
+        for i in range(len(self.combo_list)):
+            combo_list.append([])
         for i in range(len(self.actions)):
             indexes.append(None)
         for i, control in enumerate(self.control_names):
+            if i >= len(real_action):
+                continue
             real_control = real_action[i]
             action_index = self.action_name_index_map[control]
 
@@ -208,17 +191,16 @@ class DynamicActionHandler(SplitActionHandler):
                 real_index = self.combo_name_index_map[control]
                 action_size = self.combo_action_sizes[real_index]
                 bucketed_control = self.round_action(real_control, action_size)
-                combo_list.append(bucketed_control)
+                combo_list[real_index] = bucketed_control
             else:
                 if indexes[action_index] is None:
                     indexes[action_index] = (self._find_closet_real_number(real_control))
 
-        button_combo = self.action_map.get_key(combo_list)
-        indexes[self.action_name_index_map[COMBO]] = button_combo
+        indexes[self.action_name_index_map[COMBO]] = self._create_combo_index(real_action, combo_list)
 
         return indexes
 
-    def _create_combo_index(self, combo_list):
+    def _create_combo_index_graph(self, combo_list, real_action=None):
         binary_combo_index = tf.constant(0.0)
         for i, name in enumerate(reversed(self.combo_name_list)):
             true_index = self.combo_name_index_map[name]
@@ -244,6 +226,8 @@ class DynamicActionHandler(SplitActionHandler):
             indexes.append(None)
 
         for i, control in enumerate(self.control_names):
+            if i >= real_action.shape()[1]:
+                continue
             real_control = tf.slice(real_action, [0, i], [-1, 1])
             action_index = self.action_name_index_map[control]
 
@@ -258,7 +242,7 @@ class DynamicActionHandler(SplitActionHandler):
                 if indexes[action_index] is None:
                     indexes[action_index] = (self._find_closet_real_number_graph(real_control))
 
-        indexes[self.action_name_index_map[COMBO]] = tf.squeeze(self._create_combo_index(combo_list))
+        indexes[self.action_name_index_map[COMBO]] = tf.squeeze(self._create_combo_index_graph(combo_list, real_action))
 
         result = tf.stack(indexes, axis=1)
         return result

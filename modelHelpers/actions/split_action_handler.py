@@ -18,6 +18,7 @@ class SplitActionHandler(ActionHandler):
         super().__init__()
 
     def reset(self):
+        super().reset()
         self.actions = []
         self.action_sizes = []
         self.action_list_size = 0
@@ -119,7 +120,7 @@ class SplitActionHandler(ActionHandler):
         # print(controller_option)
         return controller_option
 
-    def create_tensorflow_controller_from_selection(self, action_selection, batch_size=1):
+    def create_tensorflow_controller_from_selection(self, action_selection, batch_size=1, should_stack=True):
         movement_actions = self.movement_actions
         combo_actions = self.tensorflow_combo_actions
         indexer = tf.constant(1, dtype=tf.int32)
@@ -153,7 +154,9 @@ class SplitActionHandler(ActionHandler):
         controller_option = [throttle, steer, pitch, steer, roll, jump, boost, handbrake]
         controller_option = [tf.cast(option, tf.float32) for option in controller_option]
         # print(controller_option)
-        return tf.stack(controller_option, axis=1)
+        if should_stack:
+            return tf.stack(controller_option, axis=1)
+        return controller_option
 
     def get_random_option(self):
         return [random.randrange(5), random.randrange(5), random.randrange(5), random.randrange(24)]
