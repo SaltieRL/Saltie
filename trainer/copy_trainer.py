@@ -32,7 +32,7 @@ class CopyTrainer:
 
         self.state_dim = get_state_dim()
         print('state size ' + str(self.state_dim))
-        self.num_actions = self.action_handler.get_action_size()
+        self.num_actions = self.action_handler.get_logit_size()
         self.agent = self.get_model()(self.sess, self.state_dim, self.num_actions, self.action_handler, is_training=True, optimizer=tf.train.AdamOptimizer())
 
         self.loss, self.input, self.label = self.agent.create_copy_training_model(batch_size=self.batch_size)

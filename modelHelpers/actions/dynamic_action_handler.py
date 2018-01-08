@@ -10,6 +10,12 @@ super_split_scheme = [[('throttle', (-1, 1.5, .5)), ('steer', (-1, 1.5, .5)),
                        ('yaw', (-1, 1.5, .5)), ('pitch', (-1, 1.5, .5)), ('roll', (-1, 1.5, .5))],
                       [('jump', (0, 2, 1)), ('boost', (0, 2, 1)), ('handbrake', (0, 2, 1))],
                       []]
+
+dodge_suppressor = [[('throttle', (-1, 1.5, .5)), ('steer', (-1, 1.5, .5)),
+                       ('yaw', (-1, 1.5, .5)), ('pitch', (-1, 1.5, .5)), ('roll', (-1, 1.5, .5))],
+                      [('jump', (0, 2, 1)), ('boost', (0, 2, 1)), ('handbrake', (0, 2, 1)), ('dodge', (0, 2, 1))],
+                      []]
+
 COMBO = 'combo'
 
 
@@ -29,6 +35,8 @@ class DynamicActionHandler(SplitActionHandler):
     combo_list = []
     button_combo = []
     combo_name_list = []
+    dodge_suppressor_list = [['jump'], ['steer', 'pitch', 'roll', 'yaw']]
+    should_suppress_dodge = False
 
     def __init__(self, control_scheme):
         self.control_scheme = control_scheme
@@ -73,6 +81,8 @@ class DynamicActionHandler(SplitActionHandler):
             self.combo_name_index_map[item[0]] = len(self.combo_list)
             self.combo_list.append(action)
             self.combo_action_sizes.append(len(action))
+            if item[0] == 'dodge':
+                self.should_suppress_dodge = True
         self.button_combo = list(itertools.product(*self.combo_list))
         self.action_sizes.append(len(self.button_combo))
         self.action_name_index_map[COMBO] = len(self.action_list_names)

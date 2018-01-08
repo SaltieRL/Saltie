@@ -1,3 +1,4 @@
+from conversions import output_formatter
 from models import base_reinforcement
 from models import base_model
 import numpy as np
@@ -57,14 +58,10 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
         except:
             print('unable to load exploration_factor')
 
-    def get_input(self, model_input=None):
-        if model_input is None:
-            return super().get_input(self.input)
-        else:
-            return super().get_input(model_input)
-
     def _create_model(self, model_input):
         model_input = tf.check_numerics(model_input, 'model inputs')
+        state = output_formatter.get_basic_state(tf.transpose(model_input))
+        #model_input = tf.Print(model_input, [state.car_location.X], 'model inputs')
         all_variable_list = []
         last_layer_list = [[] for _ in range(len(self.action_handler.get_action_sizes()))]
         with tf.name_scope("predict_actions"):
@@ -72,6 +69,7 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
             with tf.variable_scope("actor_network", reuse=tf.AUTO_REUSE):
                 self.policy_outputs = self.actor_network(model_input, variable_list=all_variable_list,
                                                          last_layer_list=last_layer_list)
+                # self.policy_outputs = tf.Print(self.policy_outputs, [self.policy_outputs], summarize=self.action_handler.get_logit_size(), message='output')
             with tf.variable_scope("critic_network", reuse=tf.AUTO_REUSE):
                 self.value_outputs = tf.reduce_mean(self.critic_network(model_input), name="Value_estimation")
 
@@ -134,6 +132,8 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
             self.frames_since_last_random_action = 0
             return self.action_handler.get_random_option()
         else:
+            # state = output_formatter.get_basic_state(input_state)
+            # print(input_state)
             self.frames_since_last_random_action += 1
             if self.is_graphing:
                 estimated_reward, action_scores = self.sess.run([self.value_outputs, self.softmax],
@@ -141,12 +141,16 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
                 # Average is bad metric but max is always 1 right now so using a more interesting graph
                 self.rotating_expected_reward_buffer += estimated_reward
             else:
-                action_scores = self.sess.run([self.softmax],
+                action_scores = self.sess.run([self.argmax],
                                               {self.input_placeholder: input_state})[0]
+                action_scores = [item[0] for item in action_scores]
+                print(action_scores)
 
-            action = self.action_handler.optionally_split_numpy_arrays(action_scores,
-                                              lambda input_array: np.argmax(np.random.multinomial(1, input_array[0])),
-                                              is_already_split=True)
+            action = action_scores
+
+            #action = self.action_handler.optionally_split_numpy_arrays(action_scores,
+            #                                  lambda input_array: np.argmax(np.random.multinomial(1, input_array[0])),
+            #                                  is_already_split=True)
 
             return action
 
@@ -177,11 +181,14 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
             layer1, _ = self.create_layer(tf.nn.relu6, input_states, 1, self.state_feature_dim, self.network_size, actor_prefix,
                                        variable_list=variable_list, dropout=False)
 
+        # layer1 = tf.Print(layer1, [layer1], summarize=self.action_handler.get_logit_size(), message='')
+
         inner_layer = self.create_hidden_layers(tf.nn.relu6, layer1, self.network_size, actor_prefix,
                                                 variable_list=variable_list)
 
         output_layer = self.create_last_layer(tf.nn.sigmoid, inner_layer, self.network_size,
                                               self.num_actions, actor_prefix, last_layer_list=last_layer_list)
+
         return output_layer
 
     def critic_network(self, input_states):

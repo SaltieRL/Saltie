@@ -71,7 +71,7 @@ class SplitActionHandler(ActionHandler):
     def get_action_sizes(self):
         return self.action_sizes
 
-    def get_action_size(self):
+    def get_logit_size(self):
         """
         :return: the size of the logits layer in a model
         """
@@ -181,7 +181,7 @@ class SplitActionHandler(ActionHandler):
             for i, val in enumerate(self.action_sizes):
                 starting_length = len(total_input[i])
                 if isinstance(tensor, collections.Sequence):
-                    if len(tensor) == self.get_action_size():
+                    if len(tensor) == self.get_logit_size():
                         # grabs each slice of tensor
                         total_input[i].append(tensor[total_action_size:total_action_size + val])
                     else:
@@ -189,9 +189,9 @@ class SplitActionHandler(ActionHandler):
                 else:
                     if len(tensor.get_shape()) == 0:
                         total_input[i].append(tf.identity(tensor, name='copy' + str(i)))
-                    elif tensor.get_shape()[0] == self.get_action_size():
+                    elif tensor.get_shape()[0] == self.get_logit_size():
                         total_input[i].append(tf.slice(tensor, [total_action_size], [val]))
-                    elif tensor.get_shape()[1] == self.get_action_size():
+                    elif tensor.get_shape()[1] == self.get_logit_size():
                         total_input[i].append(tf.slice(tensor, [0, total_action_size], [-1, val]))
                     elif tensor.get_shape()[1] == self.get_number_actions():
                         total_input[i].append(tf.slice(tensor, [0, i], [-1, 1]))

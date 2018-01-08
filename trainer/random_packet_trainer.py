@@ -22,7 +22,7 @@ def get_random_data(packet_generator, input_formatter):
 learning_rate = 0.01
 total_batches = 4000
 batch_size = 5000
-save_step = 2000000
+save_step = 4000000
 
 # Network Parameters
 n_neurons_hidden = 128  # every layer of neurons
@@ -72,16 +72,18 @@ def run():
         feature_creator = TensorflowFeatureCreator()
         formatter = tensorflow_input_formatter.TensorflowInputFormatter(0, 0, batch_size, feature_creator)
         packet_generator = r.TensorflowPacketGenerator(batch_size)
-        output_creator = TutorialBotOutput(batch_size)
-        actions = action_factory.get_handler(split_mode=True, control_scheme=dynamic_action_handler.super_split_scheme)
+        output_creator = TutorialBotOutput_2(batch_size)
+        actions = action_factory.get_handler(control_scheme=dynamic_action_handler.super_split_scheme)
 
         model = tutorial_model.TutorialModel(sess, formatter.get_state_dim_with_features(),
-                                             n_output, action_handler=actions, is_training=True)
+                                             actions.get_logit_size(), action_handler=actions, is_training=True)
         model.num_layers = 10
         model.summary_writer = tf.summary.FileWriter(
             model.get_event_path('random_packet'))
         model.batch_size = batch_size
         model.mini_batch_size = batch_size
+
+        print(model.get_model_path('2/' + model.get_default_file_name()))
 
         # start model construction
         input_state, game_tick_packet = get_random_data(packet_generator, formatter)
@@ -128,7 +130,9 @@ def run():
                 model.save_model(model.get_model_path(model.get_default_file_name() + str(model_counter)))
                 model_counter += 1
 
-        model.save_model(model.get_model_path(model.get_default_file_name()))
+        final_model_path = model.get_model_path('2/' + model.get_default_file_name())
+
+        model.save_model(final_model_path)
 
         total_time = time.time() - start
         print('total time: ', total_time)

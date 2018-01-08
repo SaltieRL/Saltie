@@ -206,7 +206,6 @@ class BaseModel:
         This will also try to load an existing model if it exists
         """
         self._set_variables()
-        model_file = None
 
         #file does not exist too lazy to add check
         if self.model_file is None:
@@ -329,6 +328,7 @@ class BaseModel:
 
     def save_model(self, model_path):
         self._create_model_directory(model_path)
+        print('saving model at:\n', model_path)
         file_object = open(model_path + '.keys', 'w')
         for key in self.savers_map:
             file_object.write(key)
@@ -339,12 +339,14 @@ class BaseModel:
 
     def load_model(self, model_path, file_name):
         # TODO read keys
+        print('loading model comprised of', len(self.savers_map))
         for key in self.savers_map:
             self._load_model(self.sess, self.savers_map[key], self._create_saved_model_path(model_path, file_name, key))
 
     def _load_model(self, session, saver, path):
         if os.path.exists(os.path.dirname(path)):
             saver.restore(session, path)
+            # print('loaded model for saver', os.path.dirname(path))
         else:
             print('model for saver not found:', path)
 

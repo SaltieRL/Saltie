@@ -55,7 +55,7 @@ class ActionHandler:
         """
         return 1
 
-    def get_action_size(self):
+    def get_logit_size(self):
         """
         :return: the size of the logits layer in a model
         """
@@ -93,7 +93,7 @@ class ActionHandler:
             indexer = tf.constant(np.arange(0, batch_size, 1), dtype=tf.int32)
 
         button_combo = tf.gather_nd(combo_actions, tf.stack([indexer, action_selection[3]], axis=1))
-        new_shape = [self.get_action_size(), batch_size]
+        new_shape = [self.get_logit_size(), batch_size]
         button_combo = tf.reshape(button_combo, new_shape)
         controller_option = button_combo
         controller_option = [tf.cast(option, tf.float32) for option in controller_option]
@@ -146,7 +146,7 @@ class ActionHandler:
         return index_of_action
 
     def _create_one_hot_encoding(self, index):
-        array = np.zeros(self.get_action_size())
+        array = np.zeros(self.get_logit_size())
         array[index] = 1
         return array
 
@@ -158,7 +158,7 @@ class ActionHandler:
         pass
 
     def get_random_option(self):
-        return [random.randrange(self.get_action_size())]
+        return [random.randrange(self.get_logit_size())]
 
     def run_func_on_split_tensors(self, input_tensors, split_func):
         """

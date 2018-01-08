@@ -162,8 +162,8 @@ class DataNormalizer:
         if self.normalization_array is None:
             self.normalization_array = self.get_normalization_array()
 
-        min = self.normalization_array[0]
-        max = self.normalization_array[1]
+        min = tf.cast(self.normalization_array[0], tf.float32)
+        max = tf.cast(self.normalization_array[1], tf.float32)
 
         diff = max - min
 
@@ -171,4 +171,8 @@ class DataNormalizer:
         # diff = diff + error_prevention
 
         result = (input_array - min) / diff
+        #result = tf.Print(result, [min], 'min', summarize=16)
+        #result = tf.Print(result, [max], 'max', summarize=16)
+        #result = tf.Print(result, [input_array[0]], 'inp', summarize=30)
+        #result = tf.Print(result, [result[0]], 'out', summarize=16)
         return result

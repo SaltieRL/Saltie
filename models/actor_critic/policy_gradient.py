@@ -23,6 +23,12 @@ class PolicyGradient(BaseActorCritic):
         super().__init__(session, state_dim, num_actions, player_index, action_handler, is_training,
                          optimizer, summary_writer, summary_every, discount_factor)
 
+    def get_input(self, model_input=None):
+        if model_input is None:
+            return super().get_input(self.input)
+        else:
+            return super().get_input(model_input)
+
     def create_training_op(self, logprobs, taken_actions):
         critic_gradients, critic_loss, critic_reg_loss = self.create_critic_gadients()
         actor_gradients, actor_loss, actor_reg_loss = self.create_actor_gradients(logprobs, taken_actions)
@@ -127,6 +133,16 @@ class PolicyGradient(BaseActorCritic):
         critic_gradients = self.optimizer.compute_gradients(critic_loss, self.critic_network_variables)
         return (critic_gradients, critic_loss, critic_reg_loss)
 
+    def add_histograms(self, gradients):
+        # summarize gradients
+        for grad, var in gradients:
+            tf.summary.histogram(var.name, var)
+            if grad is not None:
+                tf.summary.histogram(var.name + '/gradients', grad)
+
+        # emit summaries
+        tf.summary.histogram("estimated_values", self.estimated_values)
+
     def _compute_training_op(self, actor_gradients, critic_gradients):
         # collect all gradients
         gradients = actor_gradients + critic_gradients
@@ -137,16 +153,8 @@ class PolicyGradient(BaseActorCritic):
             if grad is not None:
                 gradients[i] = (tf.clip_by_norm(grad, self.max_gradient), var)
 
-        # summarize gradients
-        for grad, var in gradients:
-            tf.summary.histogram(var.name, var)
-            if grad is not None:
-                tf.summary.histogram(var.name + '/gradients', grad)
-
-        # emit summaries
-        tf.summary.histogram("estimated_values", self.estimated_values)
-
-            # training update
+        self.add_histograms(gradients)
+        # training update
         with tf.name_scope("train_actor_critic"):
             # apply gradients to update actor network
             return self.optimizer.apply_gradients(gradients)

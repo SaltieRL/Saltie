@@ -42,7 +42,7 @@ class Agent:
         writer = tf.summary.FileWriter('tmp/{}-experiment'.format(random.randint(0, 1000000)))
         self.actions_handler = action_factory.get_handler(control_scheme=dynamic_action_handler.super_split_scheme)
         self.state_dim = input_formatter.get_state_dim()
-        self.num_actions = self.actions_handler.get_action_size()
+        self.num_actions = self.actions_handler.get_logit_size()
         print('num_actions', self.num_actions)
         self.model = self.get_model_class()(self.sess,
                                             self.state_dim,
@@ -50,7 +50,9 @@ class Agent:
                                             player_index=self.index,
                                             action_handler=self.actions_handler,
                                             summary_writer=writer,
-                                            is_training=True)
+                                            is_training=False)
+        self.model.batch_size = 1
+        self.model.mini_batch_size = 1
 
         self.model.is_graphing = self.is_graphing
 
@@ -58,10 +60,12 @@ class Agent:
 
         self.model.apply_feature_creation(TensorflowFeatureCreator())
 
-        self.model.create_model()
+        self.model.create_model(self.model.input_placeholder)
 
         if self.model.is_training and self.model.is_online_training:
             self.model.create_reinforcement_training_model()
+
+        self.model.create_savers()
 
         self.model.initialize_model()
         if self.is_graphing:
@@ -129,7 +133,8 @@ class Agent:
             print("invalid action no type returned")
             action = self.actions_handler.get_random_option()
         self.previous_action = action
-        return self.actions_handler.create_controller_from_selection(action)
+        controller_selection = self.actions_handler.create_controller_from_selection(action)
+        return controller_selection
 
     def create_model_hash(self):
         try:

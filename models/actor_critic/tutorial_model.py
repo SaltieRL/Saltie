@@ -4,7 +4,6 @@ import tensorflow as tf
 
 class TutorialModel(PolicyGradient):
     num_split_layers = 7
-    network_size = 256
     split_hidden_layer_variables = None
     split_hidden_layer_name = "split_hidden_layer"
     gated_layer_name = "gated_layer"
@@ -147,3 +146,10 @@ class TutorialModel(PolicyGradient):
     def _create_last_row_saver(self, network_name):
         for i, list in enumerate(self.last_row_variables):
             self._create_layer_saver(network_name, self.last_layer_name + str(i), self.num_actions, variable_list=list)
+
+    def add_histograms(self, gradients):
+        # summarize gradients
+        for grad, var in gradients:
+            tf.summary.histogram(var.name, var)
+            if grad is not None:
+                tf.summary.histogram(var.name + '/gradients', grad)
