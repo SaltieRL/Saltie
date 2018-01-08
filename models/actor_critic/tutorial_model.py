@@ -3,7 +3,8 @@ import tensorflow as tf
 
 
 class TutorialModel(PolicyGradient):
-    num_split_layers = 7
+    num_split_layers = 3
+    gated_layer_index = 4
     split_hidden_layer_variables = None
     split_hidden_layer_name = "split_hidden_layer"
     gated_layer_name = "gated_layer"
@@ -72,27 +73,26 @@ class TutorialModel(PolicyGradient):
 
         return cross_entropy_loss, wrongNess, False
 
-    def create_gated_layer(self, inner_layer, layer_number, network_size, network_prefix, variable_list=None, scope=None):
+    def create_gated_layer(self, inner_layer, input_state, layer_number, network_size, network_prefix, variable_list=None, scope=None):
         with tf.variable_scope(self.gated_layer_name):
-            weight_left = network_prefix + "Wleft" + str(layer_number)
-            weight_right = network_prefix + "Wright" + str(layer_number)
+            weight_input = network_prefix + "Winput" + str(layer_number)
+            weight_network = network_prefix + "Wnetwork" + str(layer_number)
             weight_decider = network_prefix + "Wdecider" + str(layer_number)
-            w_left = tf.get_variable(weight_left, [network_size, network_size / 2],
+            w_input = tf.get_variable(weight_input, [self.state_feature_dim, network_size / 2],
                                      initializer=tf.random_normal_initializer())
-            w_right = tf.get_variable(weight_right, [network_size, network_size / 2],
+            w_network = tf.get_variable(weight_network, [network_size, network_size / 2],
                                       initializer=tf.random_normal_initializer())
             w_decider = tf.get_variable(weight_decider, [network_size, network_size / 2],
                                         initializer=tf.random_normal_initializer())
 
             if variable_list is not None:
-                variable_list.append(w_left)
-                variable_list.append(w_right)
+                variable_list.append(w_network)
                 variable_list.append(w_decider)
 
             decider = tf.nn.sigmoid(tf.matmul(inner_layer, w_decider), name="decider" + str(layer_number))
 
-            left = tf.matmul(inner_layer, w_left) * decider
-            right = tf.matmul(inner_layer, w_right) * (tf.constant(1.0) - decider)
+            left = tf.matmul(input_state, w_input) * decider
+            right = tf.matmul(inner_layer, w_network) * (tf.constant(1.0) - decider)
 
             return left + right, network_size / 2.0
 
@@ -103,8 +103,9 @@ class TutorialModel(PolicyGradient):
         layer_size = self.network_size
         max_layer = self.num_layers - 2 - self.num_split_layers
         for i in range(0, max_layer):
-            if i == -1:
-                inner_layer, layer_size = self.create_gated_layer(inner_layer, i + 2, layer_size, network_prefix,
+            if i == self.gated_layer_index:
+                inner_layer, layer_size = self.create_gated_layer(inner_layer, input_layer, i + 2, layer_size,
+                                                                  network_prefix,
                                                                   variable_list=variable_list)
             else:
                 with tf.variable_scope(self.hidden_layer_name):
