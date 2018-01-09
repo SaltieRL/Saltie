@@ -147,6 +147,9 @@ class BaseModel:
             safe_input = self.input_placeholder
         else:
             safe_input = model_input
+
+        safe_input = tf.check_numerics(safe_input, 'game tick packet data')
+
         if self.feature_creator is not None:
             safe_input = self.feature_creator.apply_features(safe_input)
 

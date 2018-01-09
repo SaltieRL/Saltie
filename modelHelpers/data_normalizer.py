@@ -175,4 +175,5 @@ class DataNormalizer:
         #result = tf.Print(result, [max], 'max', summarize=16)
         #result = tf.Print(result, [input_array[0]], 'inp', summarize=30)
         #result = tf.Print(result, [result[0]], 'out', summarize=16)
+        result = tf.check_numerics(result, 'post normalization')
         return result
