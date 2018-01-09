@@ -20,6 +20,7 @@ class DodgeActionHandler(DynamicActionHandler):
         super().reset()
 
         # add doge as a control name
+        # control size is still 7
         self.control_names = ['throttle', 'steer', 'pitch', 'yaw', 'roll', 'jump', 'boost', 'handbrake', DODGE]
 
     def create_controller_from_selection(self, action_selection):

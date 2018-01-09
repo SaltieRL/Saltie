@@ -47,7 +47,6 @@ class RnnAC(PolicyGradient):
         actor_prefix = 'actor'
         layer1, _ = self.create_layer(tf.nn.relu6, input_states, 1, self.state_feature_dim, self.network_size, actor_prefix)
         inner_layer = layer1
-        print('num layers', self.num_layers)
         state = None
         for i in range(0, self.num_cells):
             lstms = []

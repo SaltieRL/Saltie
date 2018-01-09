@@ -43,6 +43,11 @@ class BaseReinforcement(base_model.BaseModel):
         self.final_exp = final_exp
         self.anneal_steps = anneal_steps
 
+    def printParameters(self):
+        super().printParameters()
+        print('Reinforcment Parameters:')
+        print('discount factor', self.discount_factor)
+
     def _set_variables(self):
         try:
             init = tf.global_variables_initializer()

@@ -32,7 +32,7 @@ class ActionHandler:
     action_sizes = []
     actions = []
     action_list_names = ['actions']
-    control_names = ['throttle', 'steer', 'pitch', 'steer', 'roll', 'jump', 'boost', 'handbrake']
+    control_names = ['throttle', 'steer', 'pitch', 'yaw', 'roll', 'jump', 'boost', 'handbrake']
     control_size = len(control_names)
 
     def __init__(self):
@@ -40,7 +40,7 @@ class ActionHandler:
         self.action_map = self.create_action_map()
 
     def reset(self):
-        self.control_names = ['throttle', 'steer', 'pitch', 'steer', 'roll', 'jump', 'boost', 'handbrake']
+        self.control_names = ['throttle', 'steer', 'pitch', 'yaw', 'roll', 'jump', 'boost', 'handbrake']
         self.control_size = len(self.control_names)
 
     def create_action_map(self):

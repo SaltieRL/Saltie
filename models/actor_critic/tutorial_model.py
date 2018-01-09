@@ -3,12 +3,13 @@ import tensorflow as tf
 
 
 class TutorialModel(PolicyGradient):
-    num_split_layers = 3
-    gated_layer_index = 4
+    num_split_layers = 7
+    gated_layer_index = -1
     split_hidden_layer_variables = None
     split_hidden_layer_name = "split_hidden_layer"
     gated_layer_name = "gated_layer"
     max_gradient = 10.0
+    total_loss_divider = 2.0
 
     def __init__(self, session,
                  state_dim,
@@ -23,6 +24,12 @@ class TutorialModel(PolicyGradient):
                  ):
         super().__init__(session, state_dim, num_actions, player_index, action_handler, is_training,
                          optimizer, summary_writer, summary_every, discount_factor)
+
+    def printParameters(self):
+        super().printParameters()
+        print('TutorialModel Parameters:')
+        print('number of split layers:', self.num_split_layers)
+        print('gate layer (not used if < 0):', self.gated_layer_index)
 
     def create_training_op(self, logprobs, labels):
         actor_gradients, actor_loss, actor_reg_loss = self.create_actor_gradients(logprobs, labels)
@@ -78,11 +85,14 @@ class TutorialModel(PolicyGradient):
             weight_input = network_prefix + "Winput" + str(layer_number)
             weight_network = network_prefix + "Wnetwork" + str(layer_number)
             weight_decider = network_prefix + "Wdecider" + str(layer_number)
-            w_input = tf.get_variable(weight_input, [self.state_feature_dim, network_size / 2],
+
+            cut_size = network_size // 2.0
+
+            w_input = tf.get_variable(weight_input, [network_size, cut_size],
                                      initializer=tf.random_normal_initializer())
-            w_network = tf.get_variable(weight_network, [network_size, network_size / 2],
+            w_network = tf.get_variable(weight_network, [network_size, cut_size],
                                       initializer=tf.random_normal_initializer())
-            w_decider = tf.get_variable(weight_decider, [network_size, network_size / 2],
+            w_decider = tf.get_variable(weight_decider, [network_size, cut_size],
                                         initializer=tf.random_normal_initializer())
 
             if variable_list is not None:
@@ -94,12 +104,11 @@ class TutorialModel(PolicyGradient):
             left = tf.matmul(input_state, w_input) * decider
             right = tf.matmul(inner_layer, w_network) * (tf.constant(1.0) - decider)
 
-            return left + right, network_size / 2.0
+            return left + right, cut_size
 
     def create_hidden_layers(self, activation_function, input_layer, network_size, network_prefix,
                              variable_list=None):
         inner_layer = input_layer
-        print('num layers', self.num_layers)
         layer_size = self.network_size
         max_layer = self.num_layers - 2 - self.num_split_layers
         for i in range(0, max_layer):
@@ -112,12 +121,12 @@ class TutorialModel(PolicyGradient):
                     inner_layer, layer_size = self.create_layer(tf.nn.relu6, inner_layer, i + 2, layer_size,
                                                                 self.network_size,
                                                                 network_prefix, variable_list=variable_list)
-        return inner_layer
+        return inner_layer, layer_size
 
     def create_last_layer(self, activation_function, inner_layer, network_size, num_actions,
                           network_prefix, last_layer_list=None):
         with tf.variable_scope(self.split_hidden_layer_name):
-            inner_layer, layer_size = self.create_split_layers(tf.nn.relu6, inner_layer, self.network_size,
+            inner_layer, layer_size = self.create_split_layers(tf.nn.relu6, inner_layer, network_size,
                                                                self.num_split_layers,
                                                                network_prefix, last_layer_list)
         return super().create_last_layer(activation_function, inner_layer, layer_size,
@@ -127,14 +136,15 @@ class TutorialModel(PolicyGradient):
                             num_split_layers, network_prefix, variable_list=None):
         split_layers = []
         num_actions = len(self.action_handler.get_action_sizes())
+        cut_size = self.network_size // num_actions
 
         for i in range(num_split_layers):
             for j, item in enumerate(self.action_handler.get_action_sizes()):
                 name = str(self.action_handler.action_list_names[j]) + str(i)
                 split_layers.append(self.create_layer(activation_function, inner_layer, 'split' + name,
-                                                      network_size, network_size // num_actions, network_prefix + name,
+                                                      network_size, cut_size, network_prefix + name,
                                                       variable_list=variable_list[j])[0])
-            return split_layers, network_size // num_actions
+            return split_layers, cut_size
 
     def get_model_name(self):
         return 'tutorial_bot' + ('_split' if self.action_handler.is_split_mode else '') + str(self.num_layers) + '-layers'

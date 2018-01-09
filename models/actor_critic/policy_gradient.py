@@ -6,6 +6,7 @@ import numpy as np
 
 class PolicyGradient(BaseActorCritic):
     max_gradient = 1.0
+    total_loss_divider = 1.0
 
     def __init__(self, session,
                  state_dim,
@@ -22,6 +23,12 @@ class PolicyGradient(BaseActorCritic):
 
         super().__init__(session, state_dim, num_actions, player_index, action_handler, is_training,
                          optimizer, summary_writer, summary_every, discount_factor)
+
+    def printParameters(self):
+        super().printParameters()
+        print('policy gradient parameters:')
+        print('max gradient allowed:', self.max_gradient)
+        print('amount to squash total loss:', self.total_loss_divider)
 
     def get_input(self, model_input=None):
         if model_input is None:
@@ -63,9 +70,11 @@ class PolicyGradient(BaseActorCritic):
 
         tf.summary.scalar("total_actor_loss", tf.reduce_mean(total_loss))
 
+        total_loss = total_loss / self.total_loss_divider
+
         total_loss += actor_reg_loss
 
-        total_loss = tf.Print(total_loss, [total_loss], 'total_loss')
+        # total_loss = tf.Print(total_loss, [total_loss], 'total_loss')
 
         total_loss = tf.identity(total_loss, 'total_actor_loss_with_reg')
 

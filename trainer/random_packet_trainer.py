@@ -19,7 +19,7 @@ def get_random_data(packet_generator, input_formatter):
     return output_array, game_tick_packet
 
 
-learning_rate = 0.01
+learning_rate = 0.05
 total_batches = 4000
 batch_size = 5000
 save_step = 4000000
@@ -72,7 +72,7 @@ def run():
         feature_creator = TensorflowFeatureCreator()
         formatter = tensorflow_input_formatter.TensorflowInputFormatter(0, 0, batch_size, feature_creator)
         packet_generator = r.TensorflowPacketGenerator(batch_size)
-        output_creator = TutorialBotOutput_2(batch_size)
+        output_creator = TutorialBotOutput(batch_size)
         actions = action_factory.get_handler(control_scheme=dynamic_action_handler.super_split_scheme)
 
         model = tutorial_model.TutorialModel(sess, formatter.get_state_dim_with_features(),
@@ -82,8 +82,6 @@ def run():
             model.get_event_path('random_packet'))
         model.batch_size = batch_size
         model.mini_batch_size = batch_size
-
-        print(model.get_model_path('2/' + model.get_default_file_name()))
 
         # start model construction
         input_state, game_tick_packet = get_random_data(packet_generator, formatter)
@@ -102,6 +100,9 @@ def run():
         checks = controller_statistics.OutputChecks(batch_size, model.argmax, game_tick_packet,
                                                     input_state, sess, actions, output_creator)
         model.initialize_model()
+
+        # print out what the model uses
+        model.printParameters()
 
         checks.create_model()
 
@@ -126,11 +127,11 @@ def run():
                 print()
                 print('stats at', (i + 1) * batch_size, 'frames')
                 checks.get_amounts()
-                print('saving model')
+                print('saving model', model_counter)
                 model.save_model(model.get_model_path(model.get_default_file_name() + str(model_counter)))
                 model_counter += 1
 
-        final_model_path = model.get_model_path('2/' + model.get_default_file_name())
+        final_model_path = model.get_model_path(model.get_default_file_name())
 
         model.save_model(final_model_path)
 

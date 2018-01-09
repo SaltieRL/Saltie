@@ -69,6 +69,11 @@ class BaseModel:
         # create variables
         self.stored_variables = self._create_variables()
 
+    def printParameters(self):
+        print('model parameters:')
+        print('batch size:', self.batch_size)
+        print('mini batch size:', self.mini_batch_size)
+
     def _create_variables(self):
         with tf.name_scope("model_inputs"):
             self.input_placeholder = tf.placeholder(tf.float32, shape=(None, self.state_dim), name="state_input")

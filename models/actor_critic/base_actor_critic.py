@@ -37,6 +37,14 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
         if player_index >= 0:
             self.rotating_expected_reward_buffer = live_data_util.RotatingBuffer(player_index)
 
+    def printParameters(self):
+        super().printParameters()
+        print('Actor Critic Parameters')
+        print('network size', self.network_size)
+        print('number of layers', self.num_layers)
+        print('keep probability', self.keep_prob)
+        print('regulation parameter', self.reg_param)
+
     def load_config_file(self):
         super().load_config_file()
         try:
@@ -183,10 +191,10 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
 
         # layer1 = tf.Print(layer1, [layer1], summarize=self.action_handler.get_logit_size(), message='')
 
-        inner_layer = self.create_hidden_layers(tf.nn.relu6, layer1, self.network_size, actor_prefix,
+        inner_layer, output_size = self.create_hidden_layers(tf.nn.relu6, layer1, self.network_size, actor_prefix,
                                                 variable_list=variable_list)
 
-        output_layer = self.create_last_layer(tf.nn.sigmoid, inner_layer, self.network_size,
+        output_layer = self.create_last_layer(tf.nn.sigmoid, inner_layer, output_size,
                                               self.num_actions, actor_prefix, last_layer_list=last_layer_list)
 
         return output_layer
@@ -232,7 +240,7 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
             for i in range(0, self.num_layers - 2):
                 inner_layer, _ = self.create_layer(activation_function, inner_layer, i + 2, network_size,
                                                    network_size, network_prefix, variable_list=variable_list)
-        return inner_layer
+        return inner_layer, network_size
 
     def create_last_layer(self, activation_function, inner_layer, network_size, num_actions,
                           network_prefix, last_layer_list=None):

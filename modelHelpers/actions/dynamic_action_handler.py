@@ -226,7 +226,7 @@ class DynamicActionHandler(SplitActionHandler):
             indexes.append(None)
 
         for i, control in enumerate(self.control_names):
-            if i >= real_action.shape()[1]:
+            if i >= self.control_size:
                 continue
             real_control = tf.slice(real_action, [0, i], [-1, 1])
             action_index = self.action_name_index_map[control]
@@ -240,7 +240,7 @@ class DynamicActionHandler(SplitActionHandler):
                 combo_list[real_index] = bucketed_control
             else:
                 if indexes[action_index] is None:
-                    indexes[action_index] = (self._find_closet_real_number_graph(real_control))
+                    indexes[action_index] = self._find_closet_real_number_graph(real_control)
 
         indexes[self.action_name_index_map[COMBO]] = tf.squeeze(self._create_combo_index_graph(combo_list, real_action))
 
