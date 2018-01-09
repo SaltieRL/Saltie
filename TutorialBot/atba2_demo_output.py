@@ -92,6 +92,8 @@ def d3(A,B=[0,0,0]):
     return tf.sqrt((A[0]-B[0])**2+(A[1]-B[1])**2+(A[2]-B[2])**2)
 
 def bucket(a):
+    cond1 = tf.cast(abs(a)>.02,tf.float32)
     result = cond1*tf.sign(a) + (1-cond1)*.5*tf.sign(a)
+    cond2 = tf.cast(abs(a)>.005,tf.float32)
     result = cond2*result
     return result
