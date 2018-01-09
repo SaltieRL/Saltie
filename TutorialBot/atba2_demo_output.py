@@ -24,29 +24,26 @@ class TutorialBotOutput_2:
         pxv, pyv, pzv = local(pV,zeros3,pR)
         iv,rv,av = local(paV,zeros3,pR)
 
-        tL, tV = bL, bV
-        tx, ty, tz = local(tL,pL,pR)
-        td, ta, ti = spherical(tx,ty,tz)
-        txv, tyv, tzv = local(tV,zeros3,pR)
+        tx, ty, tz = local(bL,pL,pR)
+        txv, tyv, tzv = local(bV,zeros3,pR)
         xv, yv, zv = pxv-txv, pyv-tyv, pzv-tzv
 
         dT = (.5*tf.abs(ty) + 0.9*tf.abs(tx) + .34*tf.abs(tz))/1500
-        tLV = tL + tV * dT
+        tLV = bL + bV * dT
 
         x,y,z = local(tLV,pL,pR)
         d,a,i = spherical(x,y,z)
         r = pR[2]/U
 
         # controlls
-        throttle = tf.sign(y)
-        steer = tf.sign(a-av/45)
-        yaw = tf.sign(a-av/12)
-        pitch = tf.sign(-i-iv/15)
-        roll = tf.sign(-r+rv/22)
+        throttle = bucket((y-yv*.2)/500)
+        steer = bucket(a-av/45)
+        yaw = bucket(a-av/13)
+        pitch = bucket(-i-iv/15)
+        roll = bucket(-r+rv/22)
 
         boost = tf.cast( tf.logical_and( tf.greater(.15,tf.abs(a)), tf.logical_and( tf.greater(throttle,0), tf.greater(tf.abs(.5-tf.abs(i)),.25) )) ,tf.float32)
         powerslide = tf.cast( tf.logical_and( tf.greater(throttle*pyv,0), tf.logical_and( tf.greater(tf.abs(a-av/35),.2), tf.logical_and( tf.greater(.8,tf.abs(a-av/35)), tf.greater(xv,500) ) ) ) ,tf.float32)
-
 
         output = [throttle, steer, pitch, yaw, roll, jump, boost, powerslide]
 
@@ -93,3 +90,8 @@ def spherical(x,y,z):
 def d3(A,B=[0,0,0]):
     A,B = a3(A),a3(B)
     return tf.sqrt((A[0]-B[0])**2+(A[1]-B[1])**2+(A[2]-B[2])**2)
+
+def bucket(a):
+    result = cond1*tf.sign(a) + (1-cond1)*.5*tf.sign(a)
+    result = cond2*result
+    return result
