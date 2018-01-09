@@ -82,6 +82,6 @@ class OutputChecks:
         print("Overall accuracy: ", np.sum(accuracy) / 8.0)
 
     def get_final_stats(self):
-        print('this is where we would put final stats.  IF WE HAD ANY')
+        print('Over here the final stats would be printed')
         #todo present data over time :)
         pass

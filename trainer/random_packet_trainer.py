@@ -1,13 +1,15 @@
 import tensorflow as tf
 import time
 
-from TutorialBot.atba2_demo_output import TutorialBotOutput_2
+import inspect
+import importlib
+import configparser
+
 from TutorialBot.tutorial_bot_output import TutorialBotOutput
 from conversions.input import tensorflow_input_formatter
 from modelHelpers.tensorflow_feature_creator import TensorflowFeatureCreator
 from trainer.utils import random_packet_creator as r
-from models.actor_critic import tutorial_model
-from modelHelpers.actions import action_handler, action_factory, dynamic_action_handler
+from modelHelpers.actions import action_factory, dynamic_action_handler
 from trainer.utils import controller_statistics
 from tqdm import tqdm
 
@@ -15,133 +17,99 @@ from tqdm import tqdm
 def get_random_data(packet_generator, input_formatter):
     game_tick_packet = packet_generator.get_random_array()
     output_array = input_formatter.create_input_array(game_tick_packet, game_tick_packet.time_diff)
-    # reverse the shape of the array
     return output_array, game_tick_packet
 
 
-learning_rate = 0.05
-total_batches = 4000
-batch_size = 5000
-save_step = 4000000
+def get_class(class_package, class_name):
+    class_package = importlib.import_module(class_package)
+    module_classes = inspect.getmembers(class_package, inspect.isclass)
+    for class_group in module_classes:
+        if class_group[0] == class_name:
+            return class_group[1]
+    return None
 
-# Network Parameters
-n_neurons_hidden = 128  # every layer of neurons
-n_output = 39  # total outputs
-
-
-def calculate_loss(self, elements):
-    throttle = elements[0]
-    is_on_ground = elements[1]
-    given_output = elements[2]
-    created_output = elements[3]
-    steer, powerslide, pitch, jump, boost = created_output
-
-    def output_on_ground():
-        # Throttle
-        output = tf.losses.absolute_difference(throttle, given_output[0])
-
-        # Steer
-        # output += tf.cond(tf.less_equal(tf.abs(steer - given_output[1]), 0.5), lambda: 1, lambda: -1)
-        output += tf.losses.absolute_difference(steer, given_output[1])
-
-        # Powerslide
-        # output += tf.cond(tf.equal(tf.cast(powerslide, tf.float32), given_output[7]), lambda: 1, lambda: -1)
-        output += tf.losses.mean_squared_error(powerslide, given_output[1])
-        return output
-
-    def output_off_ground():
-        # Pitch
-        output = tf.losses.absolute_difference(pitch, given_output[2])
-        # output = tf.cond(tf.less_equal(tf.abs(pitch - given_output[2]), 0.5), lambda: 1, lambda: -1)
-        return output
-
-    output = tf.cond(is_on_ground, output_on_ground, output_off_ground)
-
-    # Jump
-    # output += tf.cond(tf.equal(tf.cast(jump, tf.float32), given_output[5]), lambda: 1, lambda: -1)
-    output += tf.losses.mean_squared_error(jump, given_output[5])
-
-    # Boost
-    # output += tf.cond(tf.equal(tf.cast(boost, tf.float32), given_output[6]), lambda: 1, lambda: -1)
-    output += tf.losses.mean_squared_error(boost, given_output[6])
-
-    return [output, elements[1], elements[2], elements[3]]
 
 def run():
+    # Obtaining necessary data for training from the config
+    config = configparser.RawConfigParser()
+    config.read('randomised_trainer.cfg')
+    batch_size = config.getint('Randomised Trainer Configuration', 'batch_size')
+    total_batches = config.getint('Randomised Trainer Configuration', 'total_batches')
+    save_step = config.getint('Randomised Trainer Configuration', 'save_step')
+    # Over here the model data is obtained
+    model_package = config.get('Model Configuration', 'model_package')
+    model_name = config.get('Model Configuration', 'model_name')
+    model_class = get_class(model_package, model_name)
+    num_layers = config.getint('Model Configuration', 'num_layers')
+
     with tf.Session() as sess:
+        # Creating necessary instances
         feature_creator = TensorflowFeatureCreator()
         formatter = tensorflow_input_formatter.TensorflowInputFormatter(0, 0, batch_size, feature_creator)
         packet_generator = r.TensorflowPacketGenerator(batch_size)
         output_creator = TutorialBotOutput(batch_size)
         actions = action_factory.get_handler(control_scheme=dynamic_action_handler.super_split_scheme)
 
-        model = tutorial_model.TutorialModel(sess, formatter.get_state_dim_with_features(),
-                                             actions.get_logit_size(), action_handler=actions, is_training=True)
-        model.num_layers = 10
+        # Initialising the model
+        model = model_class(sess, formatter.get_state_dim_with_features(),
+                            actions.get_logit_size(), action_handler=actions, is_training=True)
+        model.num_layers = num_layers
         model.summary_writer = tf.summary.FileWriter(
             model.get_event_path('random_packet'))
         model.batch_size = batch_size
         model.mini_batch_size = batch_size
 
-        # start model construction
+        # Starting model construction
         input_state, game_tick_packet = get_random_data(packet_generator, formatter)
-
         real_output = output_creator.get_output_vector(game_tick_packet)
-
         real_indexes = actions.create_action_indexes_graph(tf.stack(real_output, axis=1))
-
         reshaped = tf.cast(real_indexes, tf.int32)
         model.taken_actions = reshaped
         model.create_model(input_state)
         model.create_reinforcement_training_model(input_state)
-
         model.create_savers()
-
-        checks = controller_statistics.OutputChecks(batch_size, model.argmax, game_tick_packet,
-                                                    input_state, sess, actions, output_creator)
         model.initialize_model()
 
-        # print out what the model uses
+        # Print out what the model uses
         model.printParameters()
 
+        # Initialising statistics and printing them before training
+        checks = controller_statistics.OutputChecks(batch_size, model.argmax, game_tick_packet,
+                                                    input_state, sess, actions, output_creator)
         checks.create_model()
-
-        # untrained bot
         start = time.time()
         checks.get_amounts()
-        #print('time to get stats', time.time() - start)
-        #for i in tqdm(range(total_batches)):
-        #    sess.run([model.train_op])
 
+        # Percentage to print statistics (and also save the model)
         print_every_x_batches = (total_batches * batch_size) / save_step
-        print('prints at this percentage', 100.0 / print_every_x_batches)
+        print('Prints at this percentage:', 100.0 / print_every_x_batches)
         model_counter = 0
-        # RUNNING
+
+        # Running the model
         for i in tqdm(range(total_batches)):
             result, summaries = sess.run([model.train_op,
-                      model.summarize if model.summarize is not None else model.no_op])
+                                          model.summarize if model.summarize is not None else model.no_op])
 
             if model.summary_writer is not None:
                 model.summary_writer.add_summary(summaries, i)
             if ((i + 1) * batch_size) % save_step == 0:
-                print()
-                print('stats at', (i + 1) * batch_size, 'frames')
+                print('\nStats at', (i + 1) * batch_size, 'frames (', i + 1, 'batches): ')
                 checks.get_amounts()
-                print('saving model', model_counter)
+                print('Saving model', model_counter)
                 model.save_model(model.get_model_path(model.get_default_file_name() + str(model_counter)))
                 model_counter += 1
 
         final_model_path = model.get_model_path(model.get_default_file_name())
-
         model.save_model(final_model_path)
 
         total_time = time.time() - start
-        print('total time: ', total_time)
-        print('time per batch: ', total_time / (float(total_batches)))
+        print('Total time:', total_time)
+        print('Time per batch:', total_time / (float(total_batches)))
 
-        print('final stats')
+        print('Final stats:')
         checks.get_amounts()
         checks.get_final_stats()
+
 
 if __name__ == '__main__':
     run()
