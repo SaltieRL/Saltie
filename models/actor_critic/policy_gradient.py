@@ -1,4 +1,6 @@
 import tensorflow as tf
+
+from models import base_model
 from models.actor_critic.base_actor_critic import BaseActorCritic
 from modelHelpers import tensorflow_reward_manager
 import numpy as np
@@ -29,6 +31,19 @@ class PolicyGradient(BaseActorCritic):
         print('policy gradient parameters:')
         print('max gradient allowed:', self.max_gradient)
         print('amount to squash total loss:', self.total_loss_divider)
+
+    def load_config_file(self):
+        super().load_config_file()
+        try:
+            self.max_gradient = self.config_file.getint(base_model.MODEL_CONFIGURATION_HEADER,
+                                                      'max_gradient')
+        except:
+            print('unable to load max_gradient')
+        try:
+            self.max_gradient = self.config_file.getint(base_model.MODEL_CONFIGURATION_HEADER,
+                                                        'total_loss_divider')
+        except:
+            print('unable to load total_loss_divider')
 
     def get_input(self, model_input=None):
         if model_input is None:

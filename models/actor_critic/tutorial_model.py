@@ -1,3 +1,4 @@
+from models import base_model
 from models.actor_critic.policy_gradient import PolicyGradient
 import tensorflow as tf
 
@@ -30,6 +31,19 @@ class TutorialModel(PolicyGradient):
         print('TutorialModel Parameters:')
         print('number of split layers:', self.num_split_layers)
         print('gate layer (not used if < 0):', self.gated_layer_index)
+
+    def load_config_file(self):
+        super().load_config_file()
+        try:
+            self.num_split_layers = self.config_file.getint(base_model.MODEL_CONFIGURATION_HEADER,
+                                                    'num_split_layers')
+        except:
+            print('unable to load num_split_layers')
+        try:
+            self.gated_layer_index = self.config_file.getint(base_model.MODEL_CONFIGURATION_HEADER,
+                                                            'gated_layer_index')
+        except:
+            print('unable to load gated_layer_index')
 
     def create_training_op(self, logprobs, labels):
         actor_gradients, actor_loss, actor_reg_loss = self.create_actor_gradients(logprobs, labels)
