@@ -144,25 +144,34 @@ class TutorialModel(PolicyGradient):
         num_actions = len(self.action_handler.get_action_sizes())
         cut_size = self.network_size // num_actions
 
-        for i in range(num_split_layers):
+        for i in range(0, num_split_layers):
             for j, item in enumerate(self.action_handler.get_action_sizes()):
-                name = str(self.action_handler.action_list_names[j]) + str(i)
-                split_layers.append(self.create_layer(activation_function, inner_layer, 'split' + name,
-                                                      network_size, cut_size, network_prefix + name,
-                                                      variable_list=variable_list[j])[0])
-            return split_layers, cut_size
+                name = str(i)
+                with tf.variable_scope(str(self.action_handler.action_list_names[j])):
+                    split_layers.append(self.create_layer(activation_function, inner_layer, 'split' + name,
+                                                          network_size, cut_size, network_prefix,
+                                                          variable_list=variable_list[j])[0])
+        return split_layers, cut_size
 
     def get_model_name(self):
         return 'tutorial_bot' + ('_split' if self.action_handler.is_split_mode else '') + str(self.num_layers) + '-layers'
 
     def create_savers(self):
         super().create_savers()
-        self._create_layer_saver('actor_network', self.split_hidden_layer_name)
+        # self._create_layer_saver('actor_network', self.split_hidden_layer_name)
         self._create_layer_saver('actor_network', self.gated_layer_name)
 
     def _create_last_row_saver(self, network_name):
-        for i, list in enumerate(self.last_row_variables):
-            self._create_layer_saver(network_name, self.last_layer_name + str(i), self.num_actions, variable_list=list)
+        super()._create_last_row_saver(network_name)
+        # create the hidden row savers
+        split_las_layer = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,
+                                            scope=network_name + '/' + self.split_hidden_layer_name + '.*')
+        reshaped_list = np.reshape(np.array(split_las_layer), [-1, self.action_handler.get_number_actions(), 2])
+        for i in range(len(reshaped_list)):
+            for j in range(len(reshaped_list[i])):
+                self._create_layer_saver(network_name, self.split_hidden_layer_name + '_' + str(i),
+                                         extra_info=self.action_handler.action_list_names[j],
+                                         variable_list=reshaped_list[i][j].tolist())
 
     def add_histograms(self, gradients):
         # summarize gradients
