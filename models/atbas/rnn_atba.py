@@ -21,18 +21,12 @@ class RNNAtba(nnatba.NNAtba):
     This will be the example model framework with the needed functions but none of the code inside them
     You can copy this to implement your own model
     """
-    def __init__(self, session,
-                 state_dim,
-                 num_actions,
-                 player_index=-1,
-                 action_handler=None,
-                 is_training=False,
-                 optimizer=None,
-                 summary_writer=None,
-                 summary_every=100):
+    def __init__(self, session, state_dim, num_actions, player_index=-1, action_handler=None, is_training=False,
+                 optimizer=tf.train.GradientDescentOptimizer(learning_rate=0.1), summary_writer=None, summary_every=100,
+                 config_file=None):
 
-        super().__init__(session, state_dim, num_actions, player_index, action_handler, is_training,
-                         optimizer, summary_writer, summary_every)
+        super().__init__(session, state_dim, num_actions, player_index, action_handler, is_training, optimizer,
+                         summary_writer, summary_every,config_file)
 
     def _create_model(self, model_input):
         self.create_weights()

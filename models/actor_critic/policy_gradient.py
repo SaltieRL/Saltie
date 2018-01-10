@@ -10,21 +10,13 @@ class PolicyGradient(BaseActorCritic):
     max_gradient = 1.0
     total_loss_divider = 1.0
 
-    def __init__(self, session,
-                 state_dim,
-                 num_actions,
-                 player_index=-1,
-                 action_handler=None,
-                 is_training=False,
-                 optimizer=tf.train.GradientDescentOptimizer(learning_rate=0.01),
-                 summary_writer=None,
-                 summary_every=100,
-                 discount_factor=0.99,  # discount future rewards
-                 ):
+    def __init__(self, session, state_dim, num_actions, player_index=-1, action_handler=None, is_training=False,
+                 optimizer=tf.train.GradientDescentOptimizer(learning_rate=0.1), summary_writer=None, summary_every=100,
+                 config_file=None):
         self.reward_manager = tensorflow_reward_manager.TensorflowRewardManager(state_dim)
 
-        super().__init__(session, state_dim, num_actions, player_index, action_handler, is_training,
-                         optimizer, summary_writer, summary_every, discount_factor)
+        super().__init__(session, state_dim, num_actions, player_index, action_handler, is_training, optimizer,
+                         summary_writer, summary_every, config_file)
 
     def printParameters(self):
         super().printParameters()

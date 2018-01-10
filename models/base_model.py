@@ -30,15 +30,9 @@ class BaseModel:
     This is a base class for all models It has a couple helper methods but is mainly used to provide a standard
     interface for running and training a model
     """
-    def __init__(self, session,
-                 state_dim,
-                 num_actions,
-                 player_index=-1,
-                 action_handler=None,
-                 is_training=False,
-                 optimizer=tf.train.GradientDescentOptimizer(learning_rate=0.1),
-                 summary_writer=None,
-                 summary_every=100):
+    def __init__(self, session, state_dim, num_actions, player_index=-1, action_handler=None, is_training=False,
+                 optimizer=tf.train.GradientDescentOptimizer(learning_rate=0.1), summary_writer=None, summary_every=100,
+                 config_file=None):
 
         # tensorflow machinery
         self.optimizer = optimizer
@@ -63,7 +57,8 @@ class BaseModel:
 
         self.is_training = is_training
 
-        if self.config_file is not None:
+        if config_file is not None:
+            self.config_file = config_file
             self.load_config_file()
 
         # create variables

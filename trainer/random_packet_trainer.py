@@ -29,8 +29,7 @@ def get_class(class_package, class_name):
             return class_group[1]
     return None
 
-
-def run():
+def load_config():
     # Obtaining necessary data for training from the config
     config = configparser.RawConfigParser()
     config.read('randomised_trainer.cfg')
@@ -41,7 +40,12 @@ def run():
     model_package = config.get('Model Configuration', 'model_package')
     model_name = config.get('Model Configuration', 'model_name')
     model_class = get_class(model_package, model_name)
-    num_layers = config.getint('Model Configuration', 'num_layers')
+    return total_batches, batch_size, save_step, model_class, config
+
+
+def run():
+
+    total_batches, batch_size, save_step, model_class, config = load_config()
 
     with tf.Session() as sess:
         # Creating necessary instances
@@ -54,8 +58,8 @@ def run():
         # Initialising the model
         model = model_class(sess, formatter.get_state_dim_with_features(),
                             actions.get_logit_size(), action_handler=actions, is_training=True,
-                            optimizer=tf.train.AdamOptimizer(learning_rate=0.0001))
-        model.num_layers = num_layers
+                            optimizer=tf.train.AdamOptimizer(learning_rate=0.001), config_file=config)
+
         model.summary_writer = tf.summary.FileWriter(
             model.get_event_path('random_packet'))
         model.batch_size = batch_size
@@ -98,7 +102,9 @@ def run():
                 print('\nStats at', (i + 1) * batch_size, 'frames (', i + 1, 'batches): ')
                 checks.get_amounts()
                 print('Saving model', model_counter)
+                start_saving = time.time()
                 model.save_model(model.get_model_path(model.get_default_file_name() + str(model_counter)))
+                print('saved model in', time.time() - start_saving, 'seconds')
                 model_counter += 1
 
         final_model_path = model.get_model_path(model.get_default_file_name())
