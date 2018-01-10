@@ -5,6 +5,7 @@ import inspect
 import importlib
 import configparser
 
+from TutorialBot.atba2_demo_output import TutorialBotOutput_2
 from TutorialBot.tutorial_bot_output import TutorialBotOutput
 from conversions.input import tensorflow_input_formatter
 from modelHelpers.tensorflow_feature_creator import TensorflowFeatureCreator
@@ -52,7 +53,8 @@ def run():
 
         # Initialising the model
         model = model_class(sess, formatter.get_state_dim_with_features(),
-                            actions.get_logit_size(), action_handler=actions, is_training=True)
+                            actions.get_logit_size(), action_handler=actions, is_training=True,
+                            optimizer=tf.train.AdamOptimizer(learning_rate=0.0001))
         model.num_layers = num_layers
         model.summary_writer = tf.summary.FileWriter(
             model.get_event_path('random_packet'))
