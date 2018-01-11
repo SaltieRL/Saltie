@@ -127,20 +127,17 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
         # TODO: use this code piece when tf.multinomial gets better
 
         output = np.argwhere(np.isnan(input_state))
-        # print(input_state[0][48])
         if len(output) > 0:
             print('nan indexes', output)
             for index in output:
                 input_state[index[0]][index[1]] = 0
 
         # epsilon-greedy exploration strategy
-        if not self.is_evaluating and (random.random() * (self.forced_frame_action - self.frames_since_last_random_action)) < self.exploration:
-            # print('random action used', str(self.frames_since_last_random_action))
+        if not self.is_evaluating and (random.random() * (self.forced_frame_action -
+                                                          self.frames_since_last_random_action)) < self.exploration:
             self.frames_since_last_random_action = 0
             return self.action_handler.get_random_option()
         else:
-            # state = output_formatter.get_basic_state(input_state)
-            # print(input_state)
             self.frames_since_last_random_action += 1
             if self.is_graphing:
                 estimated_reward, action_scores = self.sess.run([self.value_outputs, self.softmax],
@@ -150,13 +147,13 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
             else:
                 action_scores = self.sess.run([self.argmax],
                                               {self.input_placeholder: input_state})[0]
-                action_scores = [item[0] for item in action_scores]
-                # print(action_scores)
 
-            action = action_scores
+                action_scores = [item[0] for item in action_scores]
+                # print(action_scores[1])
+                action = action_scores
 
             #action = self.action_handler.optionally_split_numpy_arrays(action_scores,
-            #                                  lambda input_array: np.argmax(np.random.multinomial(1, input_array[0])),
+            #                                  lambda input_array: np.argmax(np.random.multinomial(1, input_array)),
             #                                  is_already_split=True)
 
             return action
