@@ -108,8 +108,10 @@ def run():
                 print('saved model in', time.time() - start_saving, 'seconds')
                 model_counter += 1
 
+        start_saving = time.time()
         final_model_path = model.get_model_path(model.get_default_file_name())
         model.save_model(final_model_path)
+        print('saved model in', time.time() - start_saving, 'seconds')
 
         total_time = time.time() - start
         print('Total time:', total_time)
