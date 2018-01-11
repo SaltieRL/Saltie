@@ -5,8 +5,6 @@ import inspect
 import importlib
 import configparser
 
-from TutorialBot.atba2_demo_output import TutorialBotOutput_2
-from TutorialBot.tutorial_bot_output import TutorialBotOutput
 from conversions.input import tensorflow_input_formatter
 from modelHelpers.tensorflow_feature_creator import TensorflowFeatureCreator
 from trainer.utils import random_packet_creator as r
@@ -41,19 +39,22 @@ def load_config():
     model_package = config.get('Model Configuration', 'model_package')
     model_name = config.get('Model Configuration', 'model_name')
     model_class = get_class(model_package, model_name)
-    return total_batches, batch_size, save_step, model_class, config
+
+    teacher_package = config.get('Randomised Trainer Configuration', 'teacher_package')
+    teacher_class = get_class(teacher_package, 'TutorialBotOutput')
+    return total_batches, batch_size, save_step, model_class, config, teacher_class
 
 
 def run():
 
-    total_batches, batch_size, save_step, model_class, config = load_config()
+    total_batches, batch_size, save_step, model_class, config, tutorial_bot_output = load_config()
 
     with tf.Session() as sess:
         # Creating necessary instances
         feature_creator = TensorflowFeatureCreator()
         formatter = tensorflow_input_formatter.TensorflowInputFormatter(0, 0, batch_size, feature_creator)
         packet_generator = r.TensorflowPacketGenerator(batch_size)
-        output_creator = TutorialBotOutput(batch_size)
+        output_creator = tutorial_bot_output(batch_size)
         actions = action_factory.get_handler(control_scheme=dynamic_action_handler.super_split_scheme)
 
         # Initialising the model

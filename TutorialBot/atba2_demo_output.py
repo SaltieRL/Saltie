@@ -4,7 +4,7 @@ import tensorflow as tf
 pi = 3.141592653589793
 U = 32768
 
-class TutorialBotOutput_2:
+class TutorialBotOutput:
 
     def __init__(self, batch_size):
         self.batch_size = batch_size
