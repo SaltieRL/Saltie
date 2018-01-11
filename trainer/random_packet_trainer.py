@@ -13,6 +13,7 @@ from trainer.utils import random_packet_creator as r
 from modelHelpers.actions import action_factory, dynamic_action_handler
 from trainer.utils import controller_statistics
 from tqdm import tqdm
+from trainer.utils.ding import ding
 
 
 def get_random_data(packet_generator, input_formatter):
@@ -120,6 +121,9 @@ def run():
         print('Final stats:')
         checks.get_amounts()
         checks.get_final_stats()
+
+        ding()
+
 
 
 if __name__ == '__main__':
