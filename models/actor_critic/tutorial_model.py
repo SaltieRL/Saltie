@@ -1,6 +1,7 @@
 from models import base_model
 from models.actor_critic.policy_gradient import PolicyGradient
 import tensorflow as tf
+import numpy as np
 
 
 class TutorialModel(PolicyGradient):
@@ -81,8 +82,6 @@ class TutorialModel(PolicyGradient):
             #argmax = self.argmax[index]
             #number = tf.bitwise.bitwise_xor(tf.cast(self.argmax[index], tf.int32), taken_actions)
             # result = self.fancy_calculate_number_of_ones(number) # can't use until version 1.5
-            #result = tf.map_fn(self.normal_calculate_number_of_ones, number)
-            #wrongNess += tf.cast(result, tf.float32)
 
         return cross_entropy_loss, wrongNess, False
 
