@@ -364,7 +364,11 @@ class BaseModel:
             self._load_keyed_model(model_path, file_name, key)
 
     def _load_keyed_model(self, model_path, file_name, key):
-        self._load_model(self.sess, self.savers_map[key], self._create_saved_model_path(model_path, file_name, key))
+        try:
+            self._load_model(self.sess, self.savers_map[key], self._create_saved_model_path(model_path, file_name, key))
+        except Exception as e:
+            print('failed to load model', key)
+            print(e)
 
     def _load_model(self, session, saver, path):
         if os.path.exists(os.path.dirname(path)):
