@@ -20,6 +20,7 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
     first_layer_name = 'first_layer'
     hidden_layer_name = 'hidden_layer'
     last_layer_name = 'last_layer'
+    layers = []
 
     def __init__(self, session,
                  state_dim,
@@ -77,7 +78,8 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
             # initialize actor-critic network
             with tf.variable_scope("actor_network", reuse=tf.AUTO_REUSE):
                 self.policy_outputs = self.actor_network(model_input, variable_list=all_variable_list,
-                                                         last_layer_list=last_layer_list)
+                                                         last_layer_list=last_layer_list,
+                                                         layers_list=self.layers)
                 # self.policy_outputs = tf.Print(self.policy_outputs, [self.policy_outputs], summarize=self.action_handler.get_logit_size(), message='output')
             with tf.variable_scope("critic_network", reuse=tf.AUTO_REUSE):
                 self.value_outputs = tf.reduce_mean(self.critic_network(model_input), name="Value_estimation")
@@ -185,7 +187,7 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
         self.stored_variables[bias_name] = b
         return layer_output, output_size
 
-    def actor_network(self, input_states, variable_list=None, last_layer_list=None):
+    def actor_network(self, input_states, variable_list=None, last_layer_list=None, layers_list=[]):
         if last_layer_list is None:
             last_layer_list = [[] for _ in range(len(self.action_handler.get_action_sizes()))]
         # define policy neural network
@@ -194,14 +196,16 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
         with tf.variable_scope(self.first_layer_name):
             layer1, _ = self.create_layer(tf.nn.relu6, input_states, 1, self.state_feature_dim, self.network_size, actor_prefix,
                                        variable_list=variable_list, dropout=False)
+        layers_list.append(layer1)
 
         # layer1 = tf.Print(layer1, [layer1], summarize=self.network_size, message='')
 
         inner_layer, output_size = self.create_hidden_layers(tf.nn.relu6, layer1, self.network_size, actor_prefix,
-                                                variable_list=variable_list)
+                                                variable_list=variable_list, layers_list=layers_list)
 
         output_layer = self.create_last_layer(tf.nn.sigmoid, inner_layer, output_size,
-                                              self.num_actions, actor_prefix, last_layer_list=last_layer_list)
+                                              self.num_actions, actor_prefix,
+                                              last_layer_list=last_layer_list, layers_list=layers_list)
 
         return output_layer
 
@@ -239,8 +243,8 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
         tf.summary.scalar(prefix + '_reg_loss', reg_loss)
         return reg_loss
 
-    def create_hidden_layers(self, activation_function, input_layer, network_size, network_prefix,
-                             variable_list=None):
+    def create_hidden_layers(self, activation_function, input_layer, network_size, network_prefix, variable_list=None,
+                             layers_list=[]):
         with tf.variable_scope(self.hidden_layer_name):
             inner_layer = input_layer
             for i in range(0, self.num_layers - 2):
@@ -248,8 +252,8 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
                                                    network_size, network_prefix, variable_list=variable_list)
         return inner_layer, network_size
 
-    def create_last_layer(self, activation_function, inner_layer, network_size, num_actions,
-                          network_prefix, last_layer_list=None):
+    def create_last_layer(self, activation_function, inner_layer, network_size, num_actions, network_prefix,
+                          last_layer_list=None, layers_list=[]):
         with tf.variable_scope(self.last_layer_name):
             last_layer_name = 'final'
             if not self.action_handler.is_split_mode():
