@@ -38,6 +38,8 @@ class TutorialModel(PolicyGradient):
         except:
             print('unable to load gated_layer_index')
 
+        self.num_split_layers = min(self.num_split_layers, self.num_layers - 2)
+
     def create_training_op(self, logprobs, labels):
         actor_gradients, actor_loss, actor_reg_loss = self.create_actor_gradients(logprobs, labels)
 
@@ -169,7 +171,7 @@ class TutorialModel(PolicyGradient):
         return total_layers, cut_size
 
     def get_model_name(self):
-        return 'tutorial_bot' + ('_split' if self.action_handler.is_split_mode else '') + str(self.num_layers) + '-layers'
+        return 'tutorial_bot' + ('_split' if self.action_handler.is_split_mode else '')
 
     def create_savers(self):
         super().create_savers()
