@@ -103,7 +103,8 @@ def run():
                 checks.get_amounts()
                 print('Saving model', model_counter)
                 start_saving = time.time()
-                model.save_model(model.get_model_path(model.get_default_file_name() + str(model_counter)))
+                model.save_model(model.get_model_path(model.get_default_file_name() + str(model_counter)),
+                                 global_step=i, quick_save=True)
                 print('saved model in', time.time() - start_saving, 'seconds')
                 model_counter += 1
 
