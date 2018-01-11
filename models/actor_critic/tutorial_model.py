@@ -111,8 +111,8 @@ class TutorialModel(PolicyGradient):
 
             return left + right, cut_size
 
-    def create_hidden_layers(self, activation_function, input_layer, network_size, network_prefix,
-                             variable_list=None):
+    def create_hidden_layers(self, activation_function, input_layer, network_size, network_prefix, variable_list=None,
+                             layers_list=[]):
         inner_layer = input_layer
         layer_size = self.network_size
         max_layer = self.num_layers - 2 - self.num_split_layers
@@ -128,29 +128,45 @@ class TutorialModel(PolicyGradient):
                                                                 network_prefix, variable_list=variable_list)
         return inner_layer, layer_size
 
-    def create_last_layer(self, activation_function, inner_layer, network_size, num_actions,
-                          network_prefix, last_layer_list=None):
+    def create_last_layer(self, activation_function, inner_layer, network_size, num_actions, network_prefix,
+                          last_layer_list=None, layers_list=[]):
         with tf.variable_scope(self.split_hidden_layer_name):
-            inner_layer, layer_size = self.create_split_layers(tf.nn.relu6, inner_layer, network_size,
-                                                               self.num_split_layers,
-                                                               network_prefix, last_layer_list)
-        return super().create_last_layer(activation_function, inner_layer, layer_size,
-                                         num_actions, network_prefix, last_layer_list)
+            inner_layers, layer_size = self.create_split_layers(tf.nn.relu6, inner_layer, network_size,
+                                                                self.num_split_layers,
+                                                                network_prefix,
+                                                                variable_list=last_layer_list)
+
+        for layer in inner_layers:
+            layers_list.append(layer)
+        output_layers = inner_layers[len(inner_layers) - 1]
+        return super().create_last_layer(activation_function, output_layers, layer_size, num_actions, network_prefix,
+                                         last_layer_list, layers_list=layers_list)
 
     def create_split_layers(self, activation_function, inner_layer, network_size,
                             num_split_layers, network_prefix, variable_list=None):
-        split_layers = []
-        num_actions = len(self.action_handler.get_action_sizes())
-        cut_size = self.network_size // num_actions
 
+        cut_size = self.network_size // 3
+        total_layers = []
+        previous_layer = []
+        last_sizes = []
+        for i in range(self.action_handler.get_number_actions()):
+            previous_layer.append(inner_layer)
+            last_sizes.append(network_size)
         for i in range(0, num_split_layers):
+            split_layers = []
+            output_sizes = []
             for j, item in enumerate(self.action_handler.get_action_sizes()):
                 name = str(i)
                 with tf.variable_scope(str(self.action_handler.action_list_names[j])):
-                    split_layers.append(self.create_layer(activation_function, inner_layer, 'split' + name,
-                                                          network_size, cut_size, network_prefix,
-                                                          variable_list=variable_list[j])[0])
-        return split_layers, cut_size
+                    inner_layer, last_size = self.create_layer(activation_function, previous_layer[j], 'split' + name,
+                                                               last_sizes[j], cut_size, network_prefix,
+                                                          variable_list=variable_list[j])
+                    output_sizes.append(last_size)
+                    split_layers.append(inner_layer)
+            last_sizes = output_sizes
+            previous_layer = split_layers
+            total_layers.append(split_layers)
+        return total_layers, cut_size
 
     def get_model_name(self):
         return 'tutorial_bot' + ('_split' if self.action_handler.is_split_mode else '') + str(self.num_layers) + '-layers'
