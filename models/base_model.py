@@ -25,6 +25,8 @@ class BaseModel:
     is_normalizing = True
     normalizer = None
     feature_creator = None
+    load_from_checkpoints = None
+    QUICK_SAVE_KEY = 'quick_save'
 
     """"
     This is a base class for all models It has a couple helper methods but is mainly used to provide a standard
@@ -226,11 +228,9 @@ class BaseModel:
                 self._set_variables()
                 print("Unexpected error loading model:", e)
                 print('unable to load model')
-                self._set_variables()
         else:
             self._set_variables()
             print('unable to find model to load')
-            self._set_variables()
 
         self._add_summary_writer()
         self.is_initialized = True
@@ -254,14 +254,18 @@ class BaseModel:
         dir_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
         return dir_path + "/training/data/" + self.get_model_name() + "/" + filename
 
-    def get_event_path(self, filename):
+    def get_event_path(self, filename, is_replay=False):
         """
         Creates a path for saving tensorflow events for tensorboard, this puts it in the directory of [get_model_name]
         :param filename: name of the file being saved
+        :param is_replay: True if the events should be saved for replay analysis
         :return: The path of the file
         """
         dir_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-        complete_path = dir_path + "/training/data/events/" + self.get_model_name() + "/" + filename
+        base_path = "/training/data/events/"
+        if is_replay:
+            base_path = "/training/replay_events/"
+        complete_path = dir_path + base_path + self.get_model_name() + "/" + filename
         modified_path = complete_path
         counter = 0
         while os.path.exists(modified_path):
@@ -306,6 +310,7 @@ class BaseModel:
             print('unable to load if it should be normalizing defaulting to true')
 
     def add_saver(self, name, variable_list):
+        self.all_saved_variables += variable_list
         if len(variable_list) == 0:
             print('no variables for saver ', name)
             return
@@ -316,53 +321,65 @@ class BaseModel:
             raise e
 
     def create_savers(self):
-        self.add_saver('default', self.stored_variables)
+        self.add_saver(self.QUICK_SAVE_KEY, tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES))
 
     def _create_model_directory(self, file_path):
         dirname = os.path.dirname(file_path)
         if not os.path.isdir(dirname):
             os.makedirs(dirname)
 
-    def _save_model(self, session, saver, file_path):
-        saver.save(session, file_path)
+    def _save_keyed_model(self, model_path, key, global_step):
+        keyed_path = self._create_saved_model_path(os.path.dirname(model_path), os.path.basename(model_path), key)
+        self._create_model_directory(keyed_path)
+        self._save_model(self.sess, self.savers_map[key], keyed_path, global_step)
+
+    def _save_model(self, session, saver, file_path, global_step):
+        saver.save(session, file_path, global_step=global_step)
 
     def _create_saved_model_path(self, model_path, file_name, key):
         return model_path + '/' + key + '/' + file_name
 
-    def save_model(self, model_path):
+    def save_model(self, model_path, global_step=None, quick_save=False):
         self._create_model_directory(model_path)
         print('saving model at:\n', model_path)
         file_object = open(model_path + '.keys', 'w')
+        if quick_save:
+            self._save_keyed_model(model_path, self.QUICK_SAVE_KEY, global_step)
+            return
+
         for key in self.savers_map:
+            if key == self.QUICK_SAVE_KEY:
+                continue
             file_object.write(key)
-            keyed_path = self._create_saved_model_path( os.path.dirname(model_path), os.path.basename(model_path), key)
-            self._create_model_directory(keyed_path)
-            self._save_model(self.sess, self.savers_map[key], keyed_path)
+            self._save_keyed_model(model_path, key, global_step)
         file_object.close()
 
-    def load_model(self, model_path, file_name):
+    def load_model(self, model_path, file_name, quick_save=False):
         # TODO read keys
+        if quick_save:
+            self._load_keyed_model(model_path, file_name, self.QUICK_SAVE_KEY)
         print('loading model comprised of', len(self.savers_map))
         for key in self.savers_map:
-            self._load_model(self.sess, self.savers_map[key], self._create_saved_model_path(model_path, file_name, key))
+            if key == self.QUICK_SAVE_KEY:
+                continue
+            self._load_keyed_model(model_path, file_name, key)
+
+    def _load_keyed_model(self, model_path, file_name, key):
+        self._load_model(self.sess, self.savers_map[key], self._create_saved_model_path(model_path, file_name, key))
 
     def _load_model(self, session, saver, path):
         if os.path.exists(os.path.dirname(path)):
-            saver.restore(session, path)
-            # print('loaded model for saver', os.path.dirname(path))
+            checkpoint_path = path
+            if self.load_from_checkpoints:
+                checkpoint_path = tf.train.load_checkpoint(os.path.dirname(path))
+            saver.restore(session, checkpoint_path)
         else:
             print('model for saver not found:', path)
 
     def create_model_hash(self):
-        # BUF_SIZE is totally arbitrary, change for your app!
-        BUF_SIZE = 65536  # lets read stuff in 64kb chunks!
-
-        md5 = hashlib.md5()
-        with open(self.model_file + '.data-00000-of-00001', 'rb') as f:
-            while True:
-                data = f.read(BUF_SIZE)
-                if not data:
-                    break
-                md5.update(data)
-
-        return int(md5.hexdigest(), 16) % 2 ** 64
+        print(len(self.all_saved_variables))
+        for i in self.all_saved_variables:
+            print(self.player_index, i.name)
+        saved_variables = self.sess.run(self.all_saved_variables)
+        saved_variables = np.array(saved_variables)
+        return int(hex(hash(str(saved_variables.data))), 16) % 2 ** 64

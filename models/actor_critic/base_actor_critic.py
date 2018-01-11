@@ -21,19 +21,11 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
     hidden_layer_name = 'hidden_layer'
     last_layer_name = 'last_layer'
 
-    def __init__(self, session,
-                 state_dim,
-                 num_actions,
-                 player_index=-1,
-                 action_handler=None,
-                 is_training=False,
-                 optimizer=tf.train.GradientDescentOptimizer(learning_rate=0.1),
-                 summary_writer=None,
-                 summary_every=100,
-                 discount_factor=0.99,  # discount future rewards
-                 ):
-        super().__init__(session, state_dim, num_actions, player_index, action_handler, is_training,
-                         optimizer, summary_writer, summary_every, discount_factor)
+    def __init__(self, session, state_dim, num_actions, player_index=-1, action_handler=None, is_training=False,
+                 optimizer=tf.train.GradientDescentOptimizer(learning_rate=0.1), summary_writer=None, summary_every=100,
+                 config_file=None):
+        super().__init__(session, state_dim, num_actions, player_index, action_handler, is_training, optimizer,
+                         summary_writer, summary_every, config_file)
         if player_index >= 0:
             self.rotating_expected_reward_buffer = live_data_util.RotatingBuffer(player_index)
 
@@ -176,7 +168,7 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
         W = tf.get_variable(weight_name, [input_size, output_size],
                              initializer=tf.random_normal_initializer())
         b = tf.get_variable(bias_name, [output_size],
-                             initializer=tf.constant_initializer(0.0))
+                             initializer=tf.random_normal_initializer())
         layer_output = activation_function(tf.matmul(input, W) + b)
         if variable_list is not None:
             variable_list.append(W)
@@ -192,11 +184,12 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
             last_layer_list = [[] for _ in range(len(self.action_handler.get_action_sizes()))]
         # define policy neural network
         actor_prefix = 'actor'
+        # input_states = tf.Print(input_states, [input_states], summarize=self.network_size, message='')
         with tf.variable_scope(self.first_layer_name):
             layer1, _ = self.create_layer(tf.nn.relu6, input_states, 1, self.state_feature_dim, self.network_size, actor_prefix,
                                        variable_list=variable_list, dropout=False)
 
-        # layer1 = tf.Print(layer1, [layer1], summarize=self.action_handler.get_logit_size(), message='')
+        # layer1 = tf.Print(layer1, [layer1], summarize=self.network_size, message='')
 
         inner_layer, output_size = self.create_hidden_layers(tf.nn.relu6, layer1, self.network_size, actor_prefix,
                                                 variable_list=variable_list)
@@ -252,7 +245,7 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
     def create_last_layer(self, activation_function, inner_layer, network_size, num_actions,
                           network_prefix, last_layer_list=None):
         with tf.variable_scope(self.last_layer_name):
-            last_layer_name = 'last'
+            last_layer_name = 'final'
             if not self.action_handler.is_split_mode():
                 self.actor_last_row_layer, _ = self.create_layer(activation_function, inner_layer, last_layer_name,
                                                                  network_size, num_actions, network_prefix,
@@ -261,13 +254,15 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
 
             self.actor_last_row_layer = []
             for i, item in enumerate(self.action_handler.get_action_sizes()):
-                self.actor_last_row_layer.append(self.create_layer(activation_function, inner_layer[i], last_layer_name,
-                                                                   network_size, item, network_prefix + str(i),
-                                                                   variable_list=last_layer_list[i], dropout=False)[0])
+                with tf.variable_scope(str(self.action_handler.action_list_names[i])):
+                    self.actor_last_row_layer.append(self.create_layer(activation_function, inner_layer[i], last_layer_name,
+                                                                       network_size, item, network_prefix,
+                                                                       variable_list=last_layer_list[i], dropout=False)[0])
 
             return tf.concat(self.actor_last_row_layer, 1)
 
     def create_savers(self):
+        super().create_savers()
         self._create_network_saver('actor_network')
         self._create_network_saver('critic_network')
 
@@ -277,20 +272,34 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
         self._create_last_row_saver(network_name)
 
     def _create_last_row_saver(self, network_name):
-        for i, list in enumerate(self.last_row_variables):
-            self._create_layer_saver(network_name, self.last_layer_name + str(self.action_handler.action_list_names[i]),
-                                     self.num_actions, variable_list=list)
+        split_las_layer = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,
+                                          scope=network_name + '/' + self.last_layer_name)
+        reshaped_list = np.reshape(np.array(split_las_layer), [int(len(split_las_layer) / 2), 2])
+        if len(reshaped_list) == 1:
+            self._create_layer_saver(network_name, self.last_layer_name,
+                                     variable_list=reshaped_list[0].tolist())
+            return
+        for i in range(len(reshaped_list)):
+            self._create_layer_saver(network_name, self.last_layer_name,
+                                     extra_info=self.action_handler.action_list_names[i],
+                                     variable_list=reshaped_list[i].tolist())
 
     def _create_hidden_row_saver(self, network_name):
         hidden_layers = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,
                                           scope=network_name + '/' + self.hidden_layer_name)
         reshaped_list = np.reshape(np.array(hidden_layers), [int(len(hidden_layers) / 2), 2])
         for i in range(len(reshaped_list)):
-            self._create_layer_saver(network_name, self.hidden_layer_name + str(i),
+            self._create_layer_saver(network_name, self.hidden_layer_name,
+                                     extra_info=str(i),
                                      variable_list=reshaped_list[i].tolist())
 
-    def _create_layer_saver(self, network_name, layer_name, extra_info='', variable_list=None):
-        saver_name = network_name + '_' + layer_name + '_' + str(self.network_size) + '_' + str(extra_info)
+    def _create_layer_saver(self, network_name, layer_name, extra_info=None, variable_list=None):
+        details = ''
+        if extra_info is not None:
+            details = '_' + str(extra_info).replace(' ', '').replace('[', '')\
+                .replace(']', '').replace(',', '_').replace('\'','')
+
+        saver_name = network_name + '_' + layer_name + '_' + str(self.network_size) + details
         scope_name = network_name + "/" + layer_name
         if variable_list is None:
             self.add_saver(saver_name,
