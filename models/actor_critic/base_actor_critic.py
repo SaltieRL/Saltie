@@ -21,11 +21,20 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
     hidden_layer_name = 'hidden_layer'
     last_layer_name = 'last_layer'
 
-    def __init__(self, session, state_dim, num_actions, player_index=-1, action_handler=None, is_training=False,
-                 optimizer=tf.train.GradientDescentOptimizer(learning_rate=0.1), summary_writer=None, summary_every=100,
-                 config_file=None):
+    def __init__(self, session,
+                 state_dim,
+                 num_actions,
+                 player_index=-1,
+                 action_handler=None,
+                 is_training=False,
+                 optimizer=tf.train.GradientDescentOptimizer(learning_rate=0.1),
+                 summary_writer=None,
+                 summary_every=100,
+                 config_file=None,
+                 discount_factor=0.99,  # discount future rewards
+                 ):
         super().__init__(session, state_dim, num_actions, player_index, action_handler, is_training, optimizer,
-                         summary_writer, summary_every, config_file)
+                         summary_writer, summary_every, config_file, discount_factor)
         if player_index >= 0:
             self.rotating_expected_reward_buffer = live_data_util.RotatingBuffer(player_index)
 
