@@ -310,7 +310,6 @@ class BaseModel:
             print('unable to load if it should be normalizing defaulting to true')
 
     def add_saver(self, name, variable_list):
-        self.all_saved_variables += variable_list
         if len(variable_list) == 0:
             print('no variables for saver ', name)
             return
