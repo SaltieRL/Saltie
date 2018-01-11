@@ -39,7 +39,6 @@ class Agent:
         )
         self.sess = tf.Session(config=config)
         # self.sess = tf.Session()
-        writer = tf.summary.FileWriter('tmp/{}-experiment'.format(random.randint(0, 1000000)))
         self.actions_handler = action_factory.get_handler(control_scheme=dynamic_action_handler.super_split_scheme)
         self.state_dim = input_formatter.get_state_dim()
         self.num_actions = self.actions_handler.get_logit_size()
@@ -49,8 +48,13 @@ class Agent:
                                             self.num_actions,
                                             player_index=self.index,
                                             action_handler=self.actions_handler,
-                                            summary_writer=writer,
+                                            config_file=config_file,
                                             is_training=False)
+
+        writer = self.model.summary_writer = tf.summary.FileWriter(
+            self.model.get_event_path('random_packet', is_replay=True))
+
+        self.model.summary_writer = writer
         self.model.batch_size = 1
         self.model.mini_batch_size = 1
 
@@ -96,8 +100,6 @@ class Agent:
         for class_group in module_classes:
             if class_group[0] == model_name:
                 self.model_class = class_group[1]
-        if self.model_class is not None:
-            self.model_class.config_file = self.config_file
 
     def get_model_class(self):
         if self.model_class is None:
@@ -142,3 +144,4 @@ class Agent:
         except Exception as e:
             print('creating hash exception', e)
             return 0
+0
