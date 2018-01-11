@@ -56,10 +56,12 @@ def run():
         output_creator = get_class(teacher_package, 'TutorialBotOutput')(batch_size)
         actions = action_factory.get_handler(control_scheme=dynamic_action_handler.super_split_scheme)
 
+        teacher = teacher_package.split('.')[-1]
+
         # Initialising the model
         model = model_class(sess, formatter.get_state_dim_with_features(),
                             actions.get_logit_size(), action_handler=actions, is_training=True,
-                            optimizer=tf.train.AdamOptimizer(learning_rate=0.001), config_file=config)
+                            optimizer=tf.train.AdamOptimizer(learning_rate=0.001), config_file=config, teacher=teacher)
 
         model.summary_writer = tf.summary.FileWriter(
             model.get_event_path('random_packet'))
