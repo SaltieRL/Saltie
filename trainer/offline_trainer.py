@@ -60,7 +60,7 @@ def get_class(class_package, class_name):
 
 def get_all_files(max_files, only_eval):
     dir_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-    training_path = dir_path + '/training'
+    training_path = dir_path + '/training/replays'
     files = []
     include_extensions = {'gz'}
     exclude_paths = {'data', 'ignore'}

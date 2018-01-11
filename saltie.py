@@ -3,7 +3,7 @@ from conversions.input import input_formatter
 from conversions.input.input_formatter import InputFormatter
 import importlib
 import inspect
-from modelHelpers import action_handler
+from modelHelpers.actions import action_handler, action_factory, dynamic_action_handler
 from modelHelpers import reward_manager
 from modelHelpers.tensorflow_feature_creator import TensorflowFeatureCreator
 from models.actor_critic import policy_gradient
@@ -39,18 +39,24 @@ class Agent:
         )
         self.sess = tf.Session(config=config)
         # self.sess = tf.Session()
-        writer = tf.summary.FileWriter('tmp/{}-experiment'.format(random.randint(0, 1000000)))
-        self.actions_handler = action_handler.ActionHandler(split_mode=True)
+        self.actions_handler = action_factory.get_handler(control_scheme=dynamic_action_handler.super_split_scheme)
         self.state_dim = input_formatter.get_state_dim()
-        self.num_actions = self.actions_handler.get_action_size()
+        self.num_actions = self.actions_handler.get_logit_size()
         print('num_actions', self.num_actions)
         self.model = self.get_model_class()(self.sess,
                                             self.state_dim,
                                             self.num_actions,
                                             player_index=self.index,
                                             action_handler=self.actions_handler,
-                                            summary_writer=writer,
-                                            is_training=True)
+                                            config_file=config_file,
+                                            is_training=False)
+
+        writer = self.model.summary_writer = tf.summary.FileWriter(
+            self.model.get_event_path('random_packet', is_replay=True))
+
+        self.model.summary_writer = writer
+        self.model.batch_size = 1
+        self.model.mini_batch_size = 1
 
         self.model.is_graphing = self.is_graphing
 
@@ -58,10 +64,12 @@ class Agent:
 
         self.model.apply_feature_creation(TensorflowFeatureCreator())
 
-        self.model.create_model()
+        self.model.create_model(self.model.input_placeholder)
 
         if self.model.is_training and self.model.is_online_training:
             self.model.create_reinforcement_training_model()
+
+        self.model.create_savers()
 
         self.model.initialize_model()
         if self.is_graphing:
@@ -92,8 +100,6 @@ class Agent:
         for class_group in module_classes:
             if class_group[0] == model_name:
                 self.model_class = class_group[1]
-        if self.model_class is not None:
-            self.model_class.config_file = self.config_file
 
     def get_model_class(self):
         if self.model_class is None:
@@ -129,7 +135,8 @@ class Agent:
             print("invalid action no type returned")
             action = self.actions_handler.get_random_option()
         self.previous_action = action
-        return self.actions_handler.create_controller_from_selection(action)
+        controller_selection = self.actions_handler.create_controller_from_selection(action)
+        return controller_selection
 
     def create_model_hash(self):
         try:
@@ -137,3 +144,4 @@ class Agent:
         except Exception as e:
             print('creating hash exception', e)
             return 0
+0

@@ -58,6 +58,7 @@ class TensorflowFeatureCreator:
         transposed_input = tf.transpose(model_input)
         features = self.generate_features(transposed_input)
         features = [tf.expand_dims(feature, axis=1) for feature in features]
-        features += [model_input]
+        features = [model_input] + features
         new_input = tf.concat(features, axis=1)
+        new_input = tf.check_numerics(new_input, 'post features')
         return new_input

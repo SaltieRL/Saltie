@@ -37,3 +37,8 @@ For streamers of the bot to get the fancy graphs you must install pyqtgraph
 `pip3 install pyqtgraph`
 
 `pip3 install PyQt5`
+
+An alternative option is to install quicketracer
+
+`pip3 install quicktracer`
+

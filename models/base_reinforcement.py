@@ -18,13 +18,14 @@ class BaseReinforcement(base_model.BaseModel):
                  optimizer=tf.train.GradientDescentOptimizer(learning_rate=0.1),
                  summary_writer=None,
                  summary_every=100,
+                 config_file=None,
                  init_exp=0.05,  # initial exploration prob
                  final_exp=0.0,  # final exploration prob
                  anneal_steps=1000,  # N steps for annealing exploration
                  discount_factor=0.99,  # discount future rewards
                  ):
-        super().__init__(session, state_dim, num_actions, player_index, action_handler, is_training,
-                         optimizer, summary_writer, summary_every)
+        super().__init__(session, state_dim, num_actions, player_index, action_handler, is_training, optimizer,
+                         summary_writer, summary_every, config_file)
 
         # counters
         self.train_iteration = 0
@@ -42,6 +43,11 @@ class BaseReinforcement(base_model.BaseModel):
         self.init_exp = init_exp
         self.final_exp = final_exp
         self.anneal_steps = anneal_steps
+
+    def printParameters(self):
+        super().printParameters()
+        print('Reinforcment Parameters:')
+        print('discount factor', self.discount_factor)
 
     def _set_variables(self):
         try:

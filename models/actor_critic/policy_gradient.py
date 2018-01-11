@@ -1,4 +1,6 @@
 import tensorflow as tf
+
+from models import base_model
 from models.actor_critic.base_actor_critic import BaseActorCritic
 from modelHelpers import tensorflow_reward_manager
 import numpy as np
@@ -6,6 +8,7 @@ import numpy as np
 
 class PolicyGradient(BaseActorCritic):
     max_gradient = 1.0
+    total_loss_divider = 1.0
 
     def __init__(self, session,
                  state_dim,
@@ -16,12 +19,38 @@ class PolicyGradient(BaseActorCritic):
                  optimizer=tf.train.GradientDescentOptimizer(learning_rate=0.01),
                  summary_writer=None,
                  summary_every=100,
+                 config_file=None,
                  discount_factor=0.99,  # discount future rewards
                  ):
         self.reward_manager = tensorflow_reward_manager.TensorflowRewardManager(state_dim)
 
-        super().__init__(session, state_dim, num_actions, player_index, action_handler, is_training,
-                         optimizer, summary_writer, summary_every, discount_factor)
+        super().__init__(session, state_dim, num_actions, player_index, action_handler, is_training, optimizer,
+                         summary_writer, summary_every, config_file, discount_factor)
+
+    def printParameters(self):
+        super().printParameters()
+        print('policy gradient parameters:')
+        print('max gradient allowed:', self.max_gradient)
+        print('amount to squash total loss:', self.total_loss_divider)
+
+    def load_config_file(self):
+        super().load_config_file()
+        try:
+            self.max_gradient = self.config_file.getint(base_model.MODEL_CONFIGURATION_HEADER,
+                                                      'max_gradient')
+        except:
+            print('unable to load max_gradient')
+        try:
+            self.max_gradient = self.config_file.getint(base_model.MODEL_CONFIGURATION_HEADER,
+                                                        'total_loss_divider')
+        except:
+            print('unable to load total_loss_divider')
+
+    def get_input(self, model_input=None):
+        if model_input is None:
+            return super().get_input(self.input)
+        else:
+            return super().get_input(model_input)
 
     def create_training_op(self, logprobs, taken_actions):
         critic_gradients, critic_loss, critic_reg_loss = self.create_critic_gadients()
@@ -39,7 +68,7 @@ class PolicyGradient(BaseActorCritic):
         advantages = self.create_advantages()
 
         actor_reg_loss = self.get_regularization_loss(self.all_but_last_actor_layer, prefix="actor_hidden")
-        indexes = np.arange(0, len(self.action_handler.get_split_sizes()), 1).tolist()
+        indexes = np.arange(0, len(self.action_handler.get_action_sizes()), 1).tolist()
 
         result = self.action_handler.run_func_on_split_tensors([indexes,
                                                                 logprobs,
@@ -57,9 +86,11 @@ class PolicyGradient(BaseActorCritic):
 
         tf.summary.scalar("total_actor_loss", tf.reduce_mean(total_loss))
 
+        total_loss = total_loss / self.total_loss_divider
+
         total_loss += actor_reg_loss
 
-        total_loss = tf.Print(total_loss, [total_loss], 'total_loss')
+        # total_loss = tf.Print(total_loss, [total_loss], 'total_loss')
 
         total_loss = tf.identity(total_loss, 'total_actor_loss_with_reg')
 
@@ -127,6 +158,16 @@ class PolicyGradient(BaseActorCritic):
         critic_gradients = self.optimizer.compute_gradients(critic_loss, self.critic_network_variables)
         return (critic_gradients, critic_loss, critic_reg_loss)
 
+    def add_histograms(self, gradients):
+        # summarize gradients
+        for grad, var in gradients:
+            tf.summary.histogram(var.name, var)
+            if grad is not None:
+                tf.summary.histogram(var.name + '/gradients', grad)
+
+        # emit summaries
+        tf.summary.histogram("estimated_values", self.estimated_values)
+
     def _compute_training_op(self, actor_gradients, critic_gradients):
         # collect all gradients
         gradients = actor_gradients + critic_gradients
@@ -137,16 +178,8 @@ class PolicyGradient(BaseActorCritic):
             if grad is not None:
                 gradients[i] = (tf.clip_by_norm(grad, self.max_gradient), var)
 
-        # summarize gradients
-        for grad, var in gradients:
-            tf.summary.histogram(var.name, var)
-            if grad is not None:
-                tf.summary.histogram(var.name + '/gradients', grad)
-
-        # emit summaries
-        tf.summary.histogram("estimated_values", self.estimated_values)
-
-            # training update
+        self.add_histograms(gradients)
+        # training update
         with tf.name_scope("train_actor_critic"):
             # apply gradients to update actor network
             return self.optimizer.apply_gradients(gradients)

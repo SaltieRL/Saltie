@@ -1,28 +1,42 @@
+from models import base_model
 from models.actor_critic.policy_gradient import PolicyGradient
 import tensorflow as tf
+import numpy as np
 
 
 class TutorialModel(PolicyGradient):
     num_split_layers = 7
-    network_size = 256
+    gated_layer_index = -1
     split_hidden_layer_variables = None
     split_hidden_layer_name = "split_hidden_layer"
     gated_layer_name = "gated_layer"
     max_gradient = 10.0
+    total_loss_divider = 2.0
 
-    def __init__(self, session,
-                 state_dim,
-                 num_actions,
-                 player_index=-1,
-                 action_handler=None,
-                 is_training=False,
-                 optimizer=tf.train.GradientDescentOptimizer(learning_rate=0.01),
-                 summary_writer=None,
-                 summary_every=100,
-                 discount_factor=0.99,  # discount future rewards
-                 ):
-        super().__init__(session, state_dim, num_actions, player_index, action_handler, is_training,
-                         optimizer, summary_writer, summary_every, discount_factor)
+    def __init__(self, session, state_dim, num_actions, player_index=-1, action_handler=None, is_training=False,
+                 optimizer=tf.train.GradientDescentOptimizer(learning_rate=0.1), summary_writer=None, summary_every=100,
+                 config_file=None):
+        super().__init__(session, state_dim, num_actions, player_index, action_handler, is_training, optimizer,
+                         summary_writer, summary_every, config_file)
+
+    def printParameters(self):
+        super().printParameters()
+        print('TutorialModel Parameters:')
+        print('number of split layers:', self.num_split_layers)
+        print('gate layer (not used if < 0):', self.gated_layer_index)
+
+    def load_config_file(self):
+        super().load_config_file()
+        try:
+            self.num_split_layers = self.config_file.getint(base_model.MODEL_CONFIGURATION_HEADER,
+                                                    'num_split_layers')
+        except:
+            print('unable to load num_split_layers')
+        try:
+            self.gated_layer_index = self.config_file.getint(base_model.MODEL_CONFIGURATION_HEADER,
+                                                            'gated_layer_index')
+        except:
+            print('unable to load gated_layer_index')
 
     def create_training_op(self, logprobs, labels):
         actor_gradients, actor_loss, actor_reg_loss = self.create_actor_gradients(logprobs, labels)
@@ -64,86 +78,119 @@ class TutorialModel(PolicyGradient):
             wrongNess += tf.cast(tf.abs(tf.cast(self.argmax[index], tf.int32) - taken_actions), tf.float32)
         else:
             # use temporarily
-            wrongNess += tf.cast(tf.abs(tf.cast(self.argmax[index], tf.int32) - taken_actions), tf.float32) / 5.0
+            wrongNess += tf.cast(tf.abs(tf.cast(self.argmax[index], tf.int32) - taken_actions), tf.float32) / 2.0
             #argmax = self.argmax[index]
             #number = tf.bitwise.bitwise_xor(tf.cast(self.argmax[index], tf.int32), taken_actions)
             # result = self.fancy_calculate_number_of_ones(number) # can't use until version 1.5
-            #result = tf.map_fn(self.normal_calculate_number_of_ones, number)
-            #wrongNess += tf.cast(result, tf.float32)
 
         return cross_entropy_loss, wrongNess, False
 
-    def create_gated_layer(self, inner_layer, layer_number, network_size, network_prefix, variable_list=None, scope=None):
+    def create_gated_layer(self, inner_layer, input_state, layer_number, network_size, network_prefix, variable_list=None, scope=None):
         with tf.variable_scope(self.gated_layer_name):
-            weight_left = network_prefix + "Wleft" + str(layer_number)
-            weight_right = network_prefix + "Wright" + str(layer_number)
+            weight_input = network_prefix + "Winput" + str(layer_number)
+            weight_network = network_prefix + "Wnetwork" + str(layer_number)
             weight_decider = network_prefix + "Wdecider" + str(layer_number)
-            w_left = tf.get_variable(weight_left, [network_size, network_size / 2],
+
+            cut_size = network_size // 2.0
+
+            w_input = tf.get_variable(weight_input, [network_size, cut_size],
                                      initializer=tf.random_normal_initializer())
-            w_right = tf.get_variable(weight_right, [network_size, network_size / 2],
+            w_network = tf.get_variable(weight_network, [network_size, cut_size],
                                       initializer=tf.random_normal_initializer())
-            w_decider = tf.get_variable(weight_decider, [network_size, network_size / 2],
+            w_decider = tf.get_variable(weight_decider, [network_size, cut_size],
                                         initializer=tf.random_normal_initializer())
 
             if variable_list is not None:
-                variable_list.append(w_left)
-                variable_list.append(w_right)
+                variable_list.append(w_network)
                 variable_list.append(w_decider)
 
             decider = tf.nn.sigmoid(tf.matmul(inner_layer, w_decider), name="decider" + str(layer_number))
 
-            left = tf.matmul(inner_layer, w_left) * decider
-            right = tf.matmul(inner_layer, w_right) * (tf.constant(1.0) - decider)
+            left = tf.matmul(input_state, w_input) * decider
+            right = tf.matmul(inner_layer, w_network) * (tf.constant(1.0) - decider)
 
-            return left + right, network_size / 2.0
+            return left + right, cut_size
 
-    def create_hidden_layers(self, activation_function, input_layer, network_size, network_prefix,
-                             variable_list=None):
+    def create_hidden_layers(self, activation_function, input_layer, network_size, network_prefix, variable_list=None,
+                             layers_list=[]):
         inner_layer = input_layer
-        print('num layers', self.num_layers)
         layer_size = self.network_size
         max_layer = self.num_layers - 2 - self.num_split_layers
         for i in range(0, max_layer):
-            if i == -1:
-                inner_layer, layer_size = self.create_gated_layer(inner_layer, i + 2, layer_size, network_prefix,
+            if i == self.gated_layer_index:
+                inner_layer, layer_size = self.create_gated_layer(inner_layer, input_layer, i + 2, layer_size,
+                                                                  network_prefix,
                                                                   variable_list=variable_list)
             else:
                 with tf.variable_scope(self.hidden_layer_name):
                     inner_layer, layer_size = self.create_layer(tf.nn.relu6, inner_layer, i + 2, layer_size,
                                                                 self.network_size,
                                                                 network_prefix, variable_list=variable_list)
-        return inner_layer
+        return inner_layer, layer_size
 
-    def create_last_layer(self, activation_function, inner_layer, network_size, num_actions,
-                          network_prefix, last_layer_list=None):
+    def create_last_layer(self, activation_function, inner_layer, network_size, num_actions, network_prefix,
+                          last_layer_list=None, layers_list=[]):
         with tf.variable_scope(self.split_hidden_layer_name):
-            inner_layer, layer_size = self.create_split_layers(tf.nn.relu6, inner_layer, self.network_size,
-                                                               self.num_split_layers,
-                                                               network_prefix, last_layer_list)
-        return super().create_last_layer(activation_function, inner_layer, layer_size,
-                                         num_actions, network_prefix, last_layer_list)
+            inner_layers, layer_size = self.create_split_layers(tf.nn.relu6, inner_layer, network_size,
+                                                                self.num_split_layers,
+                                                                network_prefix,
+                                                                variable_list=last_layer_list)
+
+        for layer in inner_layers:
+            layers_list.append(layer)
+        output_layers = inner_layers[len(inner_layers) - 1]
+        return super().create_last_layer(activation_function, output_layers, layer_size, num_actions, network_prefix,
+                                         last_layer_list, layers_list=layers_list)
 
     def create_split_layers(self, activation_function, inner_layer, network_size,
                             num_split_layers, network_prefix, variable_list=None):
-        split_layers = []
-        num_actions = len(self.action_handler.get_split_sizes())
 
-        for i in range(num_split_layers):
-            for j, item in enumerate(self.action_handler.get_split_sizes()):
-                name = str(self.action_handler.action_list_names[j]) + str(i)
-                split_layers.append(self.create_layer(activation_function, inner_layer, 'split' + name,
-                                                      network_size, network_size / num_actions, network_prefix + name,
-                                                      variable_list=variable_list[j])[0])
-            return split_layers, network_size / num_actions
+        cut_size = self.network_size // 3
+        total_layers = []
+        previous_layer = []
+        last_sizes = []
+        for i in range(self.action_handler.get_number_actions()):
+            previous_layer.append(inner_layer)
+            last_sizes.append(network_size)
+        for i in range(0, num_split_layers):
+            split_layers = []
+            output_sizes = []
+            for j, item in enumerate(self.action_handler.get_action_sizes()):
+                name = str(i)
+                with tf.variable_scope(str(self.action_handler.action_list_names[j])):
+                    inner_layer, last_size = self.create_layer(activation_function, previous_layer[j], 'split' + name,
+                                                               last_sizes[j], cut_size, network_prefix,
+                                                          variable_list=variable_list[j])
+                    output_sizes.append(last_size)
+                    split_layers.append(inner_layer)
+            last_sizes = output_sizes
+            previous_layer = split_layers
+            total_layers.append(split_layers)
+        return total_layers, cut_size
 
     def get_model_name(self):
         return 'tutorial_bot' + ('_split' if self.action_handler.is_split_mode else '') + str(self.num_layers) + '-layers'
 
     def create_savers(self):
         super().create_savers()
-        self._create_layer_saver('actor_network', self.split_hidden_layer_name)
+        # self._create_layer_saver('actor_network', self.split_hidden_layer_name)
         self._create_layer_saver('actor_network', self.gated_layer_name)
 
     def _create_last_row_saver(self, network_name):
-        for i, list in enumerate(self.last_row_variables):
-            self._create_layer_saver(network_name, self.last_layer_name + str(i), self.num_actions, variable_list=list)
+        super()._create_last_row_saver(network_name)
+        # create the hidden row savers
+        split_las_layer = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,
+                                            scope=network_name + '/' + self.split_hidden_layer_name + '.*')
+        reshaped_list = np.reshape(np.array(split_las_layer), [-1, self.action_handler.get_number_actions(), 2])
+        for i in range(len(reshaped_list)):
+            for j in range(len(reshaped_list[i])):
+                self._create_layer_saver(network_name, self.split_hidden_layer_name + '_' + str(i),
+                                         extra_info=self.action_handler.action_list_names[j],
+                                         variable_list=reshaped_list[i][j].tolist())
+
+    def add_histograms(self, gradients):
+        # summarize gradients
+        for grad, var in gradients:
+            tf.summary.histogram(var.name, var)
+            if grad is not None:
+                tf.summary.histogram(var.name + '/gradients', grad)

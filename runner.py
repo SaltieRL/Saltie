@@ -32,9 +32,9 @@ USER_CONFIGURATION_HEADER = 'User Info'
 
 try:
     import config
-    server_manager = ServerConverter(config.UPLOAD_SERVER, False, False, False, username='Sciguymjm')
+    server_manager = ServerConverter(config.UPLOAD_SERVER, True, True, True, username='Sciguymjm')
 except ImportError:
-    server_manager = ServerConverter(config.UPLOAD_SERVER, False, False, False)
+    server_manager = ServerConverter('', False, False, False)
     print('config.py not present, cannot upload replays to collective server')
     print('Check Discord server for information')
 
@@ -100,7 +100,7 @@ if __name__ == '__main__':
     name_dict = dict()
 
     save_data = True
-    save_path = os.getcwd() + '\\training'
+    save_path = os.getcwd() + '/training/replays'
     game_name = str(int(round(time.time() * 1000))) + '-' + str(random.randint(0, 1000))
     if save_data:
         print(save_path)

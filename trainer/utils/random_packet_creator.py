@@ -27,7 +27,7 @@ class TensorflowPacketGenerator:
         info.bOverTime = self.false
         info.bUnlimitedTime = self.false
         info.bRoundActive = self.true
-        info.bBallHasBeenHit = is_kickoff
+        info.bBallHasBeenHit = tf.logical_not(is_kickoff)
         info.bMatchEnded = self.false
 
         return info

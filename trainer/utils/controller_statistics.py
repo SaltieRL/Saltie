@@ -32,7 +32,7 @@ class OutputChecks:
 
     def get_amounts(self):
         controls = tf.transpose(
-            self.actionHandler.create_tensorflow_controller_output_from_actions(self.model_output, self.packets))
+            self.actionHandler.create_tensorflow_controller_from_selection(self.model_output, self.packets))
         expected = self.tutorial_bot.get_output_vector(self.game_tick_packet)
 
         output, bot_output = self.sess.run([controls, expected])
@@ -82,6 +82,6 @@ class OutputChecks:
         print("Overall accuracy: ", np.sum(accuracy) / 8.0)
 
     def get_final_stats(self):
-        print('this is where we would put final stats.  IF WE HAD ANY')
+        print('Over here the final stats would be printed')
         #todo present data over time :)
         pass

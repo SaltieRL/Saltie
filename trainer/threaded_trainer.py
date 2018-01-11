@@ -1,6 +1,6 @@
 import queue
 import threading
-
+from trainer.utils.ding import ding
 
 class ThreadedFiles:
     def __init__(self, max_files, num_downloader_threads, num_trainer_threads,
@@ -70,3 +70,5 @@ class ThreadedFiles:
         print('ran through all files in ' + str(self.total_time / 60) + ' minutes')
         print('ran through all files in ' + str(self.total_time / 3600) + ' hours')
         print('average time per file: ' + str((self.total_time / self.total_files)) + ' seconds')
+
+        ding()

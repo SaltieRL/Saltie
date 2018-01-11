@@ -25,20 +25,16 @@ class BaseModel:
     is_normalizing = True
     normalizer = None
     feature_creator = None
+    load_from_checkpoints = None
+    QUICK_SAVE_KEY = 'quick_save'
 
     """"
     This is a base class for all models It has a couple helper methods but is mainly used to provide a standard
     interface for running and training a model
     """
-    def __init__(self, session,
-                 state_dim,
-                 num_actions,
-                 player_index=-1,
-                 action_handler=None,
-                 is_training=False,
-                 optimizer=tf.train.GradientDescentOptimizer(learning_rate=0.1),
-                 summary_writer=None,
-                 summary_every=100):
+    def __init__(self, session, state_dim, num_actions, player_index=-1, action_handler=None, is_training=False,
+                 optimizer=tf.train.GradientDescentOptimizer(learning_rate=0.1), summary_writer=None, summary_every=100,
+                 config_file=None):
 
         # tensorflow machinery
         self.optimizer = optimizer
@@ -63,11 +59,17 @@ class BaseModel:
 
         self.is_training = is_training
 
-        if self.config_file is not None:
+        if config_file is not None:
+            self.config_file = config_file
             self.load_config_file()
 
         # create variables
         self.stored_variables = self._create_variables()
+
+    def printParameters(self):
+        print('model parameters:')
+        print('batch size:', self.batch_size)
+        print('mini batch size:', self.mini_batch_size)
 
     def _create_variables(self):
         with tf.name_scope("model_inputs"):
@@ -142,6 +144,9 @@ class BaseModel:
             safe_input = self.input_placeholder
         else:
             safe_input = model_input
+
+        safe_input = tf.check_numerics(safe_input, 'game tick packet data')
+
         if self.feature_creator is not None:
             safe_input = self.feature_creator.apply_features(safe_input)
 
@@ -206,7 +211,6 @@ class BaseModel:
         This will also try to load an existing model if it exists
         """
         self._set_variables()
-        model_file = None
 
         #file does not exist too lazy to add check
         if self.model_file is None:
@@ -224,11 +228,9 @@ class BaseModel:
                 self._set_variables()
                 print("Unexpected error loading model:", e)
                 print('unable to load model')
-                self._set_variables()
         else:
             self._set_variables()
             print('unable to find model to load')
-            self._set_variables()
 
         self._add_summary_writer()
         self.is_initialized = True
@@ -252,14 +254,18 @@ class BaseModel:
         dir_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
         return dir_path + "/training/data/" + self.get_model_name() + "/" + filename
 
-    def get_event_path(self, filename):
+    def get_event_path(self, filename, is_replay=False):
         """
         Creates a path for saving tensorflow events for tensorboard, this puts it in the directory of [get_model_name]
         :param filename: name of the file being saved
+        :param is_replay: True if the events should be saved for replay analysis
         :return: The path of the file
         """
         dir_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-        complete_path = dir_path + "/training/data/events/" + self.get_model_name() + "/" + filename
+        base_path = "/training/data/events/"
+        if is_replay:
+            base_path = "/training/replay_events/"
+        complete_path = dir_path + base_path + self.get_model_name() + "/" + filename
         modified_path = complete_path
         counter = 0
         while os.path.exists(modified_path):
@@ -314,50 +320,69 @@ class BaseModel:
             raise e
 
     def create_savers(self):
-        self.add_saver('default', self.stored_variables)
+        self.add_saver(self.QUICK_SAVE_KEY, tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES))
 
     def _create_model_directory(self, file_path):
         dirname = os.path.dirname(file_path)
         if not os.path.isdir(dirname):
             os.makedirs(dirname)
 
-    def _save_model(self, session, saver, file_path):
-        saver.save(session, file_path)
+    def _save_keyed_model(self, model_path, key, global_step):
+        keyed_path = self._create_saved_model_path(os.path.dirname(model_path), os.path.basename(model_path), key)
+        self._create_model_directory(keyed_path)
+        self._save_model(self.sess, self.savers_map[key], keyed_path, global_step)
+
+    def _save_model(self, session, saver, file_path, global_step):
+        saver.save(session, file_path, global_step=global_step)
 
     def _create_saved_model_path(self, model_path, file_name, key):
         return model_path + '/' + key + '/' + file_name
 
-    def save_model(self, model_path):
+    def save_model(self, model_path, global_step=None, quick_save=False):
         self._create_model_directory(model_path)
+        print('saving model at:\n', model_path)
         file_object = open(model_path + '.keys', 'w')
+        if quick_save:
+            self._save_keyed_model(model_path, self.QUICK_SAVE_KEY, global_step)
+            return
+
         for key in self.savers_map:
+            if key == self.QUICK_SAVE_KEY:
+                continue
             file_object.write(key)
-            keyed_path = self._create_saved_model_path( os.path.dirname(model_path), os.path.basename(model_path), key)
-            self._create_model_directory(keyed_path)
-            self._save_model(self.sess, self.savers_map[key], keyed_path)
+            self._save_keyed_model(model_path, key, global_step)
         file_object.close()
 
-    def load_model(self, model_path, file_name):
+    def load_model(self, model_path, file_name, quick_save=False):
         # TODO read keys
+        if quick_save:
+            self._load_keyed_model(model_path, file_name, self.QUICK_SAVE_KEY)
+        print('loading model comprised of', len(self.savers_map))
         for key in self.savers_map:
+            if key == self.QUICK_SAVE_KEY:
+                continue
+            self._load_keyed_model(model_path, file_name, key)
+
+    def _load_keyed_model(self, model_path, file_name, key):
+        try:
             self._load_model(self.sess, self.savers_map[key], self._create_saved_model_path(model_path, file_name, key))
+        except Exception as e:
+            print('failed to load model', key)
+            print(e)
 
     def _load_model(self, session, saver, path):
         if os.path.exists(os.path.dirname(path)):
-            saver.restore(session, path)
+            checkpoint_path = path
+            if self.load_from_checkpoints:
+                checkpoint_path = tf.train.load_checkpoint(os.path.dirname(path))
+            saver.restore(session, checkpoint_path)
         else:
             print('model for saver not found:', path)
 
     def create_model_hash(self):
-        # BUF_SIZE is totally arbitrary, change for your app!
-        BUF_SIZE = 65536  # lets read stuff in 64kb chunks!
-
-        md5 = hashlib.md5()
-        with open(self.model_file + '.data-00000-of-00001', 'rb') as f:
-            while True:
-                data = f.read(BUF_SIZE)
-                if not data:
-                    break
-                md5.update(data)
-
-        return int(md5.hexdigest(), 16) % 2 ** 64
+        print(len(self.all_saved_variables))
+        for i in self.all_saved_variables:
+            print(self.player_index, i.name)
+        saved_variables = self.sess.run(self.all_saved_variables)
+        saved_variables = np.array(saved_variables)
+        return int(hex(hash(str(saved_variables.data))), 16) % 2 ** 64
