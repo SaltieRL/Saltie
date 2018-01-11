@@ -41,20 +41,19 @@ def load_config():
     model_class = get_class(model_package, model_name)
 
     teacher_package = config.get('Randomised Trainer Configuration', 'teacher_package')
-    teacher_class = get_class(teacher_package, 'TutorialBotOutput')
-    return total_batches, batch_size, save_step, model_class, config, teacher_class
+    return total_batches, batch_size, save_step, model_class, config, teacher_package
 
 
 def run():
 
-    total_batches, batch_size, save_step, model_class, config, tutorial_bot_output = load_config()
+    total_batches, batch_size, save_step, model_class, config, teacher_package = load_config()
 
     with tf.Session() as sess:
         # Creating necessary instances
         feature_creator = TensorflowFeatureCreator()
         formatter = tensorflow_input_formatter.TensorflowInputFormatter(0, 0, batch_size, feature_creator)
         packet_generator = r.TensorflowPacketGenerator(batch_size)
-        output_creator = tutorial_bot_output(batch_size)
+        output_creator = get_class(teacher_package, 'TutorialBotOutput')(batch_size)
         actions = action_factory.get_handler(control_scheme=dynamic_action_handler.super_split_scheme)
 
         # Initialising the model
@@ -92,6 +91,7 @@ def run():
         print_every_x_batches = (total_batches * batch_size) / save_step
         print('Prints at this percentage:', 100.0 / print_every_x_batches)
         model_counter = 0
+        model_save_time = 0
 
         # Running the model
         for i in tqdm(range(total_batches)):
@@ -107,17 +107,20 @@ def run():
                 start_saving = time.time()
                 model.save_model(model.get_model_path(model.get_default_file_name() + str(model_counter)),
                                  global_step=i, quick_save=True)
-                print('saved model in', time.time() - start_saving, 'seconds')
+                # print('saved model in', time.time() - start_saving, 'seconds')
+                model_save_time += time.time() - start_saving
                 model_counter += 1
 
         start_saving = time.time()
         final_model_path = model.get_model_path(model.get_default_file_name())
         model.save_model(final_model_path)
         print('saved model in', time.time() - start_saving, 'seconds')
+        model_save_time += time.time() - start_saving
 
         total_time = time.time() - start
         print('Total time:', total_time)
-        print('Time per batch:', total_time / (float(total_batches)))
+        print('Time per batch:', (total_time - model_save_time) / (float(total_batches)))
+        print('Time spent saving', model_save_time)
 
         print('Final stats:')
         checks.get_amounts()
