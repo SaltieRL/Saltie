@@ -17,6 +17,7 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
     is_graphing = False
     keep_prob = 0.5
     reg_param = 0.001
+
     first_layer_name = 'first_layer'
     hidden_layer_name = 'hidden_layer'
     last_layer_name = 'last_layer'
@@ -67,6 +68,18 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
                                                          'exploration_factor')
         except:
             print('unable to load exploration_factor')
+    def smart_argmax(self, input_tensor):
+        argmax_index = tf.cast(tf.argmax(input_tensor, axis=1), tf.int32)
+        indexer = tf.range(0, self.mini_batch_size)
+        slicer_data = tf.stack([indexer, argmax_index], axis=1)
+        sliced_tensor = tf.gather_nd(input_tensor, slicer_data)
+        condition = tf.greater(sliced_tensor, self.action_threshold)
+        true = tf.cast(condition, tf.int32)
+        false = 1 - tf.cast(condition, tf.int32)
+
+        random_action = tf.squeeze(tf.multinomial(tf.nn.softmax(input_tensor), 1))
+
+        return argmax_index * true + false * tf.cast(random_action, tf.int32)
 
     def _create_model(self, model_input):
         model_input = tf.check_numerics(model_input, 'model inputs')
@@ -87,7 +100,7 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
             # predict actions from policy network
             self.action_scores = tf.identity(self.policy_outputs, name="action_scores")
             self.predicted_actions = \
-                self.action_handler.run_func_on_split_tensors(self.action_scores,
+                self.action_handler.run_func_on_split_tensors(tf.nn.softmax(self.policy_outputs),
                                                               lambda split_tensor: tf.multinomial(split_tensor, 1))
 
         self.all_but_last_actor_layer = all_variable_list
@@ -96,16 +109,19 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
         self.last_row_variables = last_layer_list
         self.critic_network_variables = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope="critic_network")
 
-        self.split_action_scores = self.action_handler.run_func_on_split_tensors(self.action_scores,
+        self.split_action_scores = self.action_handler.run_func_on_split_tensors(self.policy_outputs,
                                                                      lambda input_tensor: tf.identity(input_tensor),
                                                                      return_as_list=True)
 
-        self.softmax = self.action_handler.run_func_on_split_tensors(self.action_scores,
+        self.softmax = self.action_handler.run_func_on_split_tensors(self.policy_outputs,
                                                                      lambda input_tensor: tf.nn.softmax(input_tensor),
                                                                      return_as_list=True)
-        self.argmax = self.action_handler.run_func_on_split_tensors(self.action_scores,
+        self.argmax = self.action_handler.run_func_on_split_tensors(self.policy_outputs,
                                                                      lambda input_tensor: tf.argmax(tf.nn.softmax(input_tensor), axis=1),
                                                                      return_as_list=True)
+        self.smart_max = self.action_handler.run_func_on_split_tensors(self.policy_outputs,
+                                                                       self.smart_argmax,
+                                                                       return_as_list=True)
         return self.predicted_actions, self.action_scores
 
     def create_reinforcement_training_model(self, model_input=None):
@@ -135,7 +151,7 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
         return self.optimizer.minimize(cross_entropy_loss)
 
     def sample_action(self, input_state):
-        # TODO: use this code piece when tf.multinomial gets better
+        # TODO: use tf.multinomial when it gets better
 
         output = np.argwhere(np.isnan(input_state))
         if len(output) > 0:
@@ -151,23 +167,16 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
         else:
             self.frames_since_last_random_action += 1
             if self.is_graphing:
-                estimated_reward, action_scores = self.sess.run([self.value_outputs, self.softmax],
+                estimated_reward, action_scores = self.sess.run([self.value_outputs, self.smart_max],
                                                                 {self.input_placeholder: input_state})
                 # Average is bad metric but max is always 1 right now so using a more interesting graph
                 self.rotating_expected_reward_buffer += estimated_reward
             else:
-                action_scores = self.sess.run([self.argmax],
-                                              {self.input_placeholder: input_state})[0]
+                action_scores = self.sess.run([self.smart_max],
+                                              {self.input_placeholder: input_state})
 
-                action_scores = [item[0] for item in action_scores]
-                # print(action_scores[1])
-                action = action_scores
-
-            #action = self.action_handler.optionally_split_numpy_arrays(action_scores,
-            #                                  lambda input_array: np.argmax(np.random.multinomial(1, input_array)),
-            #                                  is_already_split=True)
-
-            return action
+            action_scores = np.array(action_scores).flatten()
+            return action_scores
 
     def create_layer(self, activation_function, input, layer_number, input_size, output_size, network_prefix,
                      variable_list=None, dropout=True):

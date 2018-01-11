@@ -9,6 +9,8 @@ class BaseReinforcement(base_model.BaseModel):
     This is the actor critic model.
     """
 
+    action_threshold = 0.1
+
     def __init__(self, session,
                  state_dim,
                  num_actions,
