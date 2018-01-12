@@ -38,9 +38,13 @@ class DefaultModelTrainer(BaseTrainer):
                                                                                    self.feature_creator)
         self.optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
 
+    def setup_model(self):
+        super().setup_model()
+        if self.should_apply_features:
+            self.model.apply_feature_creation(self.feature_creator)
+
+
     def instantiate_model(self, model_class):
-        instance = model_class(self.sess, get_state_dim(),
+        return model_class(self.sess, get_state_dim(),
                            self.action_handler.get_logit_size(), action_handler=self.action_handler, is_training=True,
                            optimizer=self.optimizer, config_file=self.create_config())
-        if self.should_apply_features:
-            instance.apply_feature_creation(self.feature_creator)
