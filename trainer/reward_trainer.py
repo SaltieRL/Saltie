@@ -19,6 +19,9 @@ class RewardTrainer(DownloadTrainer, DefaultModelTrainer):
     train_time_difference = 0
     action_time_difference = 0
 
+    def load_config(self):
+        super().load_config()
+
     def setup_trainer(self):
         super().setup_trainer()
 
