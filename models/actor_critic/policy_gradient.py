@@ -221,7 +221,7 @@ class PolicyGradient(BaseActorCritic):
                     self.summarize if calculate_summaries else self.no_op
                 ],
                 feed_dict={
-                    self.input_placeholder:input_states,
+                    self.input_placeholder: input_states,
                     self.taken_actions_placeholder: actions
                 })
             # emit summaries

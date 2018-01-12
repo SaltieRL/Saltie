@@ -14,6 +14,8 @@ class DefaultModelTrainer(BaseTrainer):
     input_formatter = None
     optimizer = None
     learning_rate = None
+    should_apply_features = None
+    feature_creator = None
 
     def load_config(self):
         super().load_config()
@@ -22,15 +24,23 @@ class DefaultModelTrainer(BaseTrainer):
             self.max_files = config.getfloat(self.OPTIMIZER_CONFIG_HEADER, 'learning_rate')
         except Exception as e:
             self.learning_rate = 0.001
+        try:
+            self.should_apply_features = config.getboolean(self.OPTIMIZER_CONFIG_HEADER, 'should_apply_features')
+        except Exception as e:
+            self.should_apply_features = False
 
     def setup_trainer(self):
         self.action_handler = action_factory.get_handler(control_scheme=dynamic_action_handler.super_split_scheme)
         self.sess = tf.Session()
-        feature_creator = TensorflowFeatureCreator()
-        self.input_formatter = tensorflow_input_formatter.TensorflowInputFormatter(0, 0, self.batch_size, feature_creator)
+        if self.should_apply_features:
+            self.feature_creator = TensorflowFeatureCreator()
+        self.input_formatter = tensorflow_input_formatter.TensorflowInputFormatter(0, 0, self.batch_size,
+                                                                                   self.feature_creator)
         self.optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
 
     def instantiate_model(self, model_class):
-        return model_class(self.sess, get_state_dim(),
+        instance = model_class(self.sess, get_state_dim(),
                            self.action_handler.get_logit_size(), action_handler=self.action_handler, is_training=True,
                            optimizer=self.optimizer, config_file=self.create_config())
+        if self.should_apply_features:
+            instance.apply_feature_creation(self.feature_creator)

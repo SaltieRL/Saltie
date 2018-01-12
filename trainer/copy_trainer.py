@@ -50,6 +50,8 @@ class CopyTrainer(DownloadTrainer, DefaultModelTrainer):
         self.input_batch.append(input_array)
 
         label = self.action_handler.create_action_index(output_array)
+        # print(output_array)
+        # print(label)
         self.label_batch.append(label)
 
     def process_pair(self, input_array, output_array, pair_number, file_version):
@@ -62,7 +64,7 @@ class CopyTrainer(DownloadTrainer, DefaultModelTrainer):
             # do stuff
 
     def batch_process(self):
-        if len(self.input_batch) == 0 or len(self.label_batch) == 0:
+        if len(self.input_batch) <= 1 or len(self.label_batch) <= 1:
             return
 
         input_length = len(self.input_batch)
@@ -71,6 +73,8 @@ class CopyTrainer(DownloadTrainer, DefaultModelTrainer):
 
         self.label_batch = np.array(self.label_batch)
         self.label_batch = self.label_batch.reshape(input_length, self.action_handler.get_number_actions())
+
+        print(input_length)
 
         self.model.run_train_step(True, self.input_batch, self.label_batch)
 

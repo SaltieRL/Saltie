@@ -131,10 +131,13 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
 
     def create_copy_training_model(self, model_input=None, taken_actions=None):
         converted_input = self.get_input(model_input)
-        if taken_actions is not None:
-            self.taken_actions = taken_actions
+
+        if taken_actions is None:
+            actions_input = self.taken_actions_placeholder
+        else:
+            actions_input = taken_actions
         if self.batch_size > self.mini_batch_size:
-            ds = tf.data.Dataset.from_tensor_slices((converted_input, self.taken_actions)).batch(self.mini_batch_size)
+            ds = tf.data.Dataset.from_tensor_slices((converted_input, actions_input)).batch(self.mini_batch_size)
             self.iterator = ds.make_initializable_iterator()
             batched_input, batched_taken_actions = self.iterator.get_next()
         else:
