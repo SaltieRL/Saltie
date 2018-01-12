@@ -55,7 +55,7 @@ class BaseReinforcement(base_model.BaseModel):
         try:
             init = tf.global_variables_initializer()
             if self.action_handler.is_split_mode():
-                actions_null = np.zeros((self.batch_size, 4))
+                actions_null = np.zeros((self.batch_size, self.action_handler.get_number_actions()))
             else:
                 actions_null = np.zeros((self.batch_size,))
             self.sess.run(init, feed_dict={self.input_placeholder: np.zeros((self.batch_size, self.state_dim)),
@@ -71,7 +71,7 @@ class BaseReinforcement(base_model.BaseModel):
                 print(e2)
                 init = tf.global_variables_initializer()
                 self.sess.run(init, feed_dict={
-                    self.input_placeholder: np.reshape(np.zeros(206), [1, 206])
+                    self.input_placeholder: np.reshape(np.zeros(self.state_dim), [1, self.state_dim])
                 })
 
     def create_reinforcement_training_model(self):
@@ -86,9 +86,11 @@ class BaseReinforcement(base_model.BaseModel):
         # reinforcement variables
         with tf.name_scope("compute_pg_gradients"):
             if self.action_handler.is_split_mode():
-                self.taken_actions_placeholder = tf.placeholder(tf.int32, (None, 4), name="taken_actions_phd")
+                self.taken_actions_placeholder = tf.placeholder(tf.int32,
+                                                                (None, self.action_handler.get_number_actions()),
+                                                                name="taken_actions_phd")
                 self.taken_actions = tf.Variable(self.taken_actions_placeholder, validate_shape=False, trainable=False)
-                self.taken_actions.set_shape([None, 4])
+                self.taken_actions.set_shape([None, self.action_handler.get_number_actions()])
             else:
                 self.taken_actions_placeholder = tf.placeholder(tf.int32, (None,), name="taken_actions_phd")
                 self.taken_actions = tf.Variable(self.taken_actions_placeholder, validate_shape=False, trainable=False)

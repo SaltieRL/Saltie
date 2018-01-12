@@ -1,13 +1,6 @@
-from conversions.input import tensorflow_input_formatter
-from conversions.input.input_formatter import get_state_dim
-from modelHelpers.actions import action_handler, action_factory, dynamic_action_handler
-from modelHelpers import feature_creator
-from modelHelpers.tensorflow_feature_creator import TensorflowFeatureCreator
-from models.actor_critic import base_actor_critic
-
 import numpy as np
-import tensorflow as tf
 
+from conversions.input.input_formatter import get_state_dim
 from trainer.base_classes.default_model_trainer import DefaultModelTrainer
 from trainer.base_classes.download_trainer import DownloadTrainer
 from trainer.utils.trainer_runner import run_trainer
@@ -25,8 +18,17 @@ class CopyTrainer(DownloadTrainer, DefaultModelTrainer):
     input_batch = []
     label_batch = []
 
+    def load_config(self):
+        super().load_config()
+
+    def get_config_name(self):
+        return 'copy_trainer.cfg'
+
+    def get_event_filename(self):
+        return 'copy_replays'
+
     def instantiate_model(self, model_class):
-        return model_class(self.sess, self.input_formatter.get_state_dim_with_features(),
+        return model_class(self.sess, get_state_dim(),
                            self.action_handler.get_logit_size(), action_handler=self.action_handler, is_training=True,
                            optimizer=self.optimizer,
                            config_file=self.create_config(), teacher='replay_files')
@@ -64,16 +66,16 @@ class CopyTrainer(DownloadTrainer, DefaultModelTrainer):
             return
 
         self.input_batch = np.array(self.input_batch)
-        self.input_batch = self.input_batch.reshape(self.batch_size, self.input_formatter.get_state_dim_with_features())
+        self.input_batch = self.input_batch.reshape(self.batch_size, get_state_dim())
 
         self.label_batch = np.array(self.label_batch)
-        self.label_batch = self.label_batch.reshape(self.batch_size, self.input_formatter.get_state_dim_with_features())
+        self.label_batch = self.label_batch.reshape(self.batch_size, self.action_handler.get_number_actions())
 
         self.model.run_train_step(True, self.input_batch, self.label_batch)
 
         # Display logs per step
         if self.epoch % self.display_step == 0:
-            pass
+            print('has run on x values', self.batch_size)
         self.epoch += 1
 
     def end_file(self):

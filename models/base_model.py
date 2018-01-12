@@ -129,7 +129,7 @@ class BaseModel:
         return loss, input, labels
 
     def apply_feature_creation(self, feature_creator):
-        self.state_feature_dim += tensorflow_feature_creator.get_feature_dim()
+        self.state_feature_dim = self.state_dim + tensorflow_feature_creator.get_feature_dim()
         self.feature_creator = feature_creator
 
     def get_input(self, model_input=None):
@@ -152,7 +152,7 @@ class BaseModel:
 
         if self.is_normalizing:
             if self.normalizer is None:
-                self.normalizer = DataNormalizer(self.mini_batch_size)
+                self.normalizer = DataNormalizer(self.mini_batch_size, self.feature_creator)
             safe_input = self.normalizer.apply_normalization(safe_input)
 
         return safe_input
