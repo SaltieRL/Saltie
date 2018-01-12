@@ -42,3 +42,6 @@ An alternative option is to install quicketracer
 
 `pip3 install quicktracer`
 
+To install the needed libraries to run the human_bot
+
+`pip install inputs`
