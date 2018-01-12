@@ -65,11 +65,12 @@ class CopyTrainer(DownloadTrainer, DefaultModelTrainer):
         if len(self.input_batch) == 0 or len(self.label_batch) == 0:
             return
 
+        input_length = len(self.input_batch)
         self.input_batch = np.array(self.input_batch)
-        self.input_batch = self.input_batch.reshape(-1, get_state_dim())
+        self.input_batch = self.input_batch.reshape(input_length, get_state_dim())
 
         self.label_batch = np.array(self.label_batch)
-        self.label_batch = self.label_batch.reshape(-1, self.action_handler.get_number_actions())
+        self.label_batch = self.label_batch.reshape(input_length, self.action_handler.get_number_actions())
 
         self.model.run_train_step(True, self.input_batch, self.label_batch)
 
