@@ -14,7 +14,7 @@ def get_file_list_get_function(download, input_server):
         return get_all_files
 
 def get_all_files(max_files, only_eval):
-    dir_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+    dir_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
     training_path = dir_path + '/training/replays'
     files = []
     include_extensions = {'gz'}
