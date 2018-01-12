@@ -8,11 +8,20 @@ from trainer.base_classes.base_trainer import BaseTrainer
 
 
 class DefaultModelTrainer(BaseTrainer):
+    OPTIMIZER_CONFIG_HEADER = 'Optimizer Config'
     action_handler = None
     sess = None
     input_formatter = None
     optimizer = None
-    learning_rate = 0.0001
+    learning_rate = None
+
+    def load_config(self):
+        super().load_config()
+        config = super().create_config()
+        try:
+            self.max_files = config.getfloat(self.OPTIMIZER_CONFIG_HEADER, 'learning_rate')
+        except Exception as e:
+            self.learning_rate = 0.001
 
     def setup_trainer(self):
         self.action_handler = action_factory.get_handler(control_scheme=dynamic_action_handler.super_split_scheme)

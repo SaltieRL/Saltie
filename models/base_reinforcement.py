@@ -10,6 +10,7 @@ class BaseReinforcement(base_model.BaseModel):
     """
 
     action_threshold = 0.1
+    taken_actions = None
 
     def __init__(self, session,
                  state_dim,

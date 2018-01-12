@@ -29,6 +29,7 @@ class RewardTrainer(DownloadTrainer, DefaultModelTrainer):
         super().setup_model()
         self.model.create_model()
         self.model.create_reinforcement_training_model()
+        self.model.create_savers()
         self.model.initialize_model()
 
     def start_new_file(self):

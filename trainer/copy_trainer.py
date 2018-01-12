@@ -37,6 +37,7 @@ class CopyTrainer(DownloadTrainer, DefaultModelTrainer):
         super().setup_model()
         self.model.create_model()
         self.model.create_copy_training_model()
+        self.model.create_savers()
         self.model.initialize_model()
 
     def start_new_file(self):
@@ -62,14 +63,13 @@ class CopyTrainer(DownloadTrainer, DefaultModelTrainer):
 
     def batch_process(self):
         if len(self.input_batch) == 0 or len(self.label_batch) == 0:
-            print('batch was empty quitting')
             return
 
         self.input_batch = np.array(self.input_batch)
-        self.input_batch = self.input_batch.reshape(self.batch_size, get_state_dim())
+        self.input_batch = self.input_batch.reshape(-1, get_state_dim())
 
         self.label_batch = np.array(self.label_batch)
-        self.label_batch = self.label_batch.reshape(self.batch_size, self.action_handler.get_number_actions())
+        self.label_batch = self.label_batch.reshape(-1, self.action_handler.get_number_actions())
 
         self.model.run_train_step(True, self.input_batch, self.label_batch)
 

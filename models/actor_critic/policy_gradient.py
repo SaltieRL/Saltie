@@ -97,7 +97,7 @@ class PolicyGradient(BaseActorCritic):
         all_but_last_row = self.all_but_last_actor_layer
 
         total_loss = tf.check_numerics(total_loss, 'nan loss is being created')
-        total_loss = tf.Print(total_loss, [total_loss], 'total_loss')
+        # total_loss = tf.Print(total_loss, [total_loss], 'total_loss')
 
         actor_gradients = self.optimizer.compute_gradients(total_loss,
                                                            all_but_last_row)

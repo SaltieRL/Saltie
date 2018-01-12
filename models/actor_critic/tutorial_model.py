@@ -78,11 +78,12 @@ class TutorialModel(PolicyGradient):
     def calculate_loss_of_actor(self, logprobs, taken_actions, index):
         cross_entropy_loss, initial_wrongness, __ = super().calculate_loss_of_actor(logprobs, taken_actions, index)
         wrongNess = tf.constant(initial_wrongness)
+        argmax = tf.argmax(logprobs, axis=1)
         if self.action_handler.action_list_names[index] != 'combo':
-            wrongNess += tf.cast(tf.abs(tf.cast(self.argmax[index], tf.int32) - taken_actions), tf.float32)
+            wrongNess += tf.cast(tf.abs(tf.cast(argmax, tf.int32) - taken_actions), tf.float32)
         else:
             # use temporarily
-            wrongNess += tf.cast(tf.abs(tf.cast(self.argmax[index], tf.int32) - taken_actions), tf.float32) / 2.0
+            wrongNess += tf.cast(tf.abs(tf.cast(argmax, tf.int32) - taken_actions), tf.float32) / 2.0
             #argmax = self.argmax[index]
             #number = tf.bitwise.bitwise_xor(tf.cast(self.argmax[index], tf.int32), taken_actions)
             # result = self.fancy_calculate_number_of_ones(number) # can't use until version 1.5
