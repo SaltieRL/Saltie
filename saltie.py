@@ -62,7 +62,7 @@ class Agent:
 
         self.model.is_online_training = self.is_online_training
 
-        self.model.apply_feature_creation(TensorflowFeatureCreator())
+        # self.model.apply_feature_creation(TensorflowFeatureCreator())
 
         self.model.create_model(self.model.input_placeholder)
 

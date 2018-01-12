@@ -392,9 +392,10 @@ class BaseModel:
             print('model for saver not found:', path)
 
     def create_model_hash(self):
-        print(len(self.all_saved_variables))
-        for i in self.all_saved_variables:
+        all_saved_variables = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)
+        print(len(all_saved_variables))
+        for i in all_saved_variables:
             print(self.player_index, i.name)
-        saved_variables = self.sess.run(self.all_saved_variables)
+        saved_variables = self.sess.run(all_saved_variables)
         saved_variables = np.array(saved_variables)
         return int(hex(hash(str(saved_variables.data))), 16) % 2 ** 64

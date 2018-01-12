@@ -40,6 +40,12 @@ class TutorialModel(PolicyGradient):
         except:
             print('unable to load gated_layer_index')
 
+        try:
+            self.teacher = '_' + self.config_file.get(base_model.MODEL_CONFIGURATION_HEADER,
+                                                             'teacher')
+        except:
+            print('unable to load the teacher')
+
         self.num_split_layers = min(self.num_split_layers, self.num_layers - 2)
 
     def create_training_op(self, logprobs, labels):
