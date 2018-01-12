@@ -6,9 +6,9 @@ class DataNormalizer:
     normalization_array = None
     boolean = [0.0, 1.0]
 
-    def __init__(self, batch_size):
+    def __init__(self, batch_size, feature_creator=None):
         self.batch_size = batch_size
-        self.formatter = NormalizationInputFormatter(0, 0, self.batch_size, tensorflow_feature_creator.TensorflowFeatureCreator())
+        self.formatter = NormalizationInputFormatter(0, 0, self.batch_size, feature_creator)
 
     # game_info + score_info + player_car + ball_data +
     # self.flattenArrays(team_members) + self.flattenArrays(enemies) + boost_info
@@ -158,7 +158,7 @@ class DataNormalizer:
             game_tick_packet.gameBoosts = self.get_boost_info()
         return self.formatter.create_input_array(game_tick_packet)
 
-    def apply_normalization(self, input_array):
+    def apply_normalization(self, input_array, feature_creator=None):
         if self.normalization_array is None:
             self.normalization_array = self.get_normalization_array()
 

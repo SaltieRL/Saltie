@@ -23,6 +23,12 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
     last_layer_name = 'last_layer'
     layers = []
 
+    # tensorflow objects
+    discounted_rewards = None
+    estimated_values = None
+    iterator = None
+    logprobs = None
+
     def __init__(self, session,
                  state_dim,
                  num_actions,
@@ -68,6 +74,7 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
                                                          'exploration_factor')
         except:
             print('unable to load exploration_factor')
+
     def smart_argmax(self, input_tensor):
         argmax_index = tf.cast(tf.argmax(input_tensor, axis=1), tf.int32)
         indexer = tf.range(0, self.mini_batch_size)
@@ -83,8 +90,6 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
 
     def _create_model(self, model_input):
         model_input = tf.check_numerics(model_input, 'model inputs')
-        state = output_formatter.get_basic_state(tf.transpose(model_input))
-        #model_input = tf.Print(model_input, [state.car_location.X], 'model inputs')
         all_variable_list = []
         last_layer_list = [[] for _ in range(len(self.action_handler.get_action_sizes()))]
         with tf.name_scope("predict_actions"):
@@ -93,7 +98,6 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
                 self.policy_outputs = self.actor_network(model_input, variable_list=all_variable_list,
                                                          last_layer_list=last_layer_list,
                                                          layers_list=self.layers)
-                # self.policy_outputs = tf.Print(self.policy_outputs, [self.policy_outputs], summarize=self.action_handler.get_logit_size(), message='output')
             with tf.variable_scope("critic_network", reuse=tf.AUTO_REUSE):
                 self.value_outputs = tf.reduce_mean(self.critic_network(model_input), name="Value_estimation")
 
@@ -117,12 +121,39 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
                                                                      lambda input_tensor: tf.nn.softmax(input_tensor),
                                                                      return_as_list=True)
         self.argmax = self.action_handler.run_func_on_split_tensors(self.policy_outputs,
-                                                                     lambda input_tensor: tf.argmax(tf.nn.softmax(input_tensor), axis=1),
+                                                                     lambda input_tensor: tf.argmax(
+                                                                         tf.nn.softmax(input_tensor), axis=1),
                                                                      return_as_list=True)
         self.smart_max = self.action_handler.run_func_on_split_tensors(self.policy_outputs,
                                                                        self.smart_argmax,
                                                                        return_as_list=True)
         return self.predicted_actions, self.action_scores
+
+    def create_copy_training_model(self, model_input=None, taken_actions=None):
+        converted_input = self.get_input(model_input)
+        if taken_actions is not None:
+            self.taken_actions = taken_actions
+        if self.batch_size > self.mini_batch_size:
+            ds = tf.data.Dataset.from_tensor_slices((converted_input, self.taken_actions)).batch(self.mini_batch_size)
+            self.iterator = ds.make_initializable_iterator()
+            batched_input, batched_taken_actions = self.iterator.get_next()
+        else:
+            batched_input = converted_input
+            batched_taken_actions = self.taken_actions
+        with tf.name_scope("training_network"):
+            self.discounted_rewards = tf.constant(0.0)
+            with tf.variable_scope("actor_network", reuse=True):
+                self.logprobs = self.actor_network(batched_input)
+
+            with tf.variable_scope("critic_network", reuse=True):
+                self.estimated_values = tf.constant(1.0)
+
+            taken_actions = self.parse_actions(batched_taken_actions)
+
+        self.train_op = self.create_training_op(self.logprobs, taken_actions)
+        if model_input is None:
+            return self.input_placeholder, self.taken_actions_placeholder
+        return model_input, self.taken_actions_placeholder
 
     def create_reinforcement_training_model(self, model_input=None):
         converted_input = self.get_input(model_input)

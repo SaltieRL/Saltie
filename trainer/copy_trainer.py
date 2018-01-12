@@ -1,14 +1,12 @@
-from conversions.input.input_formatter import get_state_dim
-from modelHelpers.actions import action_handler
-from modelHelpers import feature_creator
-from models.actor_critic import base_actor_critic
-
 import numpy as np
-import tensorflow as tf
+
+from conversions.input.input_formatter import get_state_dim
+from trainer.base_classes.default_model_trainer import DefaultModelTrainer
+from trainer.base_classes.download_trainer import DownloadTrainer
+from trainer.utils.trainer_runner import run_trainer
 
 
-class CopyTrainer:
-    learning_rate = 0.3
+class CopyTrainer(DownloadTrainer, DefaultModelTrainer):
 
     file_number = 0
 
@@ -20,31 +18,27 @@ class CopyTrainer:
     input_batch = []
     label_batch = []
 
-    def __init__(self):
-        #config = tf.ConfigProto(
-        #    device_count={'GPU': 1}
-        #)
-        #self.sess = tf.Session(config=config)
-        self.sess = tf.Session()
-        # writer = tf.summary.FileWriter('tmp/{}-experiment'.format(random.randint(0, 1000000)))
+    def load_config(self):
+        super().load_config()
 
-        self.action_handler = action_handler.ActionHandler(split_mode=True)
+    def get_config_name(self):
+        return 'copy_trainer.cfg'
 
-        self.state_dim = get_state_dim()
-        print('state size ' + str(self.state_dim))
-        self.num_actions = self.action_handler.get_logit_size()
-        self.agent = self.get_model()(self.sess, self.state_dim, self.num_actions, self.action_handler, is_training=True, optimizer=tf.train.AdamOptimizer())
+    def get_event_filename(self):
+        return 'copy_replays'
 
-        self.loss, self.input, self.label = self.agent.create_copy_training_model(batch_size=self.batch_size)
+    def instantiate_model(self, model_class):
+        return model_class(self.sess, get_state_dim(),
+                           self.action_handler.get_logit_size(), action_handler=self.action_handler, is_training=True,
+                           optimizer=self.optimizer,
+                           config_file=self.create_config(), teacher='replay_files')
 
-        if self.agent.train_op is None:
-            self.agent.train_op = tf.train.GradientDescentOptimizer(self.learning_rate).minimize(self.loss)
-        self.agent.initialize_model()
-
-    def get_model(self):
-        #return rnn_atba.RNNAtba
-        #return nnatba.NNAtba
-        return base_actor_critic.BaseActorCritic
+    def setup_model(self):
+        super().setup_model()
+        self.model.create_model()
+        self.model.create_copy_training_model()
+        self.model.create_savers()
+        self.model.initialize_model()
 
     def start_new_file(self):
         self.file_number += 1
@@ -53,17 +47,9 @@ class CopyTrainer:
         self.input_game_tick = []
 
     def add_pair(self, input_array, output_array):
-        if len(input_array) == 193:
-            input_array = np.append(input_array, [0])
-            input_array = np.append(input_array, [0])
+        self.input_batch.append(input_array)
 
-        extra_features = feature_creator.get_extra_features_from_array(input_array)
-
-        input = np.append(input_array, extra_features)
-        self.input_batch.append(input)
-
-        label = self.action_handler.create_action_label(output_array)
-        #print(label)
+        label = self.action_handler.create_action_index(output_array)
         self.label_batch.append(label)
 
     def process_pair(self, input_array, output_array, pair_number, file_version):
@@ -77,30 +63,29 @@ class CopyTrainer:
 
     def batch_process(self):
         if len(self.input_batch) == 0 or len(self.label_batch) == 0:
-            print('batch was empty quitting')
             return
 
         self.input_batch = np.array(self.input_batch)
-        self.input_batch = self.input_batch.reshape(len(self.input_batch), self.state_dim)
+        self.input_batch = self.input_batch.reshape(-1, get_state_dim())
 
         self.label_batch = np.array(self.label_batch)
-        self.label_batch = self.label_batch.reshape(len(self.label_batch), self.num_actions)
+        self.label_batch = self.label_batch.reshape(-1, self.action_handler.get_number_actions())
 
-        _, c = self.sess.run([self.agent.train_op, self.loss], feed_dict={self.input: self.input_batch, self.label: self.label_batch})
+        self.model.run_train_step(True, self.input_batch, self.label_batch)
+
         # Display logs per step
         if self.epoch % self.display_step == 0:
-            print("File:", '%04d' % self.file_number, "Epoch:", '%04d' % (self.epoch+1),
-                  "cost= " + str(c))
+            print('has run on x values', self.batch_size)
         self.epoch += 1
 
     def end_file(self):
         self.batch_process()
-        if self.file_number % 3 == 0:
-            saver = tf.train.Saver()
-            file_path = self.agent.get_model_path(self.agent.get_default_file_name() + str(self.file_number) + ".ckpt")
-            saver.save(self.sess, file_path)
+        if self.file_number % 100 == 0:
+            self.model.save_model(model_path=None, global_step=self.file_number, quick_save=True)
 
     def end_everything(self):
-        saver = tf.train.Saver()
-        file_path = self.agent.get_model_path(self.agent.get_default_file_name() + ".ckpt")
-        saver.save(self.sess, file_path)
+        self.model.save_model()
+
+
+if __name__ == '__main__':
+    run_trainer(trainer=CopyTrainer())

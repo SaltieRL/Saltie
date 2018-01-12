@@ -129,7 +129,7 @@ class BaseModel:
         return loss, input, labels
 
     def apply_feature_creation(self, feature_creator):
-        self.state_feature_dim += tensorflow_feature_creator.get_feature_dim()
+        self.state_feature_dim = self.state_dim + tensorflow_feature_creator.get_feature_dim()
         self.feature_creator = feature_creator
 
     def get_input(self, model_input=None):
@@ -152,7 +152,7 @@ class BaseModel:
 
         if self.is_normalizing:
             if self.normalizer is None:
-                self.normalizer = DataNormalizer(self.mini_batch_size)
+                self.normalizer = DataNormalizer(self.mini_batch_size, self.feature_creator)
             safe_input = self.normalizer.apply_normalization(safe_input)
 
         return safe_input
@@ -235,6 +235,15 @@ class BaseModel:
         self._add_summary_writer()
         self.is_initialized = True
 
+    def run_train_step(self, calculate_summaries, input_states, actions):
+        """
+        Runs a single train step of the model
+        :param calculate_summaries: If the model should calculate summaries
+        :param input_states: A batch of input states which should equal batch size
+        :param actions: A batch of actions which should equal batch size
+        :return:
+        """
+        pass
 
     def get_model_name(self):
         """
@@ -338,7 +347,10 @@ class BaseModel:
     def _create_saved_model_path(self, model_path, file_name, key):
         return model_path + '/' + key + '/' + file_name
 
-    def save_model(self, model_path, global_step=None, quick_save=False):
+    def save_model(self, model_path=None, global_step=None, quick_save=False):
+        if model_path is None:
+            # use default values
+            model_path = self.get_model_path(self.get_default_file_name())
         self._create_model_directory(model_path)
         print('saving model at:\n', model_path)
         file_object = open(model_path + '.keys', 'w')
@@ -380,9 +392,10 @@ class BaseModel:
             print('model for saver not found:', path)
 
     def create_model_hash(self):
-        print(len(self.all_saved_variables))
-        for i in self.all_saved_variables:
+        all_saved_variables = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)
+        print(len(all_saved_variables))
+        for i in all_saved_variables:
             print(self.player_index, i.name)
-        saved_variables = self.sess.run(self.all_saved_variables)
+        saved_variables = self.sess.run(all_saved_variables)
         saved_variables = np.array(saved_variables)
         return int(hex(hash(str(saved_variables.data))), 16) % 2 ** 64

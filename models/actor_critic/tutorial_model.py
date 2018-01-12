@@ -15,9 +15,11 @@ class TutorialModel(PolicyGradient):
 
     def __init__(self, session, state_dim, num_actions, player_index=-1, action_handler=None, is_training=False,
                  optimizer=tf.train.GradientDescentOptimizer(learning_rate=0.1), summary_writer=None, summary_every=100,
-                 config_file=None):
+                 config_file=None, teacher=None):
         super().__init__(session, state_dim, num_actions, player_index, action_handler, is_training, optimizer,
                          summary_writer, summary_every, config_file)
+        if teacher is not None:
+            self.teacher = '_' + teacher
 
     def printParameters(self):
         super().printParameters()
@@ -37,6 +39,12 @@ class TutorialModel(PolicyGradient):
                                                             'gated_layer_index')
         except:
             print('unable to load gated_layer_index')
+
+        try:
+            self.teacher = '_' + self.config_file.get(base_model.MODEL_CONFIGURATION_HEADER,
+                                                             'teacher')
+        except:
+            print('unable to load the teacher')
 
         self.num_split_layers = min(self.num_split_layers, self.num_layers - 2)
 
@@ -76,11 +84,12 @@ class TutorialModel(PolicyGradient):
     def calculate_loss_of_actor(self, logprobs, taken_actions, index):
         cross_entropy_loss, initial_wrongness, __ = super().calculate_loss_of_actor(logprobs, taken_actions, index)
         wrongNess = tf.constant(initial_wrongness)
+        argmax = tf.argmax(logprobs, axis=1)
         if self.action_handler.action_list_names[index] != 'combo':
-            wrongNess += tf.cast(tf.abs(tf.cast(self.argmax[index], tf.int32) - taken_actions), tf.float32)
+            wrongNess += tf.cast(tf.abs(tf.cast(argmax, tf.int32) - taken_actions), tf.float32)
         else:
             # use temporarily
-            wrongNess += tf.cast(tf.abs(tf.cast(self.argmax[index], tf.int32) - taken_actions), tf.float32) / 2.0
+            wrongNess += tf.cast(tf.abs(tf.cast(argmax, tf.int32) - taken_actions), tf.float32) / 2.0
             #argmax = self.argmax[index]
             #number = tf.bitwise.bitwise_xor(tf.cast(self.argmax[index], tf.int32), taken_actions)
             # result = self.fancy_calculate_number_of_ones(number) # can't use until version 1.5
@@ -178,7 +187,7 @@ class TutorialModel(PolicyGradient):
         return total_layers, last_layer_size
 
     def get_model_name(self):
-        return 'tutorial_bot' + ('_split' if self.action_handler.is_split_mode else '')
+        return 'tutorial_bot' + ('_split' if self.action_handler.is_split_mode else '') + self.teacher
 
     def create_savers(self):
         super().create_savers()

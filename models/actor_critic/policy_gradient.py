@@ -97,7 +97,7 @@ class PolicyGradient(BaseActorCritic):
         all_but_last_row = self.all_but_last_actor_layer
 
         total_loss = tf.check_numerics(total_loss, 'nan loss is being created')
-        total_loss = tf.Print(total_loss, [total_loss], 'total_loss')
+        # total_loss = tf.Print(total_loss, [total_loss], 'total_loss')
 
         actor_gradients = self.optimizer.compute_gradients(total_loss,
                                                            all_but_last_row)
@@ -193,11 +193,11 @@ class PolicyGradient(BaseActorCritic):
     #def parse_actions(self, taken_actions):
     #    return tf.cast(self.action_handler.create_indexes_graph(taken_actions), tf.int32)
 
-    def run_train_step(self, calculate_summaries, input_states, actions, rewards):
+    def run_train_step(self, calculate_summaries, input_states, actions, rewards=None):
         # perform one update of training
         if self.batch_size > self.mini_batch_size:
             self.sess.run([self.input, self.taken_actions, self.iterator.initializer],
-                          feed_dict={self.input_placeholder:input_states, self.taken_actions_placeholder: actions})
+                          feed_dict={self.input_placeholder: input_states, self.taken_actions_placeholder: actions})
 
             counter = 0
             while True:

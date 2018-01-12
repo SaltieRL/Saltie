@@ -4,7 +4,7 @@ from conversions import output_formatter
 
 
 def get_feature_dim():
-    return 2
+    return 5
 
 class TensorflowFeatureCreator:
     unreal_to_degrees = tf.constant(
@@ -18,7 +18,11 @@ class TensorflowFeatureCreator:
 
     def generate_features_normalizers(self):
         return [tf.constant([-180.0, 180.0]),
-                tf.constant([-180.0, 180.0])]
+                tf.constant([-180.0, 180.0]),
+                tf.constant([-180.0, 180.0]),
+                tf.constant([-180.0, 180.0]),
+                # max distance (two corners)
+                tf.constant([0, 28695])]
 
     def generate_features(self, input_array):
         advanced_gtp = output_formatter.get_advanced_state(input_array)
@@ -30,13 +34,31 @@ class TensorflowFeatureCreator:
                                                          ball_info.Location.X,
                                                          ball_info.Location.Y)
 
+        xz_angle_to_ball = self.generate_angle_to_target(car_info.Location.X,
+                                                         car_info.Location.Z,
+                                                         car_info.Rotation.Pitch,
+                                                         ball_info.Location.X,
+                                                         ball_info.Location.Z)
+        yz_angle_to_ball = self.generate_angle_to_target(car_info.Location.Y,
+                                                         car_info.Location.Z,
+                                                         car_info.Rotation.Pitch,
+                                                         ball_info.Location.Y,
+                                                         ball_info.Location.Z)
+
         xy_angle_to_goal = self.generate_angle_to_target(car_info.Location.X,
                                                          car_info.Location.Y,
                                                          car_info.Rotation.Yaw,
                                                          self.blue_goal_x,
                                                          self.blue_goal_y)
 
-        return [xy_angle_to_ball, xy_angle_to_goal]
+        distance_to_ball = self.get_distance_location(car_info.Location, ball_info.Location)
+
+        return [xy_angle_to_ball, xy_angle_to_goal, xz_angle_to_ball, yz_angle_to_ball, distance_to_ball]
+
+    def get_distance_location(self, location1, location2):
+        return tf.sqrt(tf.pow(location1.X - location2.X, 2) +
+                       tf.pow(location1.Y - location2.Y, 2) +
+                       tf.pow(location1.Z - location2.Z, 2))
 
     def generate_angle_to_target(self, current_x, current_y, yaw, target_x, target_y):
         bot_yaw = (tf.abs(yaw) % 65536.0) * self.unreal_to_degrees
