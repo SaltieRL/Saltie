@@ -1,93 +1,96 @@
 import tensorflow as tf
 import time
 
-import inspect
-import importlib
-import configparser
-
 from conversions.input import tensorflow_input_formatter
 from modelHelpers.tensorflow_feature_creator import TensorflowFeatureCreator
-from trainer.utils import random_packet_creator as r
+from trainer.base_classes.base_trainer import BaseTrainer
+from trainer.utils import random_packet_creator
 from modelHelpers.actions import action_factory, dynamic_action_handler
 from trainer.utils import controller_statistics
 from tqdm import tqdm
-from trainer.utils.ding import ding
+
+from trainer.utils.trainer_runner import run_trainer
 
 
-def get_random_data(packet_generator, input_formatter):
-    game_tick_packet = packet_generator.get_random_array()
-    output_array = input_formatter.create_input_array(game_tick_packet, game_tick_packet.time_diff)
-    return output_array, game_tick_packet
+class RandomPacketTrainer(BaseTrainer):
+    total_batches = None
+    save_step = None
+    teacher_package = None
+    teacher = None
+    actions = None
+    sess = None
+    formatter = None
+    controller_stats = None
+    start_time = None
+    model_save_time = None
 
+    def get_random_data(self, packet_generator, input_formatter):
+        game_tick_packet = packet_generator.get_random_array()
+        output_array = input_formatter.create_input_array(game_tick_packet, game_tick_packet.time_diff)
+        return output_array, game_tick_packet
 
-def get_class(class_package, class_name):
-    class_package = importlib.import_module(class_package)
-    module_classes = inspect.getmembers(class_package, inspect.isclass)
-    for class_group in module_classes:
-        if class_group[0] == class_name:
-            return class_group[1]
-    return None
+    def get_config_name(self):
+        return 'randomised_trainer.cfg'
 
-def load_config():
-    # Obtaining necessary data for training from the config
-    config = configparser.RawConfigParser()
-    config.read('randomised_trainer.cfg')
-    batch_size = config.getint('Randomised Trainer Configuration', 'batch_size')
-    total_batches = config.getint('Randomised Trainer Configuration', 'total_batches')
-    save_step = config.getint('Randomised Trainer Configuration', 'save_step')
-    # Over here the model data is obtained
-    model_package = config.get('Model Configuration', 'model_package')
-    model_name = config.get('Model Configuration', 'model_name')
-    model_class = get_class(model_package, model_name)
+    def get_event_filename(self):
+        return 'random_packet'
 
-    teacher_package = config.get('Randomised Trainer Configuration', 'teacher_package')
-    return total_batches, batch_size, save_step, model_class, config, teacher_package
+    def load_config(self):
+        super().load_config()
+        # Obtaining necessary data for training from the config
+        config = self.create_config()
+        self.total_batches = config.getint('Randomised Trainer Configuration', 'total_batches')
+        self.save_step = config.getint('Randomised Trainer Configuration', 'save_step')
+        # Over here the model data is obtained
+        self.teacher_package = config.get('Randomised Trainer Configuration', 'teacher_package')
 
+    def setup_trainer(self):
+        self.teacher = self.teacher_package.split('.')[-1]
+        self.actions = action_factory.get_handler(control_scheme=dynamic_action_handler.super_split_scheme)
+        self.sess = tf.Session()
 
-def run():
-
-    total_batches, batch_size, save_step, model_class, config, teacher_package = load_config()
-
-    with tf.Session() as sess:
-        # Creating necessary instances
+    def instantiate_model(self, model_class):
         feature_creator = TensorflowFeatureCreator()
-        formatter = tensorflow_input_formatter.TensorflowInputFormatter(0, 0, batch_size, feature_creator)
-        packet_generator = r.TensorflowPacketGenerator(batch_size)
-        output_creator = get_class(teacher_package, 'TutorialBotOutput')(batch_size)
-        actions = action_factory.get_handler(control_scheme=dynamic_action_handler.super_split_scheme)
+        self.formatter = tensorflow_input_formatter.TensorflowInputFormatter(0, 0, self.batch_size, feature_creator)
 
-        teacher = teacher_package.split('.')[-1]
+        return model_class(self.sess, self.formatter.get_state_dim_with_features(),
+                           self.actions.get_logit_size(), action_handler=self.actions, is_training=True,
+                           optimizer=tf.train.AdamOptimizer(learning_rate=0.0001),
+                           config_file=self.create_config(), teacher=self.teacher)
 
-        # Initialising the model
-        model = model_class(sess, formatter.get_state_dim_with_features(),
-                            actions.get_logit_size(), action_handler=actions, is_training=True,
-                            optimizer=tf.train.AdamOptimizer(learning_rate=0.0001), config_file=config, teacher=teacher)
+    def setup_model(self):
+        super().setup_model()
+        output_creator = self.get_class(self.teacher_package, 'TutorialBotOutput')(self.batch_size)
+        packet_generator = random_packet_creator.TensorflowPacketGenerator(self.batch_size)
+        self.model.mini_batch_size = self.batch_size
+        input_state, game_tick_packet = self.get_random_data(packet_generator, self.formatter)
 
-        model.summary_writer = tf.summary.FileWriter(
-            model.get_event_path('random_packet'))
-        model.batch_size = batch_size
-        model.mini_batch_size = batch_size
-
-        # Starting model construction
-        input_state, game_tick_packet = get_random_data(packet_generator, formatter)
         real_output = output_creator.get_output_vector(game_tick_packet)
-        real_indexes = actions.create_action_indexes_graph(tf.stack(real_output, axis=1))
+        real_indexes = self.actions.create_action_indexes_graph(tf.stack(real_output, axis=1))
         reshaped = tf.cast(real_indexes, tf.int32)
-        model.taken_actions = reshaped
-        model.create_model(input_state)
-        model.create_copy_training_model(input_state)
-        model.create_savers()
-        model.initialize_model()
+        self.model.taken_actions = reshaped
+        self.model.create_model(input_state)
+        self.model.create_copy_training_model(input_state)
+        self.model.create_savers()
+        self.model.initialize_model()
 
         # Print out what the model uses
-        model.printParameters()
+        self.model.printParameters()
 
         # Initialising statistics and printing them before training
-        checks = controller_statistics.OutputChecks(batch_size, model.argmax, game_tick_packet,
-                                                    input_state, sess, actions, output_creator)
-        checks.create_model()
-        start = time.time()
-        checks.get_amounts()
+        self.controller_stats = controller_statistics.OutputChecks(self.batch_size, self.model.argmax, game_tick_packet,
+                                                                   input_state, self.sess, self.actions, output_creator)
+        self.controller_stats.create_model()
+
+    def _run_trainer(self):
+        self.start_time = time.time()
+        self.controller_stats.get_amounts()
+
+        total_batches = self.total_batches
+        batch_size = self.batch_size
+        save_step = self.save_step
+        sess = self.sess
+        model = self.model
 
         # Percentage to print statistics (and also save the model)
         print_every_x_batches = (total_batches * batch_size) / save_step
@@ -104,7 +107,7 @@ def run():
                 model.summary_writer.add_summary(summaries, i)
             if ((i + 1) * batch_size) % save_step == 0:
                 print('\nStats at', (i + 1) * batch_size, 'frames (', i + 1, 'batches): ')
-                checks.get_amounts()
+                self.controller_stats.get_amounts()
                 print('Saving model', model_counter)
                 start_saving = time.time()
                 model.save_model(model.get_model_path(model.get_default_file_name() + str(model_counter)),
@@ -113,24 +116,23 @@ def run():
                 model_save_time += time.time() - start_saving
                 model_counter += 1
 
+    def finish_trainer(self):
         start_saving = time.time()
-        final_model_path = model.get_model_path(model.get_default_file_name())
-        model.save_model(final_model_path)
+        final_model_path = self.model.get_model_path(self.model.get_default_file_name())
+        self.model.save_model(final_model_path)
         print('saved model in', time.time() - start_saving, 'seconds')
-        model_save_time += time.time() - start_saving
+        self.model_save_time += time.time() - start_saving
 
-        total_time = time.time() - start
+        total_time = time.time() - self.start_time
         print('Total time:', total_time)
-        print('Time per batch:', (total_time - model_save_time) / (float(total_batches)))
-        print('Time spent saving', model_save_time)
+        print('Time per batch:', (total_time - self.model_save_time) / (float(self.total_batches)))
+        print('Time spent saving', self.model_save_time)
 
         print('Final stats:')
-        checks.get_amounts()
-        checks.get_final_stats()
-
-        ding()
-
+        self.controller_stats.get_amounts()
+        self.controller_stats.get_final_stats()
+        super().finish_trainer()
 
 
 if __name__ == '__main__':
-    run()
+    run_trainer(trainer=RandomPacketTrainer())

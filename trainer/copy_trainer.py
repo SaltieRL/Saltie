@@ -1,6 +1,8 @@
+from conversions.input import tensorflow_input_formatter
 from conversions.input.input_formatter import get_state_dim
-from modelHelpers.actions import action_handler
+from modelHelpers.actions import action_handler, action_factory, dynamic_action_handler
 from modelHelpers import feature_creator
+from modelHelpers.tensorflow_feature_creator import TensorflowFeatureCreator
 from models.actor_critic import base_actor_critic
 
 import numpy as np
@@ -8,6 +10,7 @@ import tensorflow as tf
 
 
 class CopyTrainer:
+    model_class = None
     learning_rate = 0.3
 
     file_number = 0
@@ -21,18 +24,12 @@ class CopyTrainer:
     label_batch = []
 
     def __init__(self):
-        #config = tf.ConfigProto(
-        #    device_count={'GPU': 1}
-        #)
-        #self.sess = tf.Session(config=config)
         self.sess = tf.Session()
-        # writer = tf.summary.FileWriter('tmp/{}-experiment'.format(random.randint(0, 1000000)))
 
-        self.action_handler = action_handler.ActionHandler(split_mode=True)
+        feature_creator = TensorflowFeatureCreator()
+        formatter = tensorflow_input_formatter.TensorflowInputFormatter(0, 0, self.batch_size, feature_creator)
+        actions = action_factory.get_handler(control_scheme=dynamic_action_handler.super_split_scheme)
 
-        self.state_dim = get_state_dim()
-        print('state size ' + str(self.state_dim))
-        self.num_actions = self.action_handler.get_logit_size()
         self.agent = self.get_model()(self.sess, self.state_dim, self.num_actions, self.action_handler, is_training=True, optimizer=tf.train.AdamOptimizer())
 
         self.loss, self.input, self.label = self.agent.create_copy_training_model(batch_size=self.batch_size)
@@ -42,9 +39,7 @@ class CopyTrainer:
         self.agent.initialize_model()
 
     def get_model(self):
-        #return rnn_atba.RNNAtba
-        #return nnatba.NNAtba
-        return base_actor_critic.BaseActorCritic
+        return self.model_class
 
     def start_new_file(self):
         self.file_number += 1

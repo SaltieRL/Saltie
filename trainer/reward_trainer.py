@@ -50,11 +50,7 @@ class RewardTrainer:
 
         self.batch_size = self.agent.batch_size
 
-
     def get_model(self):
-        #return rnn_atba.RNNAtba
-        #return nnatba.NNAtba
-        #return base_actor_critic.BaseActorCritic
         return self.model_class
 
     def start_new_file(self):
@@ -63,8 +59,6 @@ class RewardTrainer:
         self.reward_manager = reward_manager.RewardManager()
 
     def process_pair(self, input_array, output_array, pair_number, file_version):
-        # extra_features = feature_creator.get_extra_features_from_array(input_array)
-
         if self.last_action is not None:
             reward = 0  # self.reward_manager.get_reward(input_array)
             self.agent.store_rollout(input_state=input_array, last_action=self.last_action, reward=reward)
