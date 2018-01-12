@@ -158,7 +158,9 @@ class BaseReinforcement(base_model.BaseModel):
         # clean up
         self.clean_up()
 
-    def run_train_step(self, calculate_summaries, input_states, actions, rewards):
+    def run_train_step(self, calculate_summaries, input_states, actions, rewards=None):
+        if rewards is None:
+            rewards = np.zeros([self.batch_size, 1])
         # perform one update of training
         result, summary_str = self.sess.run([
             self.train_op,

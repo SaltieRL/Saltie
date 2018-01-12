@@ -16,7 +16,7 @@ class RandomPacketTrainer(DefaultModelTrainer):
     teacher = None
     action_handler = None
     sess = None
-    formatter = None
+    input_formatter = None
     controller_stats = None
     start_time = None
     model_save_time = None
@@ -46,7 +46,7 @@ class RandomPacketTrainer(DefaultModelTrainer):
         self.teacher = self.teacher_package.split('.')[-1]
 
     def instantiate_model(self, model_class):
-        return model_class(self.sess, self.formatter.get_state_dim_with_features(),
+        return model_class(self.sess, self.input_formatter.get_state_dim_with_features(),
                            self.action_handler.get_logit_size(), action_handler=self.action_handler, is_training=True,
                            optimizer=self.optimizer,
                            config_file=self.create_config(), teacher=self.teacher)
@@ -55,7 +55,7 @@ class RandomPacketTrainer(DefaultModelTrainer):
         super().setup_model()
         output_creator = self.get_class(self.teacher_package, 'TutorialBotOutput')(self.batch_size)
         packet_generator = random_packet_creator.TensorflowPacketGenerator(self.batch_size)
-        input_state, game_tick_packet = self.get_random_data(packet_generator, self.formatter)
+        input_state, game_tick_packet = self.get_random_data(packet_generator, self.input_formatter)
 
         real_output = output_creator.get_output_vector(game_tick_packet)
         real_indexes = self.action_handler.create_action_indexes_graph(tf.stack(real_output, axis=1))

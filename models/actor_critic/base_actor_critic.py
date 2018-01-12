@@ -149,6 +149,9 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
             taken_actions = self.parse_actions(batched_taken_actions)
 
         self.train_op = self.create_training_op(self.logprobs, taken_actions)
+        if model_input is None:
+            return self.input_placeholder, self.taken_actions_placeholder
+        return model_input, self.taken_actions_placeholder
 
     def create_reinforcement_training_model(self, model_input=None):
         converted_input = self.get_input(model_input)

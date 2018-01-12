@@ -235,6 +235,15 @@ class BaseModel:
         self._add_summary_writer()
         self.is_initialized = True
 
+    def run_train_step(self, calculate_summaries, input_states, actions):
+        """
+        Runs a single train step of the model
+        :param calculate_summaries: If the model should calculate summaries
+        :param input_states: A batch of input states which should equal batch size
+        :param actions: A batch of actions which should equal batch size
+        :return:
+        """
+        pass
 
     def get_model_name(self):
         """

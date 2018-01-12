@@ -1,19 +1,12 @@
-import os
-
-from conversions.input.input_formatter import get_state_dim
-from modelHelpers.actions import action_handler, dynamic_action_handler, action_factory
 from modelHelpers import reward_manager
 import time
 
-import tensorflow as tf
-
 from trainer.base_classes.default_model_trainer import DefaultModelTrainer
 from trainer.base_classes.download_trainer import DownloadTrainer
+from trainer.utils.trainer_runner import run_trainer
 
 
 class RewardTrainer(DownloadTrainer, DefaultModelTrainer):
-    learning_rate = 0.3
-
     file_number = 0
 
     epoch = 0
@@ -61,21 +54,24 @@ class RewardTrainer(DownloadTrainer, DefaultModelTrainer):
             for i in range(int(len(input_array) / self.batch_size)):
                 self.process_pair_batch(
                     input_array[i * self.batch_size: (i + 1) * self.batch_size],
-                    output_array[i * self.batch_size: (i + 1) * self.batch_size])
+                    output_array[i * self.batch_size: (i + 1) * self.batch_size], pair_number + self.batch_size,
+                    file_version)
                 counter = i
             if counter * self.batch_size < len(input_array):
+                batch_number = len(input_array) - (counter * self.batch_size)
                 self.process_pair_batch(
                     input_array[counter * self.batch_size:],
-                    output_array[counter * self.batch_size:])
-            return
+                    output_array[counter * self.batch_size:], file_version, pair_number + batch_number)
+                self.local_pair_number = batch_number
+            self.last_pair_number = pair_number
+        else:
+            self.model.store_rollout(input_state=input_array, last_action=output_array, reward=[])
+            self.local_pair_number += (pair_number - self.last_pair_number)
+            self.last_pair_number = pair_number
 
-        self.model.store_rollout(input_state=input_array, last_action=output_array, reward=[])
-        self.local_pair_number += (pair_number - self.last_pair_number)
-        self.last_pair_number = pair_number
-
-        if self.local_pair_number >= self.batch_size:
-            self.local_pair_number = 0
-            self.batch_process()
+            if self.local_pair_number >= self.batch_size:
+                self.local_pair_number = 0
+                self.batch_process()
 
     def batch_process(self):
         start = time.time()
@@ -93,8 +89,12 @@ class RewardTrainer(DownloadTrainer, DefaultModelTrainer):
         self.action_time_difference = 0
         self.train_time_difference = 0
         if self.file_number % 100 == 0:
-            self.model.save_model(self.model.get_model_path(self.model.get_default_file_name()),
+            self.model.save_model(model_path=None,
                                   global_step=self.file_number, quick_save=True)
 
     def end_everything(self):
         self.model.save_model()
+
+
+if __name__ == '__main__':
+    run_trainer(trainer=RewardTrainer())
