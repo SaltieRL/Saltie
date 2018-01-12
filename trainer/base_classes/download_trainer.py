@@ -3,6 +3,7 @@ import io
 import time
 
 from conversions import binary_converter
+from conversions.server_converter import ServerConverter
 from trainer.base_classes.base_trainer import BaseTrainer
 from trainer.utils.file_download_manager import get_file_get_function, get_file_list_get_function
 from trainer.utils.threaded_file_downloader import ThreadedFileDownloader
@@ -53,7 +54,8 @@ class DownloadTrainer(BaseTrainer):
         Sets up the downloader
         """
         if self.download_files:
-            self.input_server = None
+            import config
+            self.input_server = ServerConverter(config.UPLOAD_SERVER, False, False, False)
         self.get_file_function = get_file_get_function(self.download_files, self.input_server)
         self.get_file_list_get_function = get_file_list_get_function(self.download_files, self.input_server)
         self.download_manager = ThreadedFileDownloader(self.max_files, self.num_downloader_threads,
