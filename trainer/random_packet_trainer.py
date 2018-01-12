@@ -1,23 +1,20 @@
 import tensorflow as tf
 import time
 
-from conversions.input import tensorflow_input_formatter
-from modelHelpers.tensorflow_feature_creator import TensorflowFeatureCreator
-from trainer.base_classes.base_trainer import BaseTrainer
+from trainer.base_classes.default_model_trainer import DefaultModelTrainer
 from trainer.utils import random_packet_creator
-from modelHelpers.actions import action_factory, dynamic_action_handler
 from trainer.utils import controller_statistics
 from tqdm import tqdm
 
 from trainer.utils.trainer_runner import run_trainer
 
 
-class RandomPacketTrainer(BaseTrainer):
+class RandomPacketTrainer(DefaultModelTrainer):
     total_batches = None
     save_step = None
     teacher_package = None
     teacher = None
-    actions = None
+    action_handler = None
     sess = None
     formatter = None
     controller_stats = None
@@ -45,30 +42,25 @@ class RandomPacketTrainer(BaseTrainer):
         self.teacher_package = config.get('Randomised Trainer Configuration', 'teacher_package')
 
     def setup_trainer(self):
+        super().setup_trainer()
         self.teacher = self.teacher_package.split('.')[-1]
-        self.actions = action_factory.get_handler(control_scheme=dynamic_action_handler.super_split_scheme)
-        self.sess = tf.Session()
 
     def instantiate_model(self, model_class):
-        feature_creator = TensorflowFeatureCreator()
-        self.formatter = tensorflow_input_formatter.TensorflowInputFormatter(0, 0, self.batch_size, feature_creator)
-
         return model_class(self.sess, self.formatter.get_state_dim_with_features(),
-                           self.actions.get_logit_size(), action_handler=self.actions, is_training=True,
-                           optimizer=tf.train.AdamOptimizer(learning_rate=0.0001),
+                           self.action_handler.get_logit_size(), action_handler=self.action_handler, is_training=True,
+                           optimizer=self.optimizer,
                            config_file=self.create_config(), teacher=self.teacher)
 
     def setup_model(self):
         super().setup_model()
         output_creator = self.get_class(self.teacher_package, 'TutorialBotOutput')(self.batch_size)
         packet_generator = random_packet_creator.TensorflowPacketGenerator(self.batch_size)
-        self.model.mini_batch_size = self.batch_size
         input_state, game_tick_packet = self.get_random_data(packet_generator, self.formatter)
 
         real_output = output_creator.get_output_vector(game_tick_packet)
-        real_indexes = self.actions.create_action_indexes_graph(tf.stack(real_output, axis=1))
+        real_indexes = self.action_handler.create_action_indexes_graph(tf.stack(real_output, axis=1))
         reshaped = tf.cast(real_indexes, tf.int32)
-        self.model.taken_actions = reshaped
+        self.model.taken_action_handler = reshaped
         self.model.create_model(input_state)
         self.model.create_copy_training_model(input_state)
         self.model.create_savers()
@@ -79,7 +71,7 @@ class RandomPacketTrainer(BaseTrainer):
 
         # Initialising statistics and printing them before training
         self.controller_stats = controller_statistics.OutputChecks(self.batch_size, self.model.argmax, game_tick_packet,
-                                                                   input_state, self.sess, self.actions, output_creator)
+                                                                   input_state, self.sess, self.action_handler, output_creator)
         self.controller_stats.create_model()
 
     def _run_trainer(self):
@@ -118,8 +110,7 @@ class RandomPacketTrainer(BaseTrainer):
 
     def finish_trainer(self):
         start_saving = time.time()
-        final_model_path = self.model.get_model_path(self.model.get_default_file_name())
-        self.model.save_model(final_model_path)
+        self.model.save_model()
         print('saved model in', time.time() - start_saving, 'seconds')
         self.model_save_time += time.time() - start_saving
 

@@ -53,6 +53,7 @@ class DownloadTrainer(BaseTrainer):
         """
         Sets up the downloader
         """
+        super().setup_trainer()
         if self.download_files:
             import config
             self.input_server = ServerConverter(config.UPLOAD_SERVER, False, False, False)
@@ -64,6 +65,7 @@ class DownloadTrainer(BaseTrainer):
 
     def _run_trainer(self):
         self.download_manager.create_and_run_workers()
+        self.end_everything()
 
     def start_new_file(self):
         """
@@ -96,6 +98,9 @@ class DownloadTrainer(BaseTrainer):
     def end_file(self):
         """Called after all training on this file has completed"""
         pass
+
+    def end_everything(self):
+        """Called after all files have been trained and training is complete"""
 
     def train_file(self, file):
         self.start_new_file()

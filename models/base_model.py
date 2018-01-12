@@ -338,7 +338,10 @@ class BaseModel:
     def _create_saved_model_path(self, model_path, file_name, key):
         return model_path + '/' + key + '/' + file_name
 
-    def save_model(self, model_path, global_step=None, quick_save=False):
+    def save_model(self, model_path=None, global_step=None, quick_save=False):
+        if model_path is None:
+            # use default values
+            model_path = self.get_model_path(self.get_default_file_name())
         self._create_model_directory(model_path)
         print('saving model at:\n', model_path)
         file_object = open(model_path + '.keys', 'w')
