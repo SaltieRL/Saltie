@@ -90,12 +90,9 @@ class BaseReinforcement(base_model.BaseModel):
                 self.taken_actions_placeholder = tf.placeholder(tf.int32,
                                                                 (None, self.action_handler.get_number_actions()),
                                                                 name="taken_actions_phd")
-                self.taken_actions = tf.Variable(self.taken_actions_placeholder, validate_shape=False, trainable=False)
-                self.taken_actions.set_shape([None, self.action_handler.get_number_actions()])
             else:
                 self.taken_actions_placeholder = tf.placeholder(tf.int32, (None,), name="taken_actions_phd")
-                self.taken_actions = tf.Variable(self.taken_actions_placeholder, validate_shape=False, trainable=False)
-                self.taken_actions.set_shape([None,])
+            self.taken_actions = self.taken_actions_placeholder
             self.input_rewards = self.create_reward()
         return {}
 

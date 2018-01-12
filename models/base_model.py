@@ -74,8 +74,7 @@ class BaseModel:
     def _create_variables(self):
         with tf.name_scope("model_inputs"):
             self.input_placeholder = tf.placeholder(tf.float32, shape=(None, self.state_dim), name="state_input")
-            self.input = tf.Variable(self.input_placeholder, validate_shape=False, trainable=False)
-            self.input.set_shape([None, self.state_dim])
+            self.input = self.input_placeholder
         return {}
 
     def store_rollout(self, input_state, last_action, reward):
@@ -342,7 +341,10 @@ class BaseModel:
         self._save_model(self.sess, self.savers_map[key], keyed_path, global_step)
 
     def _save_model(self, session, saver, file_path, global_step):
-        saver.save(session, file_path, global_step=global_step)
+        try:
+            saver.save(session, file_path, global_step=global_step)
+        except Exception as e:
+            print(e)
 
     def _create_saved_model_path(self, model_path, file_name, key):
         return model_path + '/' + key + '/' + file_name
