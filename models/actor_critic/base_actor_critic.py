@@ -121,7 +121,8 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
                                                                      lambda input_tensor: tf.nn.softmax(input_tensor),
                                                                      return_as_list=True)
         self.argmax = self.action_handler.run_func_on_split_tensors(self.policy_outputs,
-                                                                     lambda input_tensor: tf.argmax(tf.nn.softmax(input_tensor), axis=1),
+                                                                     lambda input_tensor: tf.argmax(
+                                                                         tf.nn.softmax(input_tensor), axis=1),
                                                                      return_as_list=True)
         self.smart_max = self.action_handler.run_func_on_split_tensors(self.policy_outputs,
                                                                        self.smart_argmax,

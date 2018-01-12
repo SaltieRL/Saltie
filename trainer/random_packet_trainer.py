@@ -61,7 +61,7 @@ def run():
         # Initialising the model
         model = model_class(sess, formatter.get_state_dim_with_features(),
                             actions.get_logit_size(), action_handler=actions, is_training=True,
-                            optimizer=tf.train.AdamOptimizer(learning_rate=0.001), config_file=config, teacher=teacher)
+                            optimizer=tf.train.AdamOptimizer(learning_rate=0.0001), config_file=config, teacher=teacher)
 
         model.summary_writer = tf.summary.FileWriter(
             model.get_event_path('random_packet'))
@@ -75,7 +75,7 @@ def run():
         reshaped = tf.cast(real_indexes, tf.int32)
         model.taken_actions = reshaped
         model.create_model(input_state)
-        model.create_reinforcement_training_model(input_state)
+        model.create_copy_training_model(input_state)
         model.create_savers()
         model.initialize_model()
 
