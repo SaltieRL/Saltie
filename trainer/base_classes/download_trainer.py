@@ -19,7 +19,7 @@ class DownloadTrainer(BaseTrainer):
     download_manager = None
     num_downloader_threads = None
     num_trainer_threads = None
-    batch_process = None
+    should_batch_process = None
 
     def load_config(self):
         super().load_config()
@@ -44,10 +44,14 @@ class DownloadTrainer(BaseTrainer):
         except Exception as e:
             self.num_trainer_threads = 1
         try:
-            self.batch_process = config.getboolean(self.DOWNLOAD_TRAINER_CONFIGURATION_HEADER,
+            self.should_batch_process = config.getboolean(self.DOWNLOAD_TRAINER_CONFIGURATION_HEADER,
                                                    'batch_process')
         except Exception as e:
-            self.batch_process = False
+            self.should_batch_process = False
+
+    def load_server(self):
+        import config
+        self.input_server = ServerConverter(config.UPLOAD_SERVER, False, False, False)
 
     def setup_trainer(self):
         """
@@ -55,8 +59,7 @@ class DownloadTrainer(BaseTrainer):
         """
         super().setup_trainer()
         if self.download_files:
-            import config
-            self.input_server = ServerConverter(config.UPLOAD_SERVER, False, False, False)
+            self.load_server()
         self.get_file_function = get_file_get_function(self.download_files, self.input_server)
         self.get_file_list_get_function = get_file_list_get_function(self.download_files, self.input_server)
         self.download_manager = ThreadedFileDownloader(self.max_files, self.num_downloader_threads,
@@ -104,7 +107,7 @@ class DownloadTrainer(BaseTrainer):
 
     def train_file(self, file):
         self.start_new_file()
-        if self.batch_process:
+        if self.should_batch_process:
             try:
                 binary_converter.read_data(file, self.process_pair_batch, batching=True)
             except Exception as e:
