@@ -1,6 +1,4 @@
 from trainer.utils import random_packet_creator
-from TutorialBot import tutorial_bot_output
-from conversions.input import tensorflow_input_formatter
 import tensorflow as tf
 import numpy as np
 
@@ -35,7 +33,7 @@ class OutputChecks:
         controls = tf.transpose(
             self.actionHandler.create_tensorflow_controller_from_selection(self.model_output, self.packets))
         if not self.requires_output:
-            bot_output = self.tutorial_bot.get_output_vector(self.game_tick_packet)
+            bot_output = self.sess.run(self.tutorial_bot.get_output_vector(self.game_tick_packet))
 
         output = self.sess.run(controls)
 

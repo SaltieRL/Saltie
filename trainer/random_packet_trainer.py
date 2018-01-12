@@ -46,7 +46,7 @@ class RandomPacketTrainer(DefaultModelTrainer):
         self.teacher = self.teacher_package.split('.')[-1]
 
     def instantiate_model(self, model_class):
-        return model_class(self.sess, self.input_formatter.get_state_dim_with_features(),
+        return model_class(self.sess, self.input_formatter.get_state_dim(),
                            self.action_handler.get_logit_size(), action_handler=self.action_handler, is_training=True,
                            optimizer=self.optimizer,
                            config_file=self.create_config(), teacher=self.teacher)
