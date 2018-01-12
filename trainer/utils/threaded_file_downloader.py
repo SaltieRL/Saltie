@@ -67,4 +67,4 @@ class ThreadedFileDownloader:
 
         print('ran through all files in ' + str(self.total_time / 60) + ' minutes')
         print('ran through all files in ' + str(self.total_time / 3600) + ' hours')
-        print('average time per file: ' + str((self.total_time / self.total_files)) + ' seconds')
+        print('average time per file: ' + str((self.total_time / max(1, self.total_files))) + ' seconds')
