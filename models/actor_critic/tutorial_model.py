@@ -94,6 +94,10 @@ class TutorialModel(PolicyGradient):
             #number = tf.bitwise.bitwise_xor(tf.cast(self.argmax[index], tf.int32), taken_actions)
             # result = self.fancy_calculate_number_of_ones(number) # can't use until version 1.5
 
+        if self.action_handler.action_list_names[index] == 'steer':
+            cross_entropy_loss = tf.Print(cross_entropy_loss, [argmax, taken_actions], 'act')
+            cross_entropy_loss = tf.Print(cross_entropy_loss, [cross_entropy_loss, wrongNess], 'los')
+
         return cross_entropy_loss, wrongNess, False
 
     def create_gated_layer(self, inner_layer, input_state, layer_number, network_size, network_prefix, variable_list=None, scope=None):

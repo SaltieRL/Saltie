@@ -61,6 +61,7 @@ class TensorflowFeatureCreator:
                        tf.pow(location1.Z - location2.Z, 2))
 
     def generate_angle_to_target(self, current_x, current_y, yaw, target_x, target_y):
+        # Get car's yaw and convert from Unreal Rotator units to degrees
         bot_yaw = (tf.abs(yaw) % 65536.0) * self.unreal_to_degrees
         # multiple by sign or raw data
         bot_yaw *= tf.sign(yaw)
