@@ -78,8 +78,6 @@ class TutorialBotOutput:
         bot_yaw = bot_rot.Yaw
         xy_distance = self.distance(bot_pos.X, bot_pos.Y, ball_pos.X, ball_pos.Y)
 
-        # xy_distance = tf.Print(xy_distance, [xy_distance], summarize=1)
-
         # Boost when ball is far enough away
         boost = tf.logical_and(tf.greater(xy_distance, self.distance_from_ball_to_boost),
                                tf.greater(car_boost, 34))

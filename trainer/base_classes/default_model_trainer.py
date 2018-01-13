@@ -35,7 +35,7 @@ class DefaultModelTrainer(BaseTrainer):
         if self.should_apply_features:
             self.feature_creator = TensorflowFeatureCreator()
         self.input_formatter = tensorflow_input_formatter.TensorflowInputFormatter(0, 0, self.batch_size,
-                                                                                   self.feature_creator)
+                                                                                   None)
         self.optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
 
     def setup_model(self):

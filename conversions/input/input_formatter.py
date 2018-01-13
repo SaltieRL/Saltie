@@ -194,8 +194,4 @@ class InputFormatter:
 
     @staticmethod
     def get_state_dim():
-        return 219
-
-    @staticmethod
-    def get_state_dim_with_features():
-        return get_state_dim() + get_feature_dim()
+        return get_state_dim()

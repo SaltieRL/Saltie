@@ -158,7 +158,7 @@ class DataNormalizer:
             game_tick_packet.gameBoosts = self.get_boost_info()
         return self.formatter.create_input_array(game_tick_packet)
 
-    def apply_normalization(self, input_array, feature_creator=None):
+    def apply_normalization(self, input_array):
         if self.normalization_array is None:
             self.normalization_array = self.get_normalization_array()
 

@@ -70,6 +70,7 @@ class BaseModel:
         print('model parameters:')
         print('batch size:', self.batch_size)
         print('mini batch size:', self.mini_batch_size)
+        print('using features', (self.feature_creator is not None))
 
     def _create_variables(self):
         with tf.name_scope("model_inputs"):

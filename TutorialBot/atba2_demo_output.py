@@ -2,7 +2,7 @@ import math
 import tensorflow as tf
 
 pi = 3.141592653589793
-U = 32768
+U = 32768.0
 
 class TutorialBotOutput:
 
@@ -73,7 +73,7 @@ def local(tL,oL,oR,Urot=True):
     L = tL-oL
     if Urot :
         pitch = oR[0]*pi/U
-        yaw = Range180(oR[1]-16384.0,32768.0)*pi/U
+        yaw = Range180(oR[1]-U/2,U)*pi/U
         roll = oR[2]*pi/U
         R = -tf.stack([pitch,yaw,roll])
     else :
@@ -97,6 +97,6 @@ def d3(A,B=[0,0,0]):
 def bucket(a):
     cond1 = tf.cast(abs(a)> .2, tf.float32)
     result = cond1*tf.sign(a) + (1-cond1)*.5*tf.sign(a)
-    cond2 = tf.cast(abs(a)>.07, tf.float32)
+    cond2 = tf.cast(abs(a)>.01, tf.float32)
     result = cond2*result
     return result
