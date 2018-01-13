@@ -1,9 +1,10 @@
+import numpy as np
 import tensorflow as tf
+import math
 
 from models import base_model
 from models.actor_critic.base_actor_critic import BaseActorCritic
 from modelHelpers import tensorflow_reward_manager
-import numpy as np
 
 
 class PolicyGradient(BaseActorCritic):
@@ -198,9 +199,10 @@ class PolicyGradient(BaseActorCritic):
         if self.batch_size > self.mini_batch_size:
             self.sess.run([self.input, self.taken_actions, self.iterator.initializer],
                           feed_dict={self.input_placeholder: input_states, self.taken_actions_placeholder: actions})
-
+            num_batches = math.ceil(float(self.batch_size) / float(self.mini_batch_size))
+            # print('num batches', num_batches)
             counter = 0
-            while True:
+            while counter < num_batches:
                 try:
                     result, summary_str = self.sess.run([
                         self.train_op,

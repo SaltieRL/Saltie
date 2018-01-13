@@ -70,8 +70,10 @@ class RandomPacketTrainer(DefaultModelTrainer):
         self.model.printParameters()
 
         # Initialising statistics and printing them before training
-        self.controller_stats = controller_statistics.OutputChecks(self.batch_size, self.model.argmax, game_tick_packet,
-                                                                   input_state, self.sess, self.action_handler, output_creator)
+        self.controller_stats = controller_statistics.OutputChecks(self.sess, self.action_handler,
+                                                                   self.batch_size, self.model.argmax,
+                                                                   game_tick_packet=game_tick_packet,
+                                                                   bot=output_creator)
         self.controller_stats.create_model()
 
     def _run_trainer(self):

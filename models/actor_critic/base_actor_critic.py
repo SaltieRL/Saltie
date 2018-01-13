@@ -58,22 +58,28 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
         super().load_config_file()
         try:
             self.num_layers = self.config_file.getint(base_model.MODEL_CONFIGURATION_HEADER,
-                                             'num_layers')
+                                                      'num_layers')
         except:
             print('unable to load num_layers')
 
         try:
             self.network_size = self.config_file.getint(base_model.MODEL_CONFIGURATION_HEADER,
-                                                      'num_width')
+                                                        'num_width')
         except:
             print('unable to load the width of each layer')
 
 
         try:
             self.forced_frame_action = self.config_file.getint(base_model.MODEL_CONFIGURATION_HEADER,
-                                                         'exploration_factor')
+                                                               'exploration_factor')
         except:
             print('unable to load exploration_factor')
+
+        try:
+            self.keep_prob = self.config_file.getfloat(base_model.MODEL_CONFIGURATION_HEADER,
+                                                     'keep_probability')
+        except:
+            print('unable to load keep_probability')
 
     def smart_argmax(self, input_tensor):
         argmax_index = tf.cast(tf.argmax(input_tensor, axis=1), tf.int32)

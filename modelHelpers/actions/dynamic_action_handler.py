@@ -123,6 +123,7 @@ class DynamicActionHandler(SplitActionHandler):
 
         ranged_actions = []
         combo_actions = tf.constant(np.transpose(np.array(self.button_combo)))
+        action_selection = tf.identity(action_selection, name='action_selection')
         action_selection = tf.cast(action_selection, tf.int32)
 
         # handle ranged actions
