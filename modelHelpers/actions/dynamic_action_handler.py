@@ -14,9 +14,11 @@ super_split_scheme = [[('throttle', (-1, 1.5, .5)), ('steer', (-1, 1.5, .5)),
                       [('jump', (0, 2, 1)), ('boost', (0, 2, 1)), ('handbrake', (0, 2, 1))],
                       []]
 
-
-
-
+only_steer_split_scheme = [[('steer', (-1, 1.5, .5))],
+                      [('throttle', (-1, 2, 1)), ('jump', (0, 2, 1)), ('boost', (0, 2, 1)),
+                       ('handbrake', (0, 2, 1)), ('yaw', (-1, 2, 1)),
+                       ('pitch', (-1, 2, 1)), ('roll', (-1, 2, 1))],
+                      []]
 
 
 class DynamicActionHandler(SplitActionHandler):
