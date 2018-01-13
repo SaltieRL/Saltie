@@ -14,10 +14,11 @@ FLIPPED_FILE_VERSION = 1
 HASHED_NAME_FILE_VERSION = 2
 IS_EVAL_FILE_VERSION = 3
 BATCH_ARRAY_FILE_VERSION = 4
+TIME_ADDITION_FILE_VERSION = 5
 
 
 def get_latest_file_version():
-    return BATCH_ARRAY_FILE_VERSION
+    return TIME_ADDITION_FILE_VERSION
 
 
 def write_array_to_file(game_file, array):
