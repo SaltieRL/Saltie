@@ -192,5 +192,6 @@ class InputFormatter:
         """
         return [item for sublist in array_of_array for item in sublist]
 
-    def get_state_dim_with_features(self):
-        return get_state_dim() + get_feature_dim()
+    @staticmethod
+    def get_state_dim():
+        return get_state_dim()

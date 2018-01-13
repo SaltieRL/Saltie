@@ -217,7 +217,7 @@ class DynamicActionHandler(SplitActionHandler):
                 binary_combo_index += powed * tf.cast(action_taken, tf.float32)
         return binary_combo_index
 
-    def create_action_indexes_graph(self, real_action):
+    def create_action_indexes_graph(self, real_action, batch_size=None):
         indexes = []
         combo_list = []
         for i in range(len(self.combo_name_list)):
@@ -241,8 +241,11 @@ class DynamicActionHandler(SplitActionHandler):
             else:
                 if indexes[action_index] is None:
                     indexes[action_index] = self._find_closet_real_number_graph(real_control)
-
-        indexes[self.action_name_index_map[COMBO]] = tf.squeeze(self._create_combo_index_graph(combo_list, real_action))
+        combo_action = self._create_combo_index_graph(combo_list, real_action)
+        if batch_size is not None and batch_size == 1:
+            indexes[self.action_name_index_map[COMBO]] = tf.reshape(combo_action, [1])
+        else:
+            indexes[self.action_name_index_map[COMBO]] = tf.squeeze(combo_action)
 
         result = tf.stack(indexes, axis=1)
         return result

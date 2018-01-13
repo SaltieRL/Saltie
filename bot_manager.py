@@ -79,7 +79,8 @@ class BotManager:
         # Create bot from module
         try:
             agent = agent_module.Agent(self.name, self.team, self.index, config_file=self.config_file)
-        except TypeError:
+        except TypeError as e:
+            print(e)
             agent = agent_module.Agent(self.name, self.team, self.index)
 
         if hasattr(agent, 'create_model_hash'):

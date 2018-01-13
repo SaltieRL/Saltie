@@ -46,7 +46,7 @@ class RandomPacketTrainer(DefaultModelTrainer):
         self.teacher = self.teacher_package.split('.')[-1]
 
     def instantiate_model(self, model_class):
-        return model_class(self.sess, self.input_formatter.get_state_dim_with_features(),
+        return model_class(self.sess, self.input_formatter.get_state_dim(),
                            self.action_handler.get_logit_size(), action_handler=self.action_handler, is_training=True,
                            optimizer=self.optimizer,
                            config_file=self.create_config(), teacher=self.teacher)
@@ -60,7 +60,7 @@ class RandomPacketTrainer(DefaultModelTrainer):
         real_output = output_creator.get_output_vector(game_tick_packet)
         real_indexes = self.action_handler.create_action_indexes_graph(tf.stack(real_output, axis=1))
         reshaped = tf.cast(real_indexes, tf.int32)
-        self.model.taken_action_handler = reshaped
+        self.model.taken_actions = reshaped
         self.model.create_model(input_state)
         self.model.create_copy_training_model(input_state)
         self.model.create_savers()
@@ -88,7 +88,7 @@ class RandomPacketTrainer(DefaultModelTrainer):
         print_every_x_batches = (total_batches * batch_size) / save_step
         print('Prints at this percentage:', 100.0 / print_every_x_batches)
         model_counter = 0
-        model_save_time = 0
+        self.model_save_time = 0
 
         # Running the model
         for i in tqdm(range(total_batches)):
@@ -105,7 +105,7 @@ class RandomPacketTrainer(DefaultModelTrainer):
                 model.save_model(model.get_model_path(model.get_default_file_name() + str(model_counter)),
                                  global_step=i, quick_save=True)
                 # print('saved model in', time.time() - start_saving, 'seconds')
-                model_save_time += time.time() - start_saving
+                self.model_save_time += time.time() - start_saving
                 model_counter += 1
 
     def finish_trainer(self):

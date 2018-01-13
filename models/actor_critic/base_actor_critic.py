@@ -187,12 +187,6 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
     def sample_action(self, input_state):
         # TODO: use tf.multinomial when it gets better
 
-        output = np.argwhere(np.isnan(input_state))
-        if len(output) > 0:
-            print('nan indexes', output)
-            for index in output:
-                input_state[index[0]][index[1]] = 0
-
         # epsilon-greedy exploration strategy
         if not self.is_evaluating and (random.random() * (self.forced_frame_action -
                                                           self.frames_since_last_random_action)) < self.exploration:

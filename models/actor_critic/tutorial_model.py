@@ -105,9 +105,9 @@ class TutorialModel(PolicyGradient):
             cut_size = network_size // 2.0
 
             w_input = tf.get_variable(weight_input, [network_size, cut_size],
-                                     initializer=tf.random_normal_initializer())
-            w_network = tf.get_variable(weight_network, [network_size, cut_size],
                                       initializer=tf.random_normal_initializer())
+            w_network = tf.get_variable(weight_network, [network_size, cut_size],
+                                        initializer=tf.random_normal_initializer())
             w_decider = tf.get_variable(weight_decider, [network_size, cut_size],
                                         initializer=tf.random_normal_initializer())
 

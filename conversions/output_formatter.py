@@ -48,6 +48,8 @@ def get_advanced_state(input_array):
     result = create_object()
     result.car_info = car_info
     result.ball_info = ball_info
+    result.gamecars = [car_info]
+    result.gameball = ball_info
 
     return result
 
@@ -137,3 +139,7 @@ def get_score_info(array, index):
     score_info.Demolitions = array[index + 6]
     score_info.FrameScoreDiff = array[index + 7]
     return score_info
+
+
+def get_game_tick_packet(player_index):
+    return None

@@ -234,7 +234,7 @@ class ActionHandler:
                 binary_combo_index += powed * tf.cast(action_taken, tf.float32)
         return binary_combo_index
 
-    def create_action_indexes_graph(self, real_action):
+    def create_action_indexes_graph(self, real_action, batch_size=None):
         combo_list = []
         for i, control_set in enumerate(self.combo_list):
             bucketed_control = tf.slice(real_action, [0, i], [-1, 1])

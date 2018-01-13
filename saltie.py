@@ -64,7 +64,10 @@ class Agent:
 
         # self.model.apply_feature_creation(TensorflowFeatureCreator())
 
-        self.model.create_model(self.model.input_placeholder)
+        try:
+            self.model.create_model(self.model.input_placeholder)
+        except TypeError as e:
+            raise Exception('failed to create model') from e
 
         if self.model.is_training and self.model.is_online_training:
             self.model.create_reinforcement_training_model()
@@ -95,16 +98,21 @@ class Agent:
 
         print('getting model from', model_package)
         print('name of model', model_name)
-        model_package = importlib.import_module(model_package)
-        module_classes = inspect.getmembers(model_package, inspect.isclass)
+        self.model_class = self.get_class(model_package, model_name)
+
+    def get_class(self, class_package, class_name):
+        class_package = importlib.import_module(class_package)
+        module_classes = inspect.getmembers(class_package, inspect.isclass)
         for class_group in module_classes:
-            if class_group[0] == model_name:
-                self.model_class = class_group[1]
+            if class_group[0] == class_name:
+                return class_group[1]
+        return None
+
 
     def get_model_class(self):
         if self.model_class is None:
             print('Invalid model using default')
-            return policy_gradient.PolicyGradient
+            return None
         else:
             return self.model_class
 
@@ -130,7 +138,14 @@ class Agent:
             reward = self.get_reward(input_state)
             self.rotating_real_reward_buffer += reward
 
-        action = self.model.sample_action(np.array(input_state).reshape((1, -1)))
+        reshaped = np.array(input_state).reshape((1, -1))
+        output = np.argwhere(np.isnan(reshaped))
+        if len(output) > 0:
+            print('nan indexes', output)
+            for index in output:
+                reshaped[index[0]][index[1]] = 0
+
+        action = self.model.sample_action(reshaped)
         if action is None:
             print("invalid action no type returned")
             action = self.actions_handler.get_random_option()
