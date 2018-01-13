@@ -1,6 +1,4 @@
 from trainer.utils import random_packet_creator
-from TutorialBot import tutorial_bot_output
-from conversions.input import tensorflow_input_formatter
 import tensorflow as tf
 import numpy as np
 
@@ -10,32 +8,34 @@ class OutputChecks:
     game_tick_packet = None
     accuracy_over_time = None
     bot_data_over_time = None
+    requires_output = False
 
     def __init__(self, packets, model_output, game_tick_packet, input_array, tf_session, action_handler,
-                 tutorial_bot=None):
+                 bot=None):
         self.sess = tf_session
         self.packets = packets
         self.game_tick_packet = game_tick_packet
         self.input_array = input_array
         self.packet_generator = random_packet_creator.TensorflowPacketGenerator(packets)
-        self.tutorial_bot = tutorial_bot
+        self.tutorial_bot = bot
         self.model_output = model_output
         self.actionHandler = action_handler
 
         if self.tutorial_bot is None:
-            self.tutorial_bot = tutorial_bot_output.TutorialBotOutput(packets)
+            self.requires_output = True
 
     def create_model(self):
         # clear history
         self.accuracy_over_time = []
         self.bot_data_over_time = []
 
-    def get_amounts(self):
+    def get_amounts(self, bot_output=None):
         controls = tf.transpose(
             self.actionHandler.create_tensorflow_controller_from_selection(self.model_output, self.packets))
-        expected = self.tutorial_bot.get_output_vector(self.game_tick_packet)
+        if not self.requires_output:
+            bot_output = self.sess.run(self.tutorial_bot.get_output_vector(self.game_tick_packet))
 
-        output, bot_output = self.sess.run([controls, expected])
+        output = self.sess.run(controls)
 
         accuracy = np.sum(np.isclose(output, bot_output, 0.01), 1) / np.size(output[1])
         self.accuracy_over_time.append(accuracy)
@@ -63,14 +63,13 @@ class OutputChecks:
         number_prints = len(self.accuracy_over_time)
         accuracy = np.transpose(self.accuracy_over_time)
         np.set_printoptions(formatter={'float': '{: 0.2f}'.format})
-        ten = number_prints * .1
-        twfive = number_prints * .25
-        fifty = number_prints * .5
+        percentages = [10, 25, 50]
         names = ["Throttle", "Steer", "Pitch", "Yaw", "Roll", "Jump", "Boost", "Handbrake"]
-        print("Every action is printed four times, once all values and then averages over 10%, 25% and 50%")
+        print("Every action is printed multiple times, once all values and then averages over percentages")
         for n in range(8):
             print(names[n] + ":")
             print("All:              ", accuracy[n])
-            print("Averages every 10%", np.array([average(accuracy[n][int(i * ten):int(i * ten + ten) if not int(i * ten + ten) is int(i * ten) else int(i * ten) + 1]) for i in range(10)]))
-            print("               25%", np.array([average(accuracy[n][int(i * twfive):int(i * twfive + twfive) if not int(i * twfive + twfive) is int(i * twfive) else int(i * twfive) + 1]) for i in range(4)]))
-            print("               50%", np.array([average(accuracy[n][int(i * fifty):int(i * fifty + fifty) if not int(i * fifty + fifty) is int(i * fifty) else int(i * fifty) + 1]) for i in range(2)]))
+            for p in percentages:
+                r = int(100 / p)
+                step = int(number_prints * p / 100)
+                print(str(p) + "%:", np.array([average(accuracy[n][int(i * step):int(i * step + step) if not int(i * step + step) is int(i * step) else int(i * step) + 1]) for i in range(r)]))
