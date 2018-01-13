@@ -89,9 +89,11 @@ class TutorialModel(PolicyGradient):
             wrongNess += tf.cast(tf.abs(tf.cast(argmax, tf.int32) - taken_actions), tf.float32)
         else:
             # use temporarily
-            wrongNess += tf.cast(tf.abs(tf.cast(argmax, tf.int32) - taken_actions), tf.float32) / 2.0
+            wrongNess += 2.0 * tf.log(1.0 + tf.cast(tf.abs(tf.cast(argmax, tf.int32) - taken_actions), tf.float32))
             #argmax = self.argmax[index]
-            #number = tf.bitwise.bitwise_xor(tf.cast(self.argmax[index], tf.int32), taken_actions)
+
+            #wrongNess += tf.log(1.0 + tf.cast(tf.bitwise.bitwise_xor(
+            #    tf.cast(self.argmax[index], tf.int32), taken_actions), tf.float32))
             # result = self.fancy_calculate_number_of_ones(number) # can't use until version 1.5
 
         return cross_entropy_loss, wrongNess, False
