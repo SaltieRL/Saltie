@@ -88,7 +88,7 @@ class RandomPacketTrainer(DefaultModelTrainer):
         print_every_x_batches = (total_batches * batch_size) / save_step
         print('Prints at this percentage:', 100.0 / print_every_x_batches)
         model_counter = 0
-        model_save_time = 0
+        self.model_save_time = 0
 
         # Running the model
         for i in tqdm(range(total_batches)):
@@ -105,7 +105,7 @@ class RandomPacketTrainer(DefaultModelTrainer):
                 model.save_model(model.get_model_path(model.get_default_file_name() + str(model_counter)),
                                  global_step=i, quick_save=True)
                 # print('saved model in', time.time() - start_saving, 'seconds')
-                model_save_time += time.time() - start_saving
+                self.model_save_time += time.time() - start_saving
                 model_counter += 1
 
     def finish_trainer(self):
