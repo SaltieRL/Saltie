@@ -5,6 +5,7 @@ from keras.layers import Input, Dense, Dropout, LeakyReLU, PReLU
 from keras import optimizers, regularizers
 from keras.callbacks import EarlyStopping, Callback, TensorBoard
 from keras.utils import plot_model
+import numpy as np
 
 
 class BaseKerasModel(BaseModel):
@@ -32,7 +33,37 @@ class BaseKerasModel(BaseModel):
         self.input_formatter = SimpleInputFormatter(team, index)
 
     def sample_action(self, input_state):
-        return self.model.predict(input_state)
+        relative_positions = input_state[:, 13:16] - input_state[:, 0:3]
+        rotations = input_state[:, 3:6]
+        unrotated_positions = self.unrotate_positions(relative_positions, rotations)
+
+        input_state = np.column_stack((input_state, unrotated_positions))
+        return input_state
+
+    def unrotate_positions(relative_positions, rotations):
+        new_positions = relative_positions
+
+        # YAW
+        yaws = rotations[:, 1]
+        yaws = -yaws / 32768. * np.pi
+
+        new_positions[:, 0], new_positions[:, 1] = new_positions[:, 0] * np.cos(yaws) - new_positions[:, 1] * np.sin(yaws), new_positions[:, 0] * np.sin(yaws) + new_positions[:, 1] * np.cos(yaws)
+
+        # PITCH
+
+        pitchs = rotations[:, 0]
+        pitchs = pitchs / 32768. * np.pi
+
+        new_positions[:, 2], new_positions[:, 0] = new_positions[:, 2] * np.cos(pitchs) - new_positions[:, 0] * np.sin(pitchs), new_positions[:, 2] * np.sin(pitchs) + new_positions[:, 0] * np.cos(pitchs)
+
+        # ROLL
+
+        rolls = rotations[:, 2]
+        rolls = rolls / 32768. * np.pi
+
+        new_positions[:, 1], new_positions[:, 2] = new_positions[:, 1] * np.cos(rolls) - new_positions[:, 2] * np.sin(rolls), new_positions[:, 1] * np.sin(rolls) + new_positions[:, 2] * np.cos(rolls)
+
+        return new_positions
 
     def create_copy_training_model(self, model_input=None, taken_actions=None):
         loss_weights = {}
