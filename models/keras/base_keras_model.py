@@ -97,8 +97,9 @@ class BaseKerasModel(BaseModel):
 
         extra_hidden_layer_nodes = self.network_size / self.action_handler.get_number_actions()
         loss = {}
-        for i, control in enumerate(self.action_handler.control_names):
-            output_size = self.action_handler.get_action_sizes()[i]
+        action_sizes = self.action_handler.get_action_sizes()
+        for i, control in enumerate(self.action_handler.action_list_names):
+            output_size = action_sizes[i]
             x = shared_output
             for hidden_layer_i in range(1, self.split_hidden_layers + 1):
                 x = Dense(extra_hidden_layer_nodes, activation=self.model_activation, kernel_regularizer=self.kernel_regularizer,
@@ -107,14 +108,14 @@ class BaseKerasModel(BaseModel):
 
             if self.action_handler.is_classification(i):
                 activation = 'sigmoid'
-                loss = 'categorical_crossentropy'
+                loss_name = 'categorical_crossentropy'
             else:
                 activation = 'tanh'
-                loss = 'mean_absolute_error'
+                loss_name = 'mean_absolute_error'
             _output = Dense(output_size, activation=activation,
                             name='o_%s' % control)(x)
             outputs.append(_output)
-            loss['o_%s' % control] = loss
+            loss['o_%s' % control] = loss_name
 
         self.loss = loss
 
@@ -123,10 +124,7 @@ class BaseKerasModel(BaseModel):
         return None
 
     def initialize_model(self):
-        if self.loss_weights is not None:
-            self.model.compile(optimizer='adam', loss=self.loss, loss_weights=self.loss_weights)
-        else:
-            self.model.compile()
+        self.model.compile(optimizer='adam', loss=self.loss, loss_weights=self.loss_weights)
         super().initialize_model()
 
     def _initialize_variables(self):
@@ -158,3 +156,6 @@ class BaseKerasModel(BaseModel):
 
     def get_model_name(self):
         return 'keras'
+
+    def get_input_placeholder(self):
+        return None
