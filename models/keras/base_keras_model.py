@@ -135,6 +135,8 @@ class BaseKerasModel(BaseModel):
                 loss_name = 'mean_absolute_error'
             _output = Dense(output_size, activation=activation,
                             name='o_%s' % control)(x)
+            if self.action_handler.is_classification(i):
+                _output = K.argmax(_output, axis=1)
             outputs.append(_output)
             loss['o_%s' % control] = loss_name
 
