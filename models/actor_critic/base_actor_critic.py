@@ -81,7 +81,9 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
         except:
             print('unable to load keep_probability')
 
-    def smart_argmax(self, input_tensor):
+    def smart_argmax(self, input_tensor, index):
+        if not self.action_handler.is_classification(index):
+            return input_tensor
         argmax_index = tf.cast(tf.argmax(input_tensor, axis=1), tf.int32)
         indexer = tf.range(0, self.mini_batch_size)
         slicer_data = tf.stack([indexer, argmax_index], axis=1)
@@ -130,7 +132,8 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
                                                                      lambda input_tensor: tf.argmax(
                                                                          tf.nn.softmax(input_tensor), axis=1),
                                                                      return_as_list=True)
-        self.smart_max = self.action_handler.run_func_on_split_tensors(self.policy_outputs,
+        indexes = np.arange(0, self.action_handler.get_number_actions(), 1).tolist()
+        self.smart_max = self.action_handler.run_func_on_split_tensors([self.policy_outputs, indexes],
                                                                        self.smart_argmax,
                                                                        return_as_list=True)
         return self.predicted_actions, self.action_scores
