@@ -116,7 +116,10 @@ class PolicyGradient(BaseActorCritic):
         # calculates the entropy loss from getting the label wrong
         cross_entropy_loss, wrongness, reduced = self.calculate_loss_of_actor(logprobs, taken_actions, index)
         if not reduced:
-            tf.summary.histogram('actor_wrongness', wrongness)
+            if self.action_handler.is_classification(index):
+                tf.summary.histogram('actor_wrongness', wrongness)
+            else:
+                tf.summary.histogram('actor_wrongness', cross_entropy_loss)
         with tf.name_scope("compute_pg_gradients"):
             actor_loss = cross_entropy_loss * (wrongness * wrongness)
 
@@ -180,7 +183,7 @@ class PolicyGradient(BaseActorCritic):
             # clip gradients by norm
             if grad is not None:
                 post_clipping = tf.clip_by_norm(grad, self.max_gradient)
-                post_nanning = post_clipping # tf.where(tf.is_nan(post_clipping), tf.zeros_like(post_clipping), post_clipping)
+                post_nanning = tf.where(tf.is_nan(post_clipping), tf.zeros_like(post_clipping), post_clipping)
                 gradients[i] = (post_nanning, var)
 
         self.add_histograms(gradients)

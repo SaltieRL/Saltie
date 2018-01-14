@@ -1,5 +1,6 @@
 from modelHelpers.actions.action_handler import ActionHandler
-from modelHelpers.actions.dynamic_action_handler import DynamicActionHandler, LOSS_SQUARE_MEAN, LOSS_SPARSE_CROSS
+from modelHelpers.actions.dynamic_action_handler import DynamicActionHandler, LOSS_SQUARE_MEAN, LOSS_SPARSE_CROSS, \
+    LOSS_ABSOLUTE_DIFFERENCE
 from modelHelpers.actions.split_action_handler import SplitActionHandler
 
 default_scheme = [[('steer', (-1, 1.5, .5)), ('pitch', (-1, 1.5, .5)), ('roll', (-1, 1.5, .5))],
@@ -23,9 +24,9 @@ regression_controls = [[('throttle', (-1, 1.5, .5), LOSS_SQUARE_MEAN), ('steer',
                        [('jump', (0, 2, 1)), ('boost', (0, 2, 1)), ('handbrake', (0, 2, 1))],
                        []]
 
-mixed_controls = [[('throttle', (-1, 1.5, .5), LOSS_SPARSE_CROSS), ('steer', (-1, 1.5, .5), LOSS_SQUARE_MEAN),
-                        ('yaw', (-1, 1.5, .5), LOSS_SQUARE_MEAN), ('pitch', (-1, 1.5, .5), LOSS_SQUARE_MEAN),
-                        ('roll', (-1, 1.5, .5), LOSS_SQUARE_MEAN)],
+mixed_controls = [[('throttle', (-1, 1.5, .5), LOSS_SPARSE_CROSS), ('steer', (-1, 1.5, .5), LOSS_ABSOLUTE_DIFFERENCE),
+                        ('yaw', (-1, 1.5, .5), LOSS_ABSOLUTE_DIFFERENCE), ('pitch', (-1, 1.5, .5), LOSS_ABSOLUTE_DIFFERENCE),
+                        ('roll', (-1, 1.5, .5), LOSS_ABSOLUTE_DIFFERENCE)],
                        [('jump', (0, 2, 1)), ('boost', (0, 2, 1)), ('handbrake', (0, 2, 1))],
                        []]
 

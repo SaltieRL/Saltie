@@ -91,7 +91,8 @@ class TutorialModel(PolicyGradient):
             if self.action_handler.is_classification(index):
                 wrongness += tf.cast(tf.abs(tf.cast(argmax, tf.float32) - taken_actions), tf.float32)
             else:
-                wrongness += tf.sqrt(tf.abs(taken_actions - logprobs))
+                # doing anything else is very very slow
+                wrongness += 0.0
         else:
             # use temporarily
             wrongness += tf.log(1.0 + tf.cast(tf.abs(tf.cast(argmax, tf.float32) - taken_actions), tf.float32))

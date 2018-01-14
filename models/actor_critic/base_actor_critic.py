@@ -220,8 +220,10 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
                              initializer=tf.random_normal_initializer())
         b = tf.get_variable(bias_name, [output_size],
                              initializer=tf.random_normal_initializer())
-        layer_output = activation_function(tf.matmul(input, W) + b,
-                                           name=network_prefix + 'activation' + str(layer_number))
+        if activation_function is not None:
+            layer_output = activation_function(tf.matmul(input, W) + b)
+        else:
+            layer_output = tf.matmul(input, W) + b
         if variable_list is not None:
             variable_list.append(W)
             variable_list.append(b)
@@ -310,7 +312,7 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
             for i, item in enumerate(self.action_handler.get_action_sizes()):
                 variable_name = str(self.action_handler.action_list_names[i])
                 with tf.variable_scope(variable_name):
-                    fixed_activation = self.action_handler.get_activation_function(activation_function, i)
+                    fixed_activation = self.action_handler.get_last_layer_activation_function(activation_function, i)
                     layer = self.create_layer(fixed_activation, inner_layer[i], last_layer_name,
                                                                        network_size, item, network_prefix,
                                                                        variable_list=last_layer_list[i], dropout=False)[0]

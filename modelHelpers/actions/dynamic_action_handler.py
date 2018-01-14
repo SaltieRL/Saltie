@@ -56,7 +56,7 @@ class DynamicActionHandler(SplitActionHandler):
         return self.action_loss_type_map[index] == LOSS_SPARSE_CROSS
 
     def create_range_action(self, item):
-        if len(item) > 2 and (item[2] == LOSS_SQUARE_MEAN or item[2] == LOSS_SQUARE_MEAN):
+        if len(item) > 2 and (item[2] == LOSS_SQUARE_MEAN or item[2] == LOSS_ABSOLUTE_DIFFERENCE):
             return np.array([0])
         action_data = np.arange(*item[1])
         return action_data
@@ -283,10 +283,10 @@ class DynamicActionHandler(SplitActionHandler):
         if self.action_loss_type_map[index] == LOSS_ABSOLUTE_DIFFERENCE:
             return tf.losses.absolute_difference(labels, tf.squeeze(logits))
 
-    def get_activation_function(self, func, index):
+    def get_last_layer_activation_function(self, func, index):
         if self.is_classification(index):
             return func
-        return tf.identity
+        return None
 
     def scale_layer(self, layer, index):
         """

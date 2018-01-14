@@ -243,7 +243,7 @@ class ActionHandler:
         return tf.nn.softmax_cross_entropy_with_logits(
             labels=labels, logits=logits, name=str(index) + 'ns')
 
-    def get_activation_function(self, func, index):
+    def get_last_layer_activation_function(self, func, index):
         return func
 
     def scale_layer(self, layer, index):
