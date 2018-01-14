@@ -45,11 +45,7 @@ class BaseKerasModel(BaseModel):
         # adam = optimizers.Adam(lr=0.01)
 
     def get_input(self, model_input=None):
-        # given maybe input return keras version  for your model
-        # note that the super class uses a tensorflow placeholder
-
-        inputs = Input(shape=(input_dim,))
-        return super().get_input(model_input)
+        return Input(shape=(self.state_feature_dim,))
 
     def _create_model(self, model_input):
             #def generate_model(self, input_dim, outputs=1, shared_hidden_layers=0, nodes=256, extra_hidden_layers=6, extra_hidden_layer_nodes=128):
