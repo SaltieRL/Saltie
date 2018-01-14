@@ -308,9 +308,10 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
             self.actor_last_row_layer = []
             for i, item in enumerate(self.action_handler.get_action_sizes()):
                 with tf.variable_scope(str(self.action_handler.action_list_names[i])):
-                    self.actor_last_row_layer.append(self.create_layer(activation_function, inner_layer[i], last_layer_name,
+                    layer = self.create_layer(activation_function, inner_layer[i], last_layer_name,
                                                                        network_size, item, network_prefix,
-                                                                       variable_list=last_layer_list[i], dropout=False)[0])
+                                                                       variable_list=last_layer_list[i], dropout=False)[0]
+                    self.actor_last_row_layer.append(self.action_handler.scale_layer(layer, i))
 
             return tf.concat(self.actor_last_row_layer, 1)
 

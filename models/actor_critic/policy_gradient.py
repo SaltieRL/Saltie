@@ -112,19 +112,19 @@ class PolicyGradient(BaseActorCritic):
             taken_actions = tf.squeeze(taken_actions, axis=[1])
 
         # calculates the entropy loss from getting the label wrong
-        cross_entropy_loss, wrongNess, reduced = self.calculate_loss_of_actor(logprobs, taken_actions, index)
+        cross_entropy_loss, wrongness, reduced = self.calculate_loss_of_actor(logprobs, taken_actions, index)
         if not reduced:
-            tf.summary.histogram('actor_wrongness', wrongNess)
+            tf.summary.histogram('actor_wrongness', wrongness)
         with tf.name_scope("compute_pg_gradients"):
-            pg_loss = cross_entropy_loss * (wrongNess * wrongNess)
+            pg_loss = cross_entropy_loss * (wrongness * wrongness)
 
             pg_loss = tf.check_numerics(pg_loss, 'nan pg_loss')
 
             if reduced:
                 pg_loss = tf.reduce_mean(pg_loss, name='pg_loss')
-                tf.summary.scalar("actor_x_entropy_loss", cross_entropy_loss)
+                tf.summary.scalar(self.action_handler.get_loss_type(index), cross_entropy_loss)
             else:
-                tf.summary.scalar("actor_x_entropy_loss", tf.reduce_mean(cross_entropy_loss))
+                tf.summary.scalar(self.action_handler.get_loss_type(index), tf.reduce_mean(cross_entropy_loss))
 
             actor_reg_loss = self.get_regularization_loss(actor_network_variables, prefix="actor")
 

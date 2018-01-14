@@ -8,21 +8,10 @@ from modelHelpers.actions.split_action_handler import SplitActionHandler
 
 
 COMBO = 'combo'
-
-super_split_scheme = [[('throttle', (-1, 1.5, .5)), ('steer', (-1, 1.5, .5)),
-                       ('yaw', (-1, 1.5, .5)), ('pitch', (-1, 1.5, .5)), ('roll', (-1, 1.5, .5))],
-                      [('jump', (0, 2, 1)), ('boost', (0, 2, 1)), ('handbrake', (0, 2, 1))],
-                      []]
-
-only_steer_split_scheme = [[('steer', (-1, 1.5, .5))],
-                      [('throttle', (-1, 2, 1)), ('jump', (0, 2, 1)), ('boost', (0, 2, 1)),
-                       ('handbrake', (0, 2, 1)), ('yaw', (-1, 2, 1)),
-                       ('pitch', (-1, 2, 1)), ('roll', (-1, 2, 1))],
-                      []]
-
 LOSS_SPARSE_CROSS = 'sparse_loss'
 LOSS_SQUARE_MEAN = 'square_mean'
 LOSS_ABSOLUTE_DIFFERENCE = 'abs_diff'
+
 
 class DynamicActionHandler(SplitActionHandler):
     """Very dynamic for controls and splitting.
@@ -63,8 +52,11 @@ class DynamicActionHandler(SplitActionHandler):
         self.combo_name_list = []
         self.action_loss_type_map = {}
 
+    def is_classification(self, index):
+        return self.action_loss_type_map[index] == LOSS_SPARSE_CROSS
+
     def create_range_action(self, item):
-        if item[2] == LOSS_SQUARE_MEAN or item[2] == LOSS_SQUARE_MEAN:
+        if len(item) > 2 and (item[2] == LOSS_SQUARE_MEAN or item[2] == LOSS_SQUARE_MEAN):
             return np.array([0])
         action_data = np.arange(*item[1])
         return action_data
@@ -127,7 +119,10 @@ class DynamicActionHandler(SplitActionHandler):
                 true_index = self.combo_name_index_map[control]
                 controller_output.append(self.actions[combo_index][action_selection[combo_index]][true_index])
                 continue
-            controller_output.append(self.actions[index][action_selection[index]])
+            if self.is_classification(index):
+                controller_output.append(self.actions[index][action_selection[index]])
+            else:
+                controller_output.append(action_selection[index])
 
         # print(controller_output)
         return controller_output
@@ -170,10 +165,13 @@ class DynamicActionHandler(SplitActionHandler):
                 controller_output.append(
                     tf.gather_nd(single_element, tf.stack([indexer, action_selection[combo_index]], axis=1)))
                 continue
-            ranged_action = ranged_actions[index]
             selection = action_selection[index]
-            output = tf.gather_nd(ranged_action, tf.stack([indexer, selection], axis=1))
-            controller_output.append(output)
+            if self.is_classification(index):
+                ranged_action = ranged_actions[index]
+                output = tf.gather_nd(ranged_action, tf.stack([indexer, selection], axis=1))
+                controller_output.append(output)
+            else:
+                controller_output.append(selection)
 
         # make sure everything is the same type
         controller_output = [tf.cast(option, tf.float32) for option in controller_output]
@@ -208,8 +206,10 @@ class DynamicActionHandler(SplitActionHandler):
                 bucketed_control = self.round_action(real_control, action_size)
                 combo_list[real_index] = bucketed_control
             else:
-                if indexes[action_index] is None:
+                if indexes[action_index] is None and self.is_classification(action_index):
                     indexes[action_index] = (self._find_closet_real_number(real_control))
+                elif indexes[action_index] is None:
+                    indexes[action_index] = real_control
 
         indexes[self.action_name_index_map[COMBO]] = self._create_combo_index(real_action, combo_list)
 
@@ -256,6 +256,9 @@ class DynamicActionHandler(SplitActionHandler):
             else:
                 if indexes[action_index] is None:
                     indexes[action_index] = self._find_closet_real_number_graph(real_control)
+                elif indexes[action_index] is None:
+                    indexes[action_index] = real_control
+
         combo_action = self._create_combo_index_graph(combo_list, real_action)
         if batch_size is not None and batch_size == 1:
             indexes[self.action_name_index_map[COMBO]] = tf.reshape(combo_action, [1])
@@ -276,6 +279,21 @@ class DynamicActionHandler(SplitActionHandler):
             return tf.nn.sparse_softmax_cross_entropy_with_logits(
                 labels=labels, logits=logits, name=LOSS_SPARSE_CROSS)
         if self.action_loss_type_map[index] == LOSS_SQUARE_MEAN:
-            return tf.losses.mean_squared_error(labels, logits)
+            return tf.losses.mean_squared_error(labels, tf.squeeze(logits)) * 2
         if self.action_loss_type_map[index] == LOSS_ABSOLUTE_DIFFERENCE:
-            return tf.losses.absolute_difference(labels, logits)
+            return tf.losses.absolute_difference(labels, tf.squeeze(logits)) * 2
+
+    def scale_layer(self, layer, index):
+        """
+        Scales the layer if required
+        :param layer: the output layer of the model
+        :param index: The index regarding this specific action
+        :return: A scaled layer
+        """
+        if self.is_classification(index):
+            return layer
+        else:
+            return layer * 2.0 - 1.0
+
+    def get_loss_type(self, index):
+        return self.action_loss_type_map[index]

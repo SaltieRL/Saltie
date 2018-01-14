@@ -242,3 +242,15 @@ class ActionHandler:
         """
         return tf.nn.softmax_cross_entropy_with_logits(
             labels=labels, logits=logits, name=str(index) + 'ns')
+
+    def scale_layer(self, layer, index):
+        """
+        Scales the layer if required
+        :param layer: the output layer of the model
+        :param index: The index regarding this specific action
+        :return: A scaled layer
+        """
+        return layer
+
+    def get_loss_type(self, index):
+        return 'softmax'

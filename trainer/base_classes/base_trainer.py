@@ -27,6 +27,14 @@ class BaseTrainer:
                 return class_group[1]
         return None
 
+    def get_field(self, class_package, class_name):
+        class_package = importlib.import_module(class_package)
+        module_classes = inspect.getmembers(class_package)
+        for class_group in module_classes:
+            if class_group[0] == class_name:
+                return class_group[1]
+        return None
+
     def get_config_name(self):
         return None
 
