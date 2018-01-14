@@ -52,7 +52,7 @@ class NNAtba(base_model.BaseModel):
         layer_3 = tf.nn.sigmoid(tf.add(tf.matmul(layer_2, self.weights['out']), self.biases['out']))
         return layer_3
 
-    def create_copy_training_model(self):
+    def create_copy_training_model(self, model_input=None, taken_actions=None):
         self.labels = tf.placeholder(tf.int64, shape=(None, self.num_actions))
 
         cross_entropy = self.action_handler.get_action_loss_from_logits(

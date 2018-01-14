@@ -88,10 +88,13 @@ class TutorialModel(PolicyGradient):
         wrongness = tf.constant(initial_wrongness)
         argmax = tf.argmax(logprobs, axis=1)
         if self.action_handler.action_list_names[index] != 'combo':
-            wrongness += tf.cast(tf.abs(tf.cast(argmax, tf.int32) - taken_actions), tf.float32)
+            if self.action_handler.is_classification(index):
+                wrongness += tf.cast(tf.abs(tf.cast(argmax, tf.float32) - taken_actions), tf.float32)
+            else:
+                wrongness += tf.sqrt(tf.abs(taken_actions - logprobs))
         else:
             # use temporarily
-            wrongness += tf.log(1.0 + tf.cast(tf.abs(tf.cast(argmax, tf.int32) - taken_actions), tf.float32))
+            wrongness += tf.log(1.0 + tf.cast(tf.abs(tf.cast(argmax, tf.float32) - taken_actions), tf.float32))
             #argmax = self.argmax[index]
 
             #wrongness += tf.log(1.0 + tf.cast(tf.bitwise.bitwise_xor(
@@ -138,7 +141,7 @@ class TutorialModel(PolicyGradient):
                                                                   variable_list=variable_list)
             else:
                 with tf.variable_scope(self.hidden_layer_name):
-                    inner_layer, layer_size = self.create_layer(tf.tanh, inner_layer, i + 2, layer_size,
+                    inner_layer, layer_size = self.create_layer(tf.nn.relu6, inner_layer, i + 2, layer_size,
                                                                 self.network_size,
                                                                 network_prefix, variable_list=variable_list)
         return inner_layer, layer_size
@@ -146,7 +149,7 @@ class TutorialModel(PolicyGradient):
     def create_last_layer(self, activation_function, inner_layer, network_size, num_actions, network_prefix,
                           last_layer_list=None, layers_list=[]):
         with tf.variable_scope(self.split_hidden_layer_name):
-            inner_layers, layer_size = self.create_split_layers(tf.tanh, inner_layer, network_size,
+            inner_layers, layer_size = self.create_split_layers(tf.nn.relu6, inner_layer, network_size,
                                                                 self.num_split_layers,
                                                                 network_prefix,
                                                                 variable_list=last_layer_list)

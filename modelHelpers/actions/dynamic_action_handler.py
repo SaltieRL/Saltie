@@ -277,11 +277,11 @@ class DynamicActionHandler(SplitActionHandler):
         """
         if self.action_loss_type_map[index] == LOSS_SPARSE_CROSS:
             return tf.nn.sparse_softmax_cross_entropy_with_logits(
-                labels=labels, logits=logits, name=LOSS_SPARSE_CROSS)
+                labels=tf.cast(labels, tf.int32), logits=logits, name=LOSS_SPARSE_CROSS)
         if self.action_loss_type_map[index] == LOSS_SQUARE_MEAN:
-            return tf.losses.mean_squared_error(labels, tf.squeeze(logits)) * 2
+            return tf.losses.mean_squared_error(labels, tf.squeeze(logits))
         if self.action_loss_type_map[index] == LOSS_ABSOLUTE_DIFFERENCE:
-            return tf.losses.absolute_difference(labels, tf.squeeze(logits)) * 2
+            return tf.losses.absolute_difference(labels, tf.squeeze(logits))
 
     def scale_layer(self, layer, index):
         """

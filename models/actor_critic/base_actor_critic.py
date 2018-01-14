@@ -148,7 +148,7 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
             batched_input, batched_taken_actions = self.iterator.get_next()
         else:
             batched_input = converted_input
-            batched_taken_actions = self.taken_actions
+            batched_taken_actions = actions_input
         with tf.name_scope("training_network"):
             self.discounted_rewards = tf.constant(0.0)
             with tf.variable_scope("actor_network", reuse=True):

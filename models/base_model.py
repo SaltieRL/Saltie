@@ -109,7 +109,7 @@ class BaseModel:
         #always return an integer
         return 10
 
-    def create_copy_training_model(self):
+    def create_copy_training_model(self, model_input=None, taken_actions=None):
         """
         Creates a model used for training a bot that will copy the labeled data
 

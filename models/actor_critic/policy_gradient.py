@@ -85,6 +85,8 @@ class PolicyGradient(BaseActorCritic):
             merged_gradient_list += item[0]
             total_loss += item[1]
 
+        total_loss = tf.check_numerics(total_loss, 'actor loss')
+
         tf.summary.scalar("total_actor_loss", tf.reduce_mean(total_loss))
 
         total_loss = total_loss / self.total_loss_divider
