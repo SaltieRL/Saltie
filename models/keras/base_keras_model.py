@@ -33,7 +33,7 @@ class BaseKerasModel(BaseModel):
 
         input_state = np.column_stack((input_state, unrotated_positions))
         outputs = self.model.predict(input_state)
-        outputs = [output[0] for output in outputs]
+        outputs = np.array(outputs).flatten().tolist()
         return outputs
 
     def unrotate_positions(self, relative_positions, rotations):

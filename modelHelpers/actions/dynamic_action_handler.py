@@ -108,6 +108,8 @@ class DynamicActionHandler(SplitActionHandler):
 
         if len(combo_scheme) > 0:
             self.create_combo_actions(combo_scheme)
+        else:
+            self.action_name_index_map[COMBO] = -1
 
         for item in copies:
             self.action_name_index_map[item[0]] = self.action_name_index_map[item[1]]
