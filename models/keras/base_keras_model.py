@@ -26,6 +26,60 @@ class BaseKerasModel(BaseModel):
         return super().get_input(model_input)
 
     def _create_model(self, model_input):
+            def generate_model(self, input_dim, outputs=1, shared_hidden_layers=0, nodes=256, extra_hidden_layers=6, extra_hidden_layer_nodes=128):
+        """Generates and returns Keras model given input dim, outputs, hidden_layers, and nodes"""
+        inputs = Input(shape=(input_dim,))
+        x = inputs
+        for hidden_layer_i in range(1, shared_hidden_layers + 1):
+            x = Dense(nodes, activation=self.model_activation, kernel_regularizer=self.kernel_regularizer, name='hidden_layer_%s' %
+                      hidden_layer_i)(x)
+            x = Dropout(0.4)(x)
+
+        shared_output = x
+
+        outputs_list = {'boolean': ['jump', 'boost', 'handbrake'], 'other': [
+            'throttle', 'steer', 'pitch', 'yaw', 'roll']}
+        outputs = []
+        for _output_type, _output_type_list in outputs_list.items():
+            for output_name in _output_type_list:
+                x = shared_output
+                for hidden_layer_i in range(1, extra_hidden_layers + 1):
+                    x = Dense(extra_hidden_layer_nodes, activation=self.model_activation, kernel_regularizer=self.kernel_regularizer,
+                              name='hidden_layer_%s_%s' % (output_name, hidden_layer_i))(x)
+                    x = Dropout(0.4)(x)
+
+                if _output_type == 'boolean':
+                    activation = 'sigmoid'
+                else:
+                    activation = 'tanh'
+                _output = Dense(1, activation=activation,
+                                name='o_%s' % output_name)(x)
+                outputs.append(_output)
+
+        model = Model(inputs=inputs, outputs=outputs)
+
+        loss = {}
+        loss_weights = {}
+        for _output_type, _output_type_list in outputs_list.items():
+            for output_name in _output_type_list:
+                loss[
+                    'o_%s' % output_name] = 'binary_crossentropy' if _output_type == 'boolean' else 'mean_absolute_error'
+                loss_weights['o_%s' %
+                             output_name] = 0.01 if _output_type == 'boolean' else 0.1
+
+        loss_weights['o_steer'] *= 20
+        loss_weights['o_boost'] *= 10
+        loss_weights['o_throttle'] *= 20
+        loss_weights['o_jump'] *= 20
+        # loss_weights['o_pitch'] *= 3
+        # loss_weights['o_pitch'] *= 0.001
+        # loss_weights['o_yaw'] *= 0.001
+        # loss_weights['o_roll'] *= 0.001
+
+        # adam = optimizers.Adam(lr=0.01)
+        model.compile(optimizer='adam', loss=loss, loss_weights=loss_weights)
+
+        return model
         return super()._create_model(model_input)
 
     def _initialize_variables(self):
