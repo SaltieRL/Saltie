@@ -135,13 +135,11 @@ class BaseKerasModel(BaseModel):
         super()._add_summary_writer()
 
     def load_config_file(self):
-        """Loads a config file.  The config file is stored in self.config_file"""
         super().load_config_file()
         try:
             self.model_file = self.config_file.get(MODEL_CONFIGURATION_HEADER, 'model_directory')
         except Exception as e:
             print('model directory is not in config', e)
-
 
     def add_saver(self, name, variable_list):
         super().add_saver(name, variable_list)
