@@ -47,7 +47,6 @@ class BaseKerasModel(BaseModel):
         # loss_weights['o_roll'] *= 0.001
 
         # adam = optimizers.Adam(lr=0.01)
-        return super().create_copy_training_model(model_input, taken_actions)
 
     def get_input(self, model_input=None):
         # given maybe input return keras version  for your model
