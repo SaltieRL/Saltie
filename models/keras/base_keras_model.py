@@ -23,7 +23,7 @@ class BaseKerasModel(BaseModel):
         pass
 
     def sample_action(self, input_state):
-        return super().sample_action(input_state)
+        return self.model.predict(inputs)
 
     def create_copy_training_model(self, model_input=None, taken_actions=None):
         loss_weights = {}
@@ -45,7 +45,7 @@ class BaseKerasModel(BaseModel):
         # adam = optimizers.Adam(lr=0.01)
 
     def get_input(self, model_input=None):
-        return Input(shape=(self.state_feature_dim,))
+        return Input(shape=(self.state_dim,))
 
     def _create_model(self, model_input):
             #def generate_model(self, input_dim, outputs=1, shared_hidden_layers=0, nodes=256, extra_hidden_layers=6, extra_hidden_layer_nodes=128):
