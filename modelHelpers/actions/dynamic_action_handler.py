@@ -20,6 +20,9 @@ only_steer_split_scheme = [[('steer', (-1, 1.5, .5))],
                        ('pitch', (-1, 2, 1)), ('roll', (-1, 2, 1))],
                       []]
 
+LOSS_SPARSE_CROSS = 'sparse_loss'
+LOSS_SQUARE_MEAN = 'square_mean'
+LOSS_ABSOLUTE_DIFFERENCE = 'abs_diff'
 
 class DynamicActionHandler(SplitActionHandler):
     """Very dynamic for controls and splitting.
@@ -39,6 +42,7 @@ class DynamicActionHandler(SplitActionHandler):
     combo_name_list = []
     dodge_suppressor_list = [['jump'], ['steer', 'pitch', 'roll', 'yaw']]
     should_suppress_dodge = False
+    action_loss_type_map = {}
 
     def __init__(self, control_scheme):
         self.control_scheme = control_scheme
@@ -57,8 +61,11 @@ class DynamicActionHandler(SplitActionHandler):
         self.combo_list = []
         self.button_combo = []
         self.combo_name_list = []
+        self.action_loss_type_map = {}
 
     def create_range_action(self, item):
+        if item[2] == LOSS_SQUARE_MEAN or item[2] == LOSS_SQUARE_MEAN:
+            return np.array([0])
         action_data = np.arange(*item[1])
         return action_data
 
@@ -76,6 +83,10 @@ class DynamicActionHandler(SplitActionHandler):
             action = self.create_range_action(item)
             self.action_sizes.append(len(action))
             self.action_name_index_map[item[0]] = len(self.action_list_names)
+            if len(item) > 2:
+                self.action_loss_type_map[len(self.action_list_names)] = item[2]
+            else:
+                self.action_loss_type_map[len(self.action_list_names)] = LOSS_SPARSE_CROSS
             self.action_list_names.append(item[0])
             self.actions.append(action)
 
@@ -93,6 +104,7 @@ class DynamicActionHandler(SplitActionHandler):
         self.button_combo = list(itertools.product(*self.combo_list))
         self.action_sizes.append(len(self.button_combo))
         self.action_name_index_map[COMBO] = len(self.action_list_names)
+        self.action_loss_type_map[len(self.action_list_names)] = LOSS_SPARSE_CROSS
         self.action_list_names.append(COMBO)
         self.actions.append(self.button_combo)
 
@@ -252,3 +264,18 @@ class DynamicActionHandler(SplitActionHandler):
 
         result = tf.stack(indexes, axis=1)
         return result
+
+    def get_action_loss_from_logits(self, logits, labels, index):
+        """
+        :param logits: A tensorflow logit
+        :param labels: A label of what occurred
+        :param index: The index of the control in the actions list this maps to
+        :return: The loss for this particular action
+        """
+        if self.action_loss_type_map[index] == LOSS_SPARSE_CROSS:
+            return tf.nn.sparse_softmax_cross_entropy_with_logits(
+                labels=labels, logits=logits, name=LOSS_SPARSE_CROSS)
+        if self.action_loss_type_map[index] == LOSS_SQUARE_MEAN:
+            return tf.losses.mean_squared_error(labels, logits)
+        if self.action_loss_type_map[index] == LOSS_ABSOLUTE_DIFFERENCE:
+            return tf.losses.absolute_difference(labels, logits)

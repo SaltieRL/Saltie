@@ -89,7 +89,7 @@ class PolicyGradient(BaseActorCritic):
 
         total_loss = total_loss / self.total_loss_divider
 
-        total_loss += actor_reg_loss
+        # total_loss += actor_reg_loss
 
         # total_loss = tf.Print(total_loss, [total_loss], 'total_loss')
 
@@ -244,6 +244,5 @@ class PolicyGradient(BaseActorCritic):
         :param cross_entropy_loss:
         :return: The calculated_tensor, If the result is a scalar.
         """
-        return tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logprobs,
-                                                       labels=taken_actions), 1.0, True
+        return self.action_handler.get_action_loss_from_logits(logprobs, taken_actions, index), 1.0, True
 

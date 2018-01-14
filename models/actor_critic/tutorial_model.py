@@ -12,6 +12,8 @@ class TutorialModel(PolicyGradient):
     gated_layer_name = "gated_layer"
     max_gradient = 10.0
     total_loss_divider = 2.0
+    # hidden_layer_activation = tf.nn.relu6
+    # hidden_layer_activation = tf.tanh
 
     def __init__(self, session, state_dim, num_actions, player_index=-1, action_handler=None, is_training=False,
                  optimizer=tf.train.GradientDescentOptimizer(learning_rate=0.1), summary_writer=None, summary_every=100,
@@ -83,20 +85,20 @@ class TutorialModel(PolicyGradient):
 
     def calculate_loss_of_actor(self, logprobs, taken_actions, index):
         cross_entropy_loss, initial_wrongness, __ = super().calculate_loss_of_actor(logprobs, taken_actions, index)
-        wrongNess = tf.constant(initial_wrongness)
+        wrongness = tf.constant(initial_wrongness)
         argmax = tf.argmax(logprobs, axis=1)
         if self.action_handler.action_list_names[index] != 'combo':
-            wrongNess += tf.cast(tf.abs(tf.cast(argmax, tf.int32) - taken_actions), tf.float32)
+            wrongness += tf.cast(tf.abs(tf.cast(argmax, tf.int32) - taken_actions), tf.float32)
         else:
             # use temporarily
-            wrongNess += 2.0 * tf.log(1.0 + tf.cast(tf.abs(tf.cast(argmax, tf.int32) - taken_actions), tf.float32))
+            wrongness += tf.log(1.0 + tf.cast(tf.abs(tf.cast(argmax, tf.int32) - taken_actions), tf.float32))
             #argmax = self.argmax[index]
 
-            #wrongNess += tf.log(1.0 + tf.cast(tf.bitwise.bitwise_xor(
+            #wrongness += tf.log(1.0 + tf.cast(tf.bitwise.bitwise_xor(
             #    tf.cast(self.argmax[index], tf.int32), taken_actions), tf.float32))
             # result = self.fancy_calculate_number_of_ones(number) # can't use until version 1.5
 
-        return cross_entropy_loss, wrongNess, False
+        return cross_entropy_loss, wrongness, False
 
     def create_gated_layer(self, inner_layer, input_state, layer_number, network_size, network_prefix, variable_list=None, scope=None):
         with tf.variable_scope(self.gated_layer_name):
@@ -136,7 +138,7 @@ class TutorialModel(PolicyGradient):
                                                                   variable_list=variable_list)
             else:
                 with tf.variable_scope(self.hidden_layer_name):
-                    inner_layer, layer_size = self.create_layer(tf.nn.relu6, inner_layer, i + 2, layer_size,
+                    inner_layer, layer_size = self.create_layer(tf.tanh, inner_layer, i + 2, layer_size,
                                                                 self.network_size,
                                                                 network_prefix, variable_list=variable_list)
         return inner_layer, layer_size
@@ -144,7 +146,7 @@ class TutorialModel(PolicyGradient):
     def create_last_layer(self, activation_function, inner_layer, network_size, num_actions, network_prefix,
                           last_layer_list=None, layers_list=[]):
         with tf.variable_scope(self.split_hidden_layer_name):
-            inner_layers, layer_size = self.create_split_layers(tf.nn.relu6, inner_layer, network_size,
+            inner_layers, layer_size = self.create_split_layers(tf.tanh, inner_layer, network_size,
                                                                 self.num_split_layers,
                                                                 network_prefix,
                                                                 variable_list=last_layer_list)

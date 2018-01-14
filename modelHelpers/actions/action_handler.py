@@ -195,17 +195,6 @@ class ActionHandler:
         """
         return split_func(numpy_array)
 
-    def get_cross_entropy_with_logits(self, labels, logits, name):
-        """
-        :param tf:
-        :param labels:
-        :param logits:
-        :param name:
-        :return:
-        """
-        return tf.nn.softmax_cross_entropy_with_logits(
-            labels=labels, logits=logits, name=name + 'ns')
-
     def _find_closet_real_number_graph(self, number):
         pure_number = tf.round(number * 2.0) / 2.0
         comparison = tf.Variable(np.array([-1.0, -0.5, 0.0, 0.5, 1.0]), dtype=tf.float32)
@@ -243,3 +232,13 @@ class ActionHandler:
             combo_list.append(bucketed_control)
 
         return self._create_combo_index_graph(combo_list)
+
+    def get_action_loss_from_logits(self, logits, labels, index):
+        """
+        :param logits: A tensorflow logit
+        :param labels: A label of what accured
+        :param index: The index of the control in the actions list this maps to
+        :return: The loss for this particular action
+        """
+        return tf.nn.softmax_cross_entropy_with_logits(
+            labels=labels, logits=logits, name=str(index) + 'ns')
