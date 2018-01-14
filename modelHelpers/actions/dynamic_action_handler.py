@@ -123,7 +123,7 @@ class DynamicActionHandler(SplitActionHandler):
             if self.is_classification(index):
                 controller_output.append(self.actions[index][action_selection[index]])
             else:
-                controller_output.append(action_selection[index])
+                controller_output.append(min(1.0, max(-1.0, action_selection[index])))
 
         # print(controller_output)
         return controller_output
@@ -172,7 +172,7 @@ class DynamicActionHandler(SplitActionHandler):
                 output = tf.gather_nd(ranged_action, tf.stack([indexer, selection], axis=1))
                 controller_output.append(output)
             else:
-                controller_output.append(selection)
+                controller_output.append(tf.maximum(tf.minimum(1.0, selection), -1.0))
 
         # make sure everything is the same type
         controller_output = [tf.cast(option, tf.float32) for option in controller_output]
