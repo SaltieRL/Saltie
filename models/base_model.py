@@ -3,6 +3,7 @@ import os
 import tensorflow as tf
 import numpy as np
 
+from conversions.input.input_formatter import InputFormatter
 from modelHelpers import tensorflow_feature_creator
 from modelHelpers.data_normalizer import DataNormalizer
 
@@ -28,12 +29,14 @@ class BaseModel:
     QUICK_SAVE_KEY = 'quick_save'
     network_size = 128
     controller_predictions = None
+    input_formatter = None
 
     """"
     This is a base class for all models It has a couple helper methods but is mainly used to provide a standard
     interface for running and training a model
     """
-    def __init__(self, session, state_dim, num_actions, player_index=-1, action_handler=None, is_training=False,
+    def __init__(self, session, state_dim, num_actions,
+                 player_index=-1, action_handler=None, is_training=False,
                  optimizer=tf.train.GradientDescentOptimizer(learning_rate=0.1), summary_writer=None, summary_every=100,
                  config_file=None):
 
@@ -102,6 +105,14 @@ class BaseModel:
         :return:
         """
         print(' i do nothing!')
+
+    def add_input_formatter(self, team, index):
+        """Creates and adds an input formatter"""
+        self.input_formatter = InputFormatter(team, index)
+
+    def create_input_array(self, game_tick_packet, frame_time):
+        """Creates the input array from the game_tick_packet"""
+        return self.input_formatter.create_input_array(game_tick_packet, frame_time)
 
     def sample_action(self, input_state):
         """

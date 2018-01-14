@@ -1,3 +1,4 @@
+from conversions.input.simple_input_formatter import SimpleInputFormatter
 from models.base_model import BaseModel
 
 
@@ -22,8 +23,11 @@ class BaseKerasModel(BaseModel):
     def _create_variables(self):
         pass
 
+    def add_input_formatter(self, team, index):
+        self.input_formatter = SimpleInputFormatter(team, index)
+
     def sample_action(self, input_state):
-        return self.model.predict(inputs)
+        return self.model.predict(input_state)
 
     def create_copy_training_model(self, model_input=None, taken_actions=None):
         loss_weights = {}

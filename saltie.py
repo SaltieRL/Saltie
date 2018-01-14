@@ -1,16 +1,13 @@
 # Defined as a generic bot, can use multiple models
 from conversions.input import input_formatter
-from conversions.input.input_formatter import InputFormatter
 import importlib
 import inspect
-from modelHelpers.actions import action_handler, action_factory, dynamic_action_handler
+from modelHelpers.actions import action_factory
 from modelHelpers import reward_manager
 from modelHelpers.tensorflow_feature_creator import TensorflowFeatureCreator
-from models.actor_critic import policy_gradient
 import livedata.live_data_util as live_data_util
 
 import numpy as np
-import random
 import tensorflow as tf
 import time
 
@@ -33,7 +30,6 @@ class Agent:
         self.config_file = config_file
         self.index = index
         self.load_config_file()
-        self.inp = InputFormatter(team, index)
         self.reward_manager = reward_manager.RewardManager()
         config = tf.ConfigProto(
             device_count={'GPU': 0}
@@ -138,7 +134,7 @@ class Agent:
         if self.last_frame_time is not None:
             frame_time = time.time() - self.last_frame_time
         self.last_frame_time = time.time()
-        input_state = self.inp.create_input_array(game_tick_packet, frame_time)
+        input_state = self.model.create_input_array(game_tick_packet, frame_time)
         if self.state_dim != len(input_state):
             print('wrong input size', self.index, len(input_state))
             return self.actions_handler.create_controller_from_selection(
