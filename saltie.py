@@ -37,12 +37,11 @@ class Agent:
         self.sess = tf.Session(config=config)
         # self.sess = tf.Session()
         self.actions_handler = action_factory.get_handler(control_scheme=self.control_scheme)
-        self.state_dim = input_formatter.get_state_dim()
         self.num_actions = self.actions_handler.get_logit_size()
         print('num_actions', self.num_actions)
         self.model = self.get_model_class()(self.sess,
-                                            self.state_dim,
                                             self.num_actions,
+                                            input_formatter_info=[team, index],
                                             player_index=self.index,
                                             action_handler=self.actions_handler,
                                             config_file=config_file,
@@ -135,7 +134,7 @@ class Agent:
             frame_time = time.time() - self.last_frame_time
         self.last_frame_time = time.time()
         input_state = self.model.create_input_array(game_tick_packet, frame_time)
-        if self.state_dim != len(input_state):
+        if self.model.state_dim != len(input_state):
             print('wrong input size', self.index, len(input_state))
             return self.actions_handler.create_controller_from_selection(
                 self.actions_handler.get_random_option())  # do not return anything

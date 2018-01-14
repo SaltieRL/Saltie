@@ -13,8 +13,8 @@ class BaseReinforcement(base_model.BaseModel):
     taken_actions = None
 
     def __init__(self, session,
-                 state_dim,
                  num_actions,
+                 input_formatter_info=[0, 0],
                  player_index=-1,
                  action_handler=None,
                  is_training=False,
@@ -27,8 +27,15 @@ class BaseReinforcement(base_model.BaseModel):
                  anneal_steps=1000,  # N steps for annealing exploration
                  discount_factor=0.99,  # discount future rewards
                  ):
-        super().__init__(session, state_dim, num_actions, player_index, action_handler, is_training, optimizer,
-                         summary_writer, summary_every, config_file)
+        super().__init__(session, num_actions,
+                         input_formatter_info=input_formatter_info,
+                         player_index=player_index,
+                         action_handler=action_handler,
+                         is_training=is_training,
+                         optimizer=optimizer,
+                         summary_writer=summary_writer,
+                         summary_every=summary_every,
+                         config_file=config_file)
 
         # counters
         self.train_iteration = 0

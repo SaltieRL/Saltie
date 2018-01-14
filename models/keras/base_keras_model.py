@@ -17,12 +17,6 @@ class BaseKerasModel(BaseModel):
     loss_weights = None
     loss = None
 
-    def __init__(self, session, state_dim, num_actions, player_index=-1, action_handler=None, is_training=False,
-                 optimizer=None, summary_writer=None, summary_every=100,
-                 config_file=None):
-        super().__init__(session, state_dim, num_actions, player_index, action_handler, is_training, optimizer,
-                         summary_writer, summary_every, config_file)
-
     def printParameters(self):
         super().printParameters()
 
@@ -39,9 +33,10 @@ class BaseKerasModel(BaseModel):
 
         input_state = np.column_stack((input_state, unrotated_positions))
         outputs = self.model.predict(input_state)
+        outputs = [output[0] for output in outputs]
         return outputs
 
-    def unrotate_positions(relative_positions, rotations):
+    def unrotate_positions(self, relative_positions, rotations):
         new_positions = relative_positions
 
         # YAW
@@ -84,7 +79,7 @@ class BaseKerasModel(BaseModel):
         # loss_weights['o_roll'] *= 0.001
 
     def get_input(self, model_input=None):
-        return Input(shape=(self.input_formatter.get_state_dim(),))
+        return Input(shape=(self.state_dim + 3,))
 
     def _create_model(self, model_input):
         """Generates the Keras model"""
@@ -100,8 +95,9 @@ class BaseKerasModel(BaseModel):
 
         extra_hidden_layer_nodes = self.network_size / self.action_handler.get_number_actions()
         loss = {}
-        for i, control in enumerate(self.action_handler.control_names):
-            output_size = self.action_handler.get_action_sizes()[i]
+        action_sizes = self.action_handler.get_action_sizes()
+        for i, control in enumerate(self.action_handler.action_list_names):
+            output_size = action_sizes[i]
             x = shared_output
             for hidden_layer_i in range(1, self.split_hidden_layers + 1):
                 x = Dense(extra_hidden_layer_nodes, activation=self.model_activation, kernel_regularizer=self.kernel_regularizer,
@@ -110,14 +106,14 @@ class BaseKerasModel(BaseModel):
 
             if self.action_handler.is_classification(i):
                 activation = 'sigmoid'
-                loss = 'categorical_crossentropy'
+                loss_name = 'categorical_crossentropy'
             else:
                 activation = 'tanh'
-                loss = 'mean_absolute_error'
+                loss_name = 'mean_absolute_error'
             _output = Dense(output_size, activation=activation,
                             name='o_%s' % control)(x)
             outputs.append(_output)
-            loss['o_%s' % control] = loss
+            loss['o_%s' % control] = loss_name
 
         self.loss = loss
 
@@ -127,9 +123,12 @@ class BaseKerasModel(BaseModel):
 
     def initialize_model(self):
         self.model.compile(optimizer='adam', loss=self.loss, loss_weights=self.loss_weights)
+<<<<<<< HEAD
         # if self.loss_weights is not None:
         # else:
         #     self.model.compile()
+=======
+>>>>>>> 7166ea3b5e1f47b686a4cb475ed534da493b6a93
         super().initialize_model()
 
     def _initialize_variables(self):
@@ -163,3 +162,9 @@ class BaseKerasModel(BaseModel):
 
     def create_model_hash(self):
         return super().create_model_hash()
+
+    def get_model_name(self):
+        return 'keras'
+
+    def get_input_placeholder(self):
+        return None

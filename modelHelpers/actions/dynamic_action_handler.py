@@ -110,7 +110,7 @@ class DynamicActionHandler(SplitActionHandler):
 
     def create_controller_from_selection(self, action_selection):
         if len(action_selection) != len(self.actions):
-            raise Exception('Invalid action selection size')
+            raise Exception('Invalid action selection size' + str(len(action_selection)) + ':' + str(len(self.actions)))
 
         combo_index = self.action_name_index_map[COMBO]
         controller_output = []

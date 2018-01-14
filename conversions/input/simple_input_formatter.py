@@ -27,7 +27,6 @@ class SimpleInputFormatter(InputFormatter):
                   game_tick_packet.gameball.Velocity.Y,
                   game_tick_packet.gameball.Velocity.Z
                   ]
-        inputs = np.array(inputs).reshape((1, -1))
         return inputs
 
     def get_state_dim(self):

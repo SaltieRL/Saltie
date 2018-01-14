@@ -35,7 +35,8 @@ class BaseModel:
     This is a base class for all models It has a couple helper methods but is mainly used to provide a standard
     interface for running and training a model
     """
-    def __init__(self, session, state_dim, num_actions,
+    def __init__(self, session, num_actions,
+                 input_formatter_info=[0, 0],
                  player_index=-1, action_handler=None, is_training=False,
                  optimizer=tf.train.GradientDescentOptimizer(learning_rate=0.1), summary_writer=None, summary_every=100,
                  config_file=None):
@@ -56,10 +57,10 @@ class BaseModel:
 
         # output space
         self.num_actions = num_actions
-
+        self.add_input_formatter(input_formatter_info[0], input_formatter_info[1])
         # input space
-        self.state_dim = state_dim
-        self.state_feature_dim = state_dim
+        self.state_dim = self.input_formatter.get_state_dim()
+        self.state_feature_dim = self.state_dim
 
         self.is_training = is_training
 
