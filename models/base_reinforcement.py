@@ -52,7 +52,7 @@ class BaseReinforcement(base_model.BaseModel):
         print('Reinforcment Parameters:')
         print('discount factor', self.discount_factor)
 
-    def _set_variables(self):
+    def _initialize_variables(self):
         try:
             init = tf.global_variables_initializer()
             if self.action_handler.is_split_mode():

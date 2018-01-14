@@ -67,12 +67,15 @@ class BaseModel:
         self.stored_variables = self._create_variables()
 
     def printParameters(self):
+        """Visually displays all the model parameters"""
         print('model parameters:')
         print('batch size:', self.batch_size)
         print('mini batch size:', self.mini_batch_size)
         print('using features', (self.feature_creator is not None))
 
     def _create_variables(self):
+        """Creates any variables needed by this model.
+        Variables keep their value across multiple runs"""
         with tf.name_scope("model_inputs"):
             self.input_placeholder = tf.placeholder(tf.float32, shape=(None, self.state_dim), name="state_input")
             self.input = self.input_placeholder
@@ -136,6 +139,7 @@ class BaseModel:
         """
         Gets the input for the model.
         Also applies normalization
+        And feature creation
         :param model_input: input to be used if another input is not None
         :return:
         """
@@ -187,16 +191,19 @@ class BaseModel:
         """
         return None, None
 
-    def _set_variables(self):
+    def _initialize_variables(self):
+        """
+        Initializes all variables attempts to run them with placeholders if those are required
+        """
         try:
             init = tf.global_variables_initializer()
-            self.sess.run(init, feed_dict={self.input_placeholder: np.zeros((self.batch_size, self.state_dim))})
+            self.sess.run(init)
         except Exception as e:
             print('failed to initialize')
             print(e)
             try:
                 init = tf.global_variables_initializer()
-                self.sess.run(init)
+                self.sess.run(init, feed_dict={self.input_placeholder: np.zeros((self.batch_size, self.state_dim))})
             except Exception as e2:
                 print('failed to initialize again')
                 print(e2)
@@ -210,7 +217,7 @@ class BaseModel:
         This is used to initialize the model variables
         This will also try to load an existing model if it exists
         """
-        self._set_variables()
+        self._initialize_variables()
 
         #file does not exist too lazy to add check
         if self.model_file is None:
@@ -225,11 +232,11 @@ class BaseModel:
                 file = os.path.abspath(model_file)
                 self.load_model(os.path.dirname(file), os.path.basename(file))
             except Exception as e:
-                self._set_variables()
+                self._initialize_variables()
                 print("Unexpected error loading model:", e)
                 print('unable to load model')
         else:
-            self._set_variables()
+            self._initialize_variables()
             print('unable to find model to load')
 
         self._add_summary_writer()
@@ -283,6 +290,7 @@ class BaseModel:
         return modified_path
 
     def _add_summary_writer(self):
+        """Called to add summary data"""
         if self.summary_writer is not None:
             self.summarize = tf.summary.merge_all()
             # graph was not available when journalist was created
@@ -291,6 +299,7 @@ class BaseModel:
             self.summarize = self.no_op
 
     def load_config_file(self):
+        """Loads a config file.  The config file is stored in self.config_file"""
         try:
             self.model_file = self.config_file.get(MODEL_CONFIGURATION_HEADER, 'model_directory')
         except Exception as e:
@@ -319,6 +328,13 @@ class BaseModel:
             print('unable to load if it should be normalizing defaulting to true')
 
     def add_saver(self, name, variable_list):
+        """
+        Adds a saver to the saver map.
+        All subclasses should still use severs_map even if they do not store a tensorflow saver
+        :param name: The key of the saver
+        :param variable_list: The list of variables to save
+        :return: None
+        """
         if len(variable_list) == 0:
             print('no variables for saver ', name)
             return
@@ -329,6 +345,9 @@ class BaseModel:
             raise e
 
     def create_savers(self):
+        """Called to create the savers for the model. Or any other way to store the model
+        This is called after the model has been created but before it has been initialized.
+        This should make calls to add_saver"""
         self.add_saver(self.QUICK_SAVE_KEY, tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES))
 
     def _create_model_directory(self, file_path):
@@ -337,11 +356,23 @@ class BaseModel:
             os.makedirs(dirname)
 
     def _save_keyed_model(self, model_path, key, global_step):
+        """
+        :param model_path: The directory for which the model should live
+        :param key: The key for the savers_map variables
+        :param global_step: Which number step in training it is
+        """
         keyed_path = self._create_saved_model_path(os.path.dirname(model_path), os.path.basename(model_path), key)
         self._create_model_directory(keyed_path)
         self._save_model(self.sess, self.savers_map[key], keyed_path, global_step)
 
     def _save_model(self, session, saver, file_path, global_step):
+        """
+        Saves the model with the specific path, saver, and tensorflow session.
+        :param session: The tensorflow session
+        :param saver: The object that is actually saving the model
+        :param file_path: The place where the model is stored
+        :param global_step: What number it is in the training
+        """
         try:
             saver.save(session, file_path, global_step=global_step)
         except Exception as e:
@@ -379,6 +410,12 @@ class BaseModel:
             self._load_keyed_model(model_path, file_name, key)
 
     def _load_keyed_model(self, model_path, file_name, key):
+        """
+        Loads a model based on a key and a model path
+        :param model_path: The base directory of where the model lives
+        :param file_name: The name of this specific model piece
+        :param key: The key used for the savers_map
+        """
         try:
             self._load_model(self.sess, self.savers_map[key], self._create_saved_model_path(model_path, file_name, key))
         except Exception as e:
@@ -386,6 +423,13 @@ class BaseModel:
             print(e)
 
     def _load_model(self, session, saver, path):
+        """
+        Loads a model only loads it if the directory exists
+        :param session: Tensorflow session
+        :param saver: The object that saves and loads the model
+        :param path:
+        :return:
+        """
         if os.path.exists(os.path.dirname(path)):
             checkpoint_path = path
             if self.load_from_checkpoints:
@@ -395,6 +439,7 @@ class BaseModel:
             print('model for saver not found:', path)
 
     def create_model_hash(self):
+        """Creates the hash of the model used for the server keeping track of what is being used"""
         all_saved_variables = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)
         print(len(all_saved_variables))
         for i in all_saved_variables:
