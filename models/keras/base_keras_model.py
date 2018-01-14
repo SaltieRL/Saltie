@@ -155,3 +155,6 @@ class BaseKerasModel(BaseModel):
 
     def create_model_hash(self):
         return super().create_model_hash()
+
+    def get_model_name(self):
+        return 'keras'
