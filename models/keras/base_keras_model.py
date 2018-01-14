@@ -65,6 +65,7 @@ class BaseKerasModel(BaseModel):
                 outputs.append(_output)
 
         extra_hidden_layer_nodes = self.network_size / self.action_handler.get_number_actions()
+        loss = {}
         for i, control in enumerate(self.action_handler.control_names):
             output_size = self.action_handler.get_action_sizes()[i]
             x = shared_output
@@ -76,11 +77,14 @@ class BaseKerasModel(BaseModel):
 
             if self.action_handler.is_classification(i):
                 activation = 'sigmoid'
+                loss = 'categorical_crossentropy'
             else:
                 activation = 'tanh'
+                loss = 'mean_absolute_error'
             _output = Dense(output_size, activation=activation,
                             name='o_%s' % control)(x)
             outputs.append(_output)
+            loss['o_%s' % control] = loss
 
 
         model = Model(inputs=model_input, outputs=outputs)
