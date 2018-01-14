@@ -134,7 +134,7 @@ class Agent:
             frame_time = time.time() - self.last_frame_time
         self.last_frame_time = time.time()
         input_state = self.model.create_input_array(game_tick_packet, frame_time)
-        if self.state_dim != len(input_state):
+        if self.model.state_dim != len(input_state):
             print('wrong input size', self.index, len(input_state))
             return self.actions_handler.create_controller_from_selection(
                 self.actions_handler.get_random_option())  # do not return anything
