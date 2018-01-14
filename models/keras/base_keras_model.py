@@ -62,6 +62,7 @@ class BaseKerasModel(BaseModel):
             x = Dropout(0.4)(x)
 
         shared_output = x
+        outputs = []
 
         extra_hidden_layer_nodes = self.network_size / self.action_handler.get_number_actions()
         loss = {}
