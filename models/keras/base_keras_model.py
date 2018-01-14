@@ -23,13 +23,15 @@ class BaseKerasModel(BaseModel):
     def get_input(self, model_input=None):
         # given maybe input return keras version  for your model
         # note that the super class uses a tensorflow placeholder
+
+        inputs = Input(shape=(input_dim,))
         return super().get_input(model_input)
 
     def _create_model(self, model_input):
             def generate_model(self, input_dim, outputs=1, shared_hidden_layers=0, nodes=256, extra_hidden_layers=6, extra_hidden_layer_nodes=128):
         """Generates and returns Keras model given input dim, outputs, hidden_layers, and nodes"""
-        inputs = Input(shape=(input_dim,))
-        x = inputs
+
+        x = model_input
         for hidden_layer_i in range(1, shared_hidden_layers + 1):
             x = Dense(nodes, activation=self.model_activation, kernel_regularizer=self.kernel_regularizer, name='hidden_layer_%s' %
                       hidden_layer_i)(x)
