@@ -167,4 +167,3 @@ class Agent:
         except Exception as e:
             print('creating hash exception', e)
             return 0
-0
