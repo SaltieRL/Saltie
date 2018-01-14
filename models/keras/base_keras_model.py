@@ -4,7 +4,7 @@ from keras.models import Sequential, Model
 from keras.layers import Input, Dense, Dropout, LeakyReLU, PReLU
 from keras import optimizers, regularizers
 from keras.callbacks import EarlyStopping, Callback, TensorBoard
-from keras.utils import plot_model
+# from keras.utils import plot_model
 import numpy as np
 
 
@@ -83,14 +83,11 @@ class BaseKerasModel(BaseModel):
         # loss_weights['o_yaw'] *= 0.001
         # loss_weights['o_roll'] *= 0.001
 
-        # adam = optimizers.Adam(lr=0.01)
-
     def get_input(self, model_input=None):
         return Input(shape=(self.input_formatter.get_state_dim(),))
 
     def _create_model(self, model_input):
-        #def generate_model(self, input_dim, outputs=1, shared_hidden_layers=0, nodes=256, extra_hidden_layers=6, extra_hidden_layer_nodes=128):
-        #"""Generates and returns Keras model given input dim, outputs, hidden_layers, and nodes"""
+        """Generates the Keras model"""
 
         x = model_input
         for hidden_layer_i in range(1, self.shared_hidden_layers + 1):
@@ -129,10 +126,10 @@ class BaseKerasModel(BaseModel):
         return None
 
     def initialize_model(self):
-        if self.loss_weights is not None:
-            self.model.compile(optimizer='adam', loss=self.loss, loss_weights=self.loss_weights)
-        else:
-            self.model.compile()
+        self.model.compile(optimizer='adam', loss=self.loss, loss_weights=self.loss_weights)
+        # if self.loss_weights is not None:
+        # else:
+        #     self.model.compile()
         super().initialize_model()
 
     def _initialize_variables(self):
@@ -145,6 +142,11 @@ class BaseKerasModel(BaseModel):
         super()._add_summary_writer()
 
     def load_config_file(self):
+        """Loads a config file.  The config file is stored in self.config_file"""
+        try:
+            self.model_file = self.config_file.get(MODEL_CONFIGURATION_HEADER, 'model_directory')
+        except Exception as e:
+            print('model directory is not in config', e)
         super().load_config_file()
 
     def add_saver(self, name, variable_list):
