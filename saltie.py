@@ -66,7 +66,7 @@ class Agent:
         self.model.apply_feature_creation(TensorflowFeatureCreator())
 
         try:
-            self.model.create_model(self.model.input_placeholder)
+            self.model.create_model(self.model.get_input_placeholder())
         except TypeError as e:
             raise Exception('failed to create model') from e
 

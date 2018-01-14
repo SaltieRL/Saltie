@@ -27,6 +27,7 @@ class BaseModel:
     load_from_checkpoints = None
     QUICK_SAVE_KEY = 'quick_save'
     network_size = 128
+    controller_predictions = None
 
     """"
     This is a base class for all models It has a couple helper methods but is mainly used to provide a standard
@@ -110,7 +111,7 @@ class BaseModel:
         A sample action that can then be used to get controller output.
         """
         #always return an integer
-        return 10
+        return self.sess.run(self.controller_predictions, feed_dict={self.get_input_placeholder(): input_state})
 
     def create_copy_training_model(self, model_input=None, taken_actions=None):
         """
@@ -175,7 +176,7 @@ class BaseModel:
         """
         input = self.get_input(model_input)
 
-        self.logits = self._create_model(input)
+        self.controller_predictions = self._create_model(input)
 
     def _create_model(self, model_input):
         """
@@ -444,3 +445,11 @@ class BaseModel:
         saved_variables = self.sess.run(all_saved_variables)
         saved_variables = np.array(saved_variables)
         return int(hex(hash(str(saved_variables.data))), 16) % 2 ** 64
+
+    def get_input_placeholder(self):
+        """Returns the placeholder for getting inputs"""
+        return self.input_placeholder
+
+    def get_labels_placeholder(self):
+        """Returns the placeholder for getting what actions have been taken"""
+        return None

@@ -89,7 +89,7 @@ class BaseKerasModel(BaseModel):
 
         self.model = Model(inputs=model_input, outputs=outputs)
 
-        return model
+        return None
 
     def initialize_model(self):
         if self.loss_weights is not None:
