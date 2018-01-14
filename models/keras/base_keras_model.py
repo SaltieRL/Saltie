@@ -58,7 +58,7 @@ class BaseKerasModel(BaseModel):
                                 name='o_%s' % output_name)(x)
                 outputs.append(_output)
 
-        model = Model(inputs=inputs, outputs=outputs)
+        model = Model(inputs=model_input, outputs=outputs)
 
         loss = {}
         loss_weights = {}
