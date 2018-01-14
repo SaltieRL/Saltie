@@ -180,7 +180,7 @@ class BaseModel:
 
     def _create_model(self, model_input):
         """
-        Called to create the model, this is called in the constructor
+        Called to create the model, this is not called in the constructor.
         :param model_input:
             A placeholder for the input data into the model.
         :return:
