@@ -17,12 +17,6 @@ class BaseKerasModel(BaseModel):
     loss_weights = None
     loss = None
 
-    def __init__(self, session, state_dim, num_actions, player_index=-1, action_handler=None, is_training=False,
-                 optimizer=None, summary_writer=None, summary_every=100,
-                 config_file=None):
-        super().__init__(session, state_dim, num_actions, player_index, action_handler, is_training, optimizer,
-                         summary_writer, summary_every, config_file)
-
     def printParameters(self):
         super().printParameters()
 
@@ -86,7 +80,7 @@ class BaseKerasModel(BaseModel):
         # adam = optimizers.Adam(lr=0.01)
 
     def get_input(self, model_input=None):
-        return Input(shape=(self.input_formatter.get_state_dim(),))
+        return Input(shape=(self.state_dim,))
 
     def _create_model(self, model_input):
         #def generate_model(self, input_dim, outputs=1, shared_hidden_layers=0, nodes=256, extra_hidden_layers=6, extra_hidden_layer_nodes=128):
