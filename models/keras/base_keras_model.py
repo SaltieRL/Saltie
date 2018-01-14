@@ -7,6 +7,8 @@ class BaseKerasModel(BaseModel):
     split_hidden_layers = 0
     model_activation = None
     kernel_regularizer = None
+    loss_weights = None
+    loss = None
 
     def __init__(self, session, state_dim, num_actions, player_index=-1, action_handler=None, is_training=False,
                  optimizer=None, summary_writer=None, summary_every=100,
@@ -37,6 +39,8 @@ class BaseKerasModel(BaseModel):
         loss_weights['o_boost'] *= 10
         loss_weights['o_throttle'] *= 20
         loss_weights['o_jump'] *= 20
+        self.loss_weights = loss_weights
+        self.loss = loss
         # loss_weights['o_pitch'] *= 3
         # loss_weights['o_pitch'] *= 0.001
         # loss_weights['o_yaw'] *= 0.001
@@ -87,7 +91,10 @@ class BaseKerasModel(BaseModel):
         return model
 
     def initialize_model(self):
-        self.model.compile(optimizer='adam', loss=self.loss, loss_weights=self.loss_weights)
+        if self.loss_weights is not None:
+            self.model.compile(optimizer='adam', loss=self.loss, loss_weights=self.loss_weights)
+        else:
+            self.model.compile()
         super().initialize_model()
 
     def _initialize_variables(self):
