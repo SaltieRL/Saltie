@@ -165,7 +165,7 @@ class ActionHandler:
         pass
 
     def get_random_option(self):
-        return [random.randrange(self.get_logit_size())]
+        return [random.randrange(self.get_action_sizes())]
 
     def run_func_on_split_tensors(self, input_tensors, split_func):
         """
