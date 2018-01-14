@@ -92,13 +92,12 @@ class ActionHandler:
     def create_tensorflow_controller_from_selection(self, action_selection, batch_size=1, should_stack=True):
         combo_actions = self.actions
         indexer = tf.constant(1, dtype=tf.int32)
-        action_selection = tf.cast(action_selection, tf.int32)
         if batch_size > 1:
             multiplier = tf.constant([int(batch_size), 1, 1])
             combo_actions = tf.tile(tf.expand_dims(combo_actions, 0), multiplier)
             indexer = tf.constant(np.arange(0, batch_size, 1), dtype=tf.int32)
 
-        button_combo = tf.gather_nd(combo_actions, tf.stack([indexer, action_selection[3]], axis=1))
+        button_combo = tf.gather_nd(combo_actions, tf.stack([indexer, tf.cast(action_selection[3], tf.int32)], axis=1))
         new_shape = [self.get_logit_size(), batch_size]
         button_combo = tf.reshape(button_combo, new_shape)
         controller_option = button_combo

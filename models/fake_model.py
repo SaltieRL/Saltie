@@ -28,8 +28,6 @@ class FakeModel(BaseModel):
 
     def sample_action(self, input_state):
         result = self.sess.run(self.actions, feed_dict={self.input_placeholder: input_state})[0]
-        # print(result)
-        result = [int(x) for x in result]
         return result
 
     def get_input(self, model_input=None):

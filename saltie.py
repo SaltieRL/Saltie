@@ -164,7 +164,6 @@ class Agent:
             action = self.actions_handler.get_random_option()
         self.previous_action = action
         controller_selection = self.actions_handler.create_controller_from_selection(action)
-        print(controller_selection)
         return controller_selection
 
     def create_model_hash(self):

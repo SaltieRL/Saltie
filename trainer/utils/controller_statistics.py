@@ -35,7 +35,8 @@ class OutputChecks:
         self.accuracy_over_time = []
         self.bot_data_over_time = []
         self.controls = tf.transpose(
-            self.actionHandler.create_tensorflow_controller_from_selection(self.model_output, self.batch_size))
+            self.actionHandler.create_tensorflow_controller_from_selection(self.model_output,
+                                                                           self.batch_size))
 
     def get_amounts(self, input_array=None, bot_output=None):
 

@@ -83,7 +83,8 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
 
     def smart_argmax(self, input_tensor, index):
         if not self.action_handler.is_classification(index):
-            return input_tensor
+            # input_tensor = tf.Print(input_tensor, [input_tensor], str(index))
+            return tf.squeeze(input_tensor, axis=1)
         argmax_index = tf.cast(tf.argmax(input_tensor, axis=1), tf.int32)
         indexer = tf.range(0, self.mini_batch_size)
         slicer_data = tf.stack([indexer, argmax_index], axis=1)

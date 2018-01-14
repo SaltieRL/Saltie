@@ -118,12 +118,12 @@ class DynamicActionHandler(SplitActionHandler):
             index = self.action_name_index_map[control]
             if index == COMBO:
                 true_index = self.combo_name_index_map[control]
-                controller_output.append(self.actions[combo_index][action_selection[combo_index]][true_index])
+                controller_output.append(self.actions[combo_index][int(action_selection[combo_index])][true_index])
                 continue
             if self.is_classification(index):
-                controller_output.append(self.actions[index][action_selection[index]])
+                controller_output.append(self.actions[index][int(action_selection[index])])
             else:
-                controller_output.append(min(1.0, max(-1.0, action_selection[index])))
+                controller_output.append(action_selection[index])
 
         # print(controller_output)
         return controller_output
@@ -133,8 +133,6 @@ class DynamicActionHandler(SplitActionHandler):
 
         ranged_actions = []
         combo_actions = tf.constant(np.transpose(np.array(self.button_combo)))
-        action_selection = tf.identity(action_selection, name='action_selection')
-        action_selection = tf.cast(action_selection, tf.int32)
 
         # handle ranged actions
         multiplier = tf.constant([int(batch_size), 1])
@@ -164,15 +162,16 @@ class DynamicActionHandler(SplitActionHandler):
                 true_index = self.combo_name_index_map[control]
                 single_element = combo_actions[true_index]
                 controller_output.append(
-                    tf.gather_nd(single_element, tf.stack([indexer, action_selection[combo_index]], axis=1)))
+                    tf.gather_nd(single_element,
+                                 tf.stack([indexer, tf.cast(action_selection[combo_index], tf.int32)], axis=1)))
                 continue
             selection = action_selection[index]
             if self.is_classification(index):
                 ranged_action = ranged_actions[index]
-                output = tf.gather_nd(ranged_action, tf.stack([indexer, selection], axis=1))
+                output = tf.gather_nd(ranged_action, tf.stack([indexer, tf.cast(selection, tf.int32)], axis=1))
                 controller_output.append(output)
             else:
-                controller_output.append(tf.maximum(tf.minimum(1.0, selection), -1.0))
+                controller_output.append(selection)
 
         # make sure everything is the same type
         controller_output = [tf.cast(option, tf.float32) for option in controller_output]
@@ -255,16 +254,13 @@ class DynamicActionHandler(SplitActionHandler):
                     bucketed_control = self.round_action_graph(real_control, action_size)
                 combo_list[real_index] = bucketed_control
             else:
-                if indexes[action_index] is None:
+                if indexes[action_index] is None and self.is_classification(action_index):
                     indexes[action_index] = self._find_closet_real_number_graph(real_control)
                 elif indexes[action_index] is None:
-                    indexes[action_index] = real_control
+                    indexes[action_index] = tf.squeeze(real_control, axis=1)
 
         combo_action = self._create_combo_index_graph(combo_list, real_action)
-        if batch_size is not None and batch_size == 1:
-            indexes[self.action_name_index_map[COMBO]] = tf.reshape(combo_action, [1])
-        else:
-            indexes[self.action_name_index_map[COMBO]] = tf.squeeze(combo_action)
+        indexes[self.action_name_index_map[COMBO]] = tf.squeeze(combo_action, axis=1)
 
         result = tf.stack(indexes, axis=1)
         return result

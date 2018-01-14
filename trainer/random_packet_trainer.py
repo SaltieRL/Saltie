@@ -69,7 +69,7 @@ class RandomPacketTrainer(DefaultModelTrainer):
 
         # Initialising statistics and printing them before training
         self.controller_stats = controller_statistics.OutputChecks(self.sess, self.action_handler,
-                                                                   self.batch_size, self.model.argmax,
+                                                                   self.batch_size, self.model.smart_max,
                                                                    game_tick_packet=game_tick_packet,
                                                                    bot=output_creator)
         self.controller_stats.create_model()
