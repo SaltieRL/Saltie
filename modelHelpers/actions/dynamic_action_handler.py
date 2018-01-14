@@ -62,29 +62,7 @@ class DynamicActionHandler(SplitActionHandler):
         action_data = np.arange(*item[1])
         return action_data
 
-    def create_actions(self):
-        self.reset()
-
-        for i, item in enumerate(self.control_names):
-            self.control_names_index_map[item] = i
-
-        ranges = self.control_scheme[0]
-        combo_scheme = self.control_scheme[1]
-        copies = self.control_scheme[2]
-
-        for item in ranges:
-            action = self.create_range_action(item)
-            self.action_sizes.append(len(action))
-            self.action_name_index_map[item[0]] = len(self.action_list_names)
-            if len(item) > 2:
-                self.action_loss_type_map[len(self.action_list_names)] = item[2]
-            else:
-                self.action_loss_type_map[len(self.action_list_names)] = LOSS_SPARSE_CROSS
-            self.action_list_names.append(item[0])
-            self.actions.append(action)
-
-        self.ranged_actions = list(self.actions)
-
+    def create_combo_actions(self, combo_scheme):
         for item in combo_scheme:
             action = self.create_range_action(item)
             self.combo_name_list.append(item[0])
@@ -100,6 +78,36 @@ class DynamicActionHandler(SplitActionHandler):
         self.action_loss_type_map[len(self.action_list_names)] = LOSS_SPARSE_CROSS
         self.action_list_names.append(COMBO)
         self.actions.append(self.button_combo)
+
+    def create_ranged_actions(self, ranges):
+        for item in ranges:
+            action = self.create_range_action(item)
+            self.action_sizes.append(len(action))
+            self.action_name_index_map[item[0]] = len(self.action_list_names)
+            if len(item) > 2:
+                self.action_loss_type_map[len(self.action_list_names)] = item[2]
+            else:
+                self.action_loss_type_map[len(self.action_list_names)] = LOSS_SPARSE_CROSS
+            self.action_list_names.append(item[0])
+            self.actions.append(action)
+
+        self.ranged_actions = list(self.actions)
+
+    def create_actions(self):
+        self.reset()
+
+        for i, item in enumerate(self.control_names):
+            self.control_names_index_map[item] = i
+
+        ranges = self.control_scheme[0]
+        combo_scheme = self.control_scheme[1]
+        copies = self.control_scheme[2]
+
+        if len(ranges) > 0:
+            self.create_ranged_actions(ranges)
+
+        if len(combo_scheme) > 0:
+            self.create_combo_actions(combo_scheme)
 
         for item in copies:
             self.action_name_index_map[item[0]] = self.action_name_index_map[item[1]]
