@@ -2,6 +2,7 @@ from conversions.input.simple_input_formatter import SimpleInputFormatter
 from models.base_model import BaseModel, MODEL_CONFIGURATION_HEADER
 from keras.models import Sequential, Model
 from keras.layers import Input, Dense, Dropout, LeakyReLU, PReLU
+from keras import backend as K
 from keras import optimizers, regularizers
 from keras.callbacks import EarlyStopping, Callback, TensorBoard
 # from keras.utils import plot_model
@@ -16,6 +17,28 @@ class BaseKerasModel(BaseModel):
     kernel_regularizer = None
     loss_weights = None
     loss = None
+
+    def __init__(self, session,
+                 num_actions,
+                 input_formatter_info=[0, 0],
+                 player_index=-1,
+                 action_handler=None,
+                 is_training=False,
+                 optimizer=None,
+                 summary_writer=None,
+                 summary_every=100,
+                 config_file=None
+                 ):
+        K.set_session(session)
+        super().__init__(session, num_actions,
+                         input_formatter_info=input_formatter_info,
+                         player_index=player_index,
+                         action_handler=action_handler,
+                         is_training=is_training,
+                         optimizer=optimizer,
+                         summary_writer=summary_writer,
+                         summary_every=summary_every,
+                         config_file=config_file)
 
     def printParameters(self):
         super().printParameters()
