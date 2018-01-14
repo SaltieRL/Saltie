@@ -38,7 +38,8 @@ class BaseKerasModel(BaseModel):
         unrotated_positions = self.unrotate_positions(relative_positions, rotations)
 
         input_state = np.column_stack((input_state, unrotated_positions))
-        return input_state
+        outputs = self.model.predict(input_state)
+        return outputs
 
     def unrotate_positions(relative_positions, rotations):
         new_positions = relative_positions
@@ -88,7 +89,7 @@ class BaseKerasModel(BaseModel):
         return Input(shape=(self.input_formatter.get_state_dim(),))
 
     def _create_model(self, model_input):
-            #def generate_model(self, input_dim, outputs=1, shared_hidden_layers=0, nodes=256, extra_hidden_layers=6, extra_hidden_layer_nodes=128):
+        #def generate_model(self, input_dim, outputs=1, shared_hidden_layers=0, nodes=256, extra_hidden_layers=6, extra_hidden_layer_nodes=128):
         #"""Generates and returns Keras model given input dim, outputs, hidden_layers, and nodes"""
 
         x = model_input
