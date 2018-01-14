@@ -2,8 +2,14 @@ from models.base_model import BaseModel
 
 
 class BaseKerasModel(BaseModel):
+
+    shared_hidden_layers = 0
+    split_hidden_layers = 0
+    model_activation = None
+    kernel_regularizer = None
+
     def __init__(self, session, state_dim, num_actions, player_index=-1, action_handler=None, is_training=False,
-                 optimizer=tf.train.GradientDescentOptimizer(learning_rate=0.1), summary_writer=None, summary_every=100,
+                 optimizer=None, summary_writer=None, summary_every=100,
                  config_file=None):
         super().__init__(session, state_dim, num_actions, player_index, action_handler, is_training, optimizer,
                          summary_writer, summary_every, config_file)
@@ -28,12 +34,12 @@ class BaseKerasModel(BaseModel):
         return super().get_input(model_input)
 
     def _create_model(self, model_input):
-            def generate_model(self, input_dim, outputs=1, shared_hidden_layers=0, nodes=256, extra_hidden_layers=6, extra_hidden_layer_nodes=128):
-        """Generates and returns Keras model given input dim, outputs, hidden_layers, and nodes"""
+            #def generate_model(self, input_dim, outputs=1, shared_hidden_layers=0, nodes=256, extra_hidden_layers=6, extra_hidden_layer_nodes=128):
+        #"""Generates and returns Keras model given input dim, outputs, hidden_layers, and nodes"""
 
         x = model_input
-        for hidden_layer_i in range(1, shared_hidden_layers + 1):
-            x = Dense(nodes, activation=self.model_activation, kernel_regularizer=self.kernel_regularizer, name='hidden_layer_%s' %
+        for hidden_layer_i in range(1, self.shared_hidden_layers + 1):
+            x = Dense(self.network_size, activation=self.model_activation, kernel_regularizer=self.kernel_regularizer, name='hidden_layer_%s' %
                       hidden_layer_i)(x)
             x = Dropout(0.4)(x)
 
@@ -57,6 +63,24 @@ class BaseKerasModel(BaseModel):
                 _output = Dense(1, activation=activation,
                                 name='o_%s' % output_name)(x)
                 outputs.append(_output)
+
+        extra_hidden_layer_nodes = self.network_size / self.action_handler.get_number_actions()
+        for i, control in enumerate(self.action_handler.control_names):
+            x = shared_output
+            for hidden_layer_i in range(1, self.split_hidden_layers + 1):
+                x = Dense(extra_hidden_layer_nodes, activation=self.model_activation, kernel_regularizer=self.kernel_regularizer,
+                          name='hidden_layer_%s_%s' % (control, hidden_layer_i))(x)
+                if self.is_training:
+                    x = Dropout(0.4)(x)
+
+            if self.action_handler.is_classification(i):
+                activation = 'sigmoid'
+            else:
+                activation = 'tanh'
+            _output = Dense(1, activation=activation,
+                            name='o_%s' % control)(x)
+            outputs.append(_output)
+
 
         model = Model(inputs=model_input, outputs=outputs)
 

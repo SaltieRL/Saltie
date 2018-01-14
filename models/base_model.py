@@ -20,13 +20,13 @@ class BaseModel:
     is_online_training = False
     no_op = tf.no_op()
     train_op = no_op
-    model = None
     logits = None
     is_normalizing = True
     normalizer = None
     feature_creator = None
     load_from_checkpoints = None
     QUICK_SAVE_KEY = 'quick_save'
+    network_size = 128
 
     """"
     This is a base class for all models It has a couple helper methods but is mainly used to provide a standard
@@ -175,8 +175,7 @@ class BaseModel:
         """
         input = self.get_input(model_input)
 
-        self.model, self.logits = self._create_model(input)
-        return self.model, self.logits
+        self.logits = self._create_model(input)
 
     def _create_model(self, model_input):
         """
@@ -185,11 +184,9 @@ class BaseModel:
             A placeholder for the input data into the model.
         :return:
             A tensorflow object representing the output of the model
-            This output should be able to be run and create an action
-            And a tensorflow object representing the logits of the model
-            This output should be able to be used in training
+            This output should be able to be run and create an action that is parsed by the action handler
         """
-        return None, None
+        return None
 
     def _initialize_variables(self):
         """
