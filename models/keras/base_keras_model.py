@@ -1,5 +1,5 @@
 from conversions.input.simple_input_formatter import SimpleInputFormatter
-from models.base_model import BaseModel
+from models.base_model import BaseModel, MODEL_CONFIGURATION_HEADER
 from keras.models import Sequential, Model
 from keras.layers import Input, Dense, Dropout, LeakyReLU, PReLU
 from keras import optimizers, regularizers
@@ -123,12 +123,6 @@ class BaseKerasModel(BaseModel):
 
     def initialize_model(self):
         self.model.compile(optimizer='adam', loss=self.loss, loss_weights=self.loss_weights)
-<<<<<<< HEAD
-        # if self.loss_weights is not None:
-        # else:
-        #     self.model.compile()
-=======
->>>>>>> 7166ea3b5e1f47b686a4cb475ed534da493b6a93
         super().initialize_model()
 
     def _initialize_variables(self):
