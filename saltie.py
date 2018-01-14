@@ -1,5 +1,4 @@
 # Defined as a generic bot, can use multiple models
-from conversions.input import input_formatter
 import importlib
 import inspect
 from modelHelpers.actions import action_factory
