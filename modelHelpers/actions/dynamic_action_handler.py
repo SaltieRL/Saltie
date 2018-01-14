@@ -2,6 +2,7 @@ import itertools
 
 import numpy as np
 import tensorflow as tf
+from tensorflow.python.ops.losses.losses_impl import Reduction
 
 from modelHelpers.actions.action_handler import ActionHandler, ActionMap
 from modelHelpers.actions.split_action_handler import SplitActionHandler
@@ -279,9 +280,9 @@ class DynamicActionHandler(SplitActionHandler):
             return tf.nn.sparse_softmax_cross_entropy_with_logits(
                 labels=tf.cast(labels, tf.int32), logits=logits, name=LOSS_SPARSE_CROSS)
         if self.action_loss_type_map[index] == LOSS_SQUARE_MEAN:
-            return tf.losses.mean_squared_error(labels, tf.squeeze(logits))
+            return tf.losses.mean_squared_error(labels, tf.squeeze(logits), reduction=Reduction.NONE)
         if self.action_loss_type_map[index] == LOSS_ABSOLUTE_DIFFERENCE:
-            return tf.losses.absolute_difference(labels, tf.squeeze(logits))
+            return tf.losses.absolute_difference(labels, tf.squeeze(logits), reduction=Reduction.NONE)
 
     def get_last_layer_activation_function(self, func, index):
         if self.is_classification(index):
