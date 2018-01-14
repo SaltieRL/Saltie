@@ -26,12 +26,9 @@ class BaseKerasModel(BaseModel):
         return super().sample_action(input_state)
 
     def create_copy_training_model(self, model_input=None, taken_actions=None):
-        loss = {}
         loss_weights = {}
         for i, control in enumerate(self.action_handler.control_names):
             is_classification = self.action_handler.is_classification(i)
-            loss[
-                'o_%s' % control] = 'binary_crossentropy' if is_classification else 'mean_absolute_error'
             loss_weights['o_%s' %
                          control] = 0.01 if is_classification else 0.1
 
@@ -40,7 +37,6 @@ class BaseKerasModel(BaseModel):
         loss_weights['o_throttle'] *= 20
         loss_weights['o_jump'] *= 20
         self.loss_weights = loss_weights
-        self.loss = loss
         # loss_weights['o_pitch'] *= 3
         # loss_weights['o_pitch'] *= 0.001
         # loss_weights['o_yaw'] *= 0.001
@@ -88,6 +84,7 @@ class BaseKerasModel(BaseModel):
             outputs.append(_output)
             loss['o_%s' % control] = loss
 
+        self.loss = loss
 
         self.model = Model(inputs=model_input, outputs=outputs)
 
