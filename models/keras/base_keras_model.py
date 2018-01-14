@@ -66,6 +66,7 @@ class BaseKerasModel(BaseModel):
 
         extra_hidden_layer_nodes = self.network_size / self.action_handler.get_number_actions()
         for i, control in enumerate(self.action_handler.control_names):
+            output_size = self.action_handler.get_action_sizes()[i]
             x = shared_output
             for hidden_layer_i in range(1, self.split_hidden_layers + 1):
                 x = Dense(extra_hidden_layer_nodes, activation=self.model_activation, kernel_regularizer=self.kernel_regularizer,
@@ -77,7 +78,7 @@ class BaseKerasModel(BaseModel):
                 activation = 'sigmoid'
             else:
                 activation = 'tanh'
-            _output = Dense(1, activation=activation,
+            _output = Dense(output_size, activation=activation,
                             name='o_%s' % control)(x)
             outputs.append(_output)
 
