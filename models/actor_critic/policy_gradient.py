@@ -118,19 +118,19 @@ class PolicyGradient(BaseActorCritic):
         if not reduced:
             tf.summary.histogram('actor_wrongness', wrongness)
         with tf.name_scope("compute_pg_gradients"):
-            pg_loss = cross_entropy_loss * (wrongness * wrongness)
+            actor_loss = cross_entropy_loss * (wrongness * wrongness)
 
-            pg_loss = tf.check_numerics(pg_loss, 'nan pg_loss')
+            actor_loss = tf.check_numerics(actor_loss, 'nan pg_loss')
 
             if reduced:
-                pg_loss = tf.reduce_mean(pg_loss, name='pg_loss')
+                actor_loss = tf.reduce_mean(actor_loss, name='pg_loss')
                 tf.summary.scalar(self.action_handler.get_loss_type(index), cross_entropy_loss)
             else:
                 tf.summary.scalar(self.action_handler.get_loss_type(index), tf.reduce_mean(cross_entropy_loss))
 
             actor_reg_loss = self.get_regularization_loss(actor_network_variables, prefix="actor")
 
-            actor_loss = pg_loss + actor_reg_loss * self.reg_param
+            actor_loss = actor_loss + actor_reg_loss * self.reg_param
 
             # compute actor gradients
             actor_gradients = self.optimizer.compute_gradients(actor_loss,
@@ -179,7 +179,9 @@ class PolicyGradient(BaseActorCritic):
         for i, (grad, var) in enumerate(gradients):
             # clip gradients by norm
             if grad is not None:
-                gradients[i] = (tf.clip_by_norm(grad, self.max_gradient), var)
+                post_clipping = tf.clip_by_norm(grad, self.max_gradient)
+                post_nanning = post_clipping # tf.where(tf.is_nan(post_clipping), tf.zeros_like(post_clipping), post_clipping)
+                gradients[i] = (post_nanning, var)
 
         self.add_histograms(gradients)
         # training update

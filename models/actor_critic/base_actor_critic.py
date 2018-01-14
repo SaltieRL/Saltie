@@ -220,7 +220,8 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
                              initializer=tf.random_normal_initializer())
         b = tf.get_variable(bias_name, [output_size],
                              initializer=tf.random_normal_initializer())
-        layer_output = activation_function(tf.matmul(input, W) + b)
+        layer_output = activation_function(tf.matmul(input, W) + b,
+                                           name=network_prefix + 'activation' + str(layer_number))
         if variable_list is not None:
             variable_list.append(W)
             variable_list.append(b)
@@ -307,11 +308,15 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
 
             self.actor_last_row_layer = []
             for i, item in enumerate(self.action_handler.get_action_sizes()):
-                with tf.variable_scope(str(self.action_handler.action_list_names[i])):
-                    layer = self.create_layer(activation_function, inner_layer[i], last_layer_name,
+                variable_name = str(self.action_handler.action_list_names[i])
+                with tf.variable_scope(variable_name):
+                    fixed_activation = self.action_handler.get_activation_function(activation_function, i)
+                    layer = self.create_layer(fixed_activation, inner_layer[i], last_layer_name,
                                                                        network_size, item, network_prefix,
                                                                        variable_list=last_layer_list[i], dropout=False)[0]
-                    self.actor_last_row_layer.append(self.action_handler.scale_layer(layer, i))
+                    scaled_layer = self.action_handler.scale_layer(layer, i)
+                    self.actor_last_row_layer.append(scaled_layer)
+                    tf.summary.histogram(variable_name + '_output', scaled_layer)
 
             return tf.concat(self.actor_last_row_layer, 1)
 

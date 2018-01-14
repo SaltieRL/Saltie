@@ -283,6 +283,11 @@ class DynamicActionHandler(SplitActionHandler):
         if self.action_loss_type_map[index] == LOSS_ABSOLUTE_DIFFERENCE:
             return tf.losses.absolute_difference(labels, tf.squeeze(logits))
 
+    def get_activation_function(self, func, index):
+        if self.is_classification(index):
+            return func
+        return tf.identity
+
     def scale_layer(self, layer, index):
         """
         Scales the layer if required
@@ -293,7 +298,7 @@ class DynamicActionHandler(SplitActionHandler):
         if self.is_classification(index):
             return layer
         else:
-            return layer * 2.0 - 1.0
+            return layer  # * 2.0 - 1.0
 
     def get_loss_type(self, index):
         return self.action_loss_type_map[index]
