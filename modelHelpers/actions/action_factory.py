@@ -1,5 +1,5 @@
 from modelHelpers.actions.action_handler import ActionHandler
-from modelHelpers.actions.dynamic_action_handler import DynamicActionHandler, LOSS_SQUARE_MEAN
+from modelHelpers.actions.dynamic_action_handler import DynamicActionHandler, LOSS_SQUARE_MEAN, LOSS_SPARSE_CROSS
 from modelHelpers.actions.split_action_handler import SplitActionHandler
 
 default_scheme = [[('steer', (-1, 1.5, .5)), ('pitch', (-1, 1.5, .5)), ('roll', (-1, 1.5, .5))],
@@ -23,6 +23,11 @@ regression_controls = [[('throttle', (-1, 1.5, .5), LOSS_SQUARE_MEAN), ('steer',
                        [('jump', (0, 2, 1)), ('boost', (0, 2, 1)), ('handbrake', (0, 2, 1))],
                        []]
 
+mixed_controls = [[('throttle', (-1, 1.5, .5), LOSS_SPARSE_CROSS), ('steer', (-1, 1.5, .5), LOSS_SQUARE_MEAN),
+                        ('yaw', (-1, 1.5, .5), LOSS_SQUARE_MEAN), ('pitch', (-1, 1.5, .5), LOSS_SQUARE_MEAN),
+                        ('roll', (-1, 1.5, .5), LOSS_SQUARE_MEAN)],
+                       [('jump', (0, 2, 1)), ('boost', (0, 2, 1)), ('handbrake', (0, 2, 1))],
+                       []]
 
 def get_handler(split_mode=True, control_scheme=default_scheme):
     """
