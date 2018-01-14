@@ -49,7 +49,7 @@ class BaseKerasModel(BaseModel):
         # adam = optimizers.Adam(lr=0.01)
 
     def get_input(self, model_input=None):
-        return Input(shape=(self.state_dim,))
+        return Input(shape=(self.input_formatter.get_state_dim(),))
 
     def _create_model(self, model_input):
             #def generate_model(self, input_dim, outputs=1, shared_hidden_layers=0, nodes=256, extra_hidden_layers=6, extra_hidden_layer_nodes=128):
