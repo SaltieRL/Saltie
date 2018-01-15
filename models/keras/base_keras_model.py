@@ -7,6 +7,7 @@ from keras import optimizers, regularizers
 from keras.callbacks import EarlyStopping, Callback, TensorBoard
 # from keras.utils import plot_model
 import numpy as np
+import tensorflow as tf
 
 
 class BaseKerasModel(BaseModel):
@@ -18,6 +19,7 @@ class BaseKerasModel(BaseModel):
     loss_weights = None
     loss = None
     tensorboard = None
+    names = []
 
     def __init__(self, session,
                  num_actions,
@@ -150,17 +152,37 @@ class BaseKerasModel(BaseModel):
     def initialize_model(self):
         self.model.compile(optimizer='adam', loss=self.loss, loss_weights=self.loss_weights)
         super().initialize_model()
+        self.tensorboard.set_model(self.model)
 
     def _initialize_variables(self):
         super()._initialize_variables()
 
+    def write_log(self, names, logs, batch_no):
+        for name, value in zip(names, logs):
+            summary = tf.Summary()
+            summary_value = summary.value.add()
+            summary_value.simple_value = value
+            summary_value.tag = name
+            self.tensorboard.writer.add_summary(summary, batch_no)
+            self.tensorboard.writer.flush()
+
     def run_train_step(self, should_calculate_summaries, feed_dict=None, epoch=-1):
-        super().run_train_step(should_calculate_summaries, feed_dict, epoch)
+        model_input = None
+        model_label = None
+        if self.train_iteration is not -1:
+            self.train_iteration = epoch
+        if feed_dict is not None:
+            model_input = feed_dict[self.get_input_placeholder()]
+            model_label = feed_dict[self.get_labels_placeholder()]
+        logs = self.model.train_on_batch(model_input, model_label)
+        if should_calculate_summaries and self.tensorboard is not None:
+            self.write_log(self.names, logs, self.train_iteration)
+        self.train_iteration += 1
 
     def create_batched_inputs(self, inputs):
+        return inputs
 
     def train_model_using_generator(self, epochs=2000, steps_per_epoch=100):
-
         early_stopping = EarlyStopping(monitor='loss', patience=500)
         saver = Saver()
         callbacks = [early_stopping, saver]
@@ -177,8 +199,6 @@ class BaseKerasModel(BaseModel):
 
         self.model.fit_generator(self.generator(
         ), steps_per_epoch=steps_per_epoch, epochs=epochs, validation_data=validation_data, callbacks=callbacks)
-
-
 
     def add_summary_writer(self, even_name):
         log_dir = self.get_event_path(even_name)
@@ -212,4 +232,7 @@ class BaseKerasModel(BaseModel):
         return 'keras'
 
     def get_input_placeholder(self):
-        return None
+        return 'Input'
+
+    def get_labels_placeholder(self):
+        return 'Output'
