@@ -163,7 +163,7 @@ class BaseModel:
         """
         Runs a single train step of the model.
         If batching is enable this will internally handle batching as well
-        :param should_calculate_summaries: True if summaries from this train step should be saved. False otherwise
+        :param should_calculate_summaries: True if summaries/logs from this train step should be saved. False otherwise
         :param feed_dict: The inputs we feed into the model.
         :param epoch: What number iteration we should be on
         :return: The epoch number of the internal model state
@@ -315,16 +315,6 @@ class BaseModel:
         if self.summary_writer is not None:
             self.summary_writer.add_graph(self.sess.graph)
         self.is_initialized = True
-
-    def run_train_step(self, calculate_summaries, input_states, actions):
-        """
-        Runs a single train step of the model
-        :param calculate_summaries: If the model should calculate summaries
-        :param input_states: A batch of input states which should equal batch size
-        :param actions: A batch of actions which should equal batch size
-        :return:
-        """
-        pass
 
     def get_model_name(self):
         """
