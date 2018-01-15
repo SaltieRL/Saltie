@@ -194,6 +194,13 @@ class BaseKerasModel(BaseModel):
     def create_savers(self):
         super().create_savers()
 
+    def on_epoch_end(self, epoch, logs={}):
+        if self.model.bot.save_weights:
+            self.model.save_weights(self.model.bot.weights_file_name)
+            print("\nSaved model weights (Saver callback)")
+        if self.model.bot.save_model:
+            self.model.save(self.model.bot.model_file_name + '.h5')
+
     def _save_model(self, session, saver, file_path, global_step):
         super()._save_model(session, saver, file_path, global_step)
 
