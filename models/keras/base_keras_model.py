@@ -201,6 +201,23 @@ class BaseKerasModel(BaseModel):
         if self.model.bot.save_model:
             self.model.save(self.model.bot.model_file_name + '.h5')
 
+
+    """THIS PART WAS IN INIT"""
+        if use_saved_weights or save_weights:
+            self.weights_file_name = self.model_file_name + '_weights.h5'
+            if use_saved_weights:
+                self.load_weights()
+
+    """THIS PART IS CALLED BY THE ABOVE"""
+        def load_weights(self):
+            if os.path.isfile(self.weights_file_name):
+                self.model.load_weights(self.weights_file_name, by_name=True)
+                print('\n\nLoaded model weights from %s' % self.weights_file_name)
+            else:
+                print('\n\nCannot load weights: File %s does not exist.' %
+                      self.weights_file_name)
+                print('Continuing with default weights')
+
     def _save_model(self, session, saver, file_path, global_step):
         super()._save_model(session, saver, file_path, global_step)
 
