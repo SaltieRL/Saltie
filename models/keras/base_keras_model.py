@@ -157,15 +157,6 @@ class BaseKerasModel(BaseModel):
     def _initialize_variables(self):
         super()._initialize_variables()
 
-    def write_log(self, names, logs, batch_no):
-        for name, value in zip(names, logs):
-            summary = tf.Summary()
-            summary_value = summary.value.add()
-            summary_value.simple_value = value
-            summary_value.tag = name
-            self.tensorboard.writer.add_summary(summary, batch_no)
-            self.tensorboard.writer.flush()
-
     def run_train_step(self, should_calculate_summaries, feed_dict=None, epoch=-1):
         model_input = None
         model_label = None
@@ -176,29 +167,11 @@ class BaseKerasModel(BaseModel):
             model_label = feed_dict[self.get_labels_placeholder()]
         logs = self.model.train_on_batch(model_input, model_label)
         if should_calculate_summaries and self.tensorboard is not None:
-            self.write_log(self.names, logs, self.train_iteration)
+            self.tensorboard.on_epoch_end(self.train_iteration, logs)
         self.train_iteration += 1
 
     def create_batched_inputs(self, inputs):
         return inputs
-
-    def train_model_using_generator(self, epochs=2000, steps_per_epoch=100):
-        early_stopping = EarlyStopping(monitor='loss', patience=500)
-        saver = Saver()
-        callbacks = [early_stopping, saver]
-        if self.log:
-            log_dir = "logs/{}".format(time.strftime("%d-%m %H%M%S",
-                                                     time.gmtime()))
-
-            callbacks.append(tensorboard)
-            print("Saving TensorBoard logs to %s" % log_dir)
-
-        validation_data = next(self.generator())
-        # print(validation_data)
-        self.generator_i = 0
-
-        self.model.fit_generator(self.generator(
-        ), steps_per_epoch=steps_per_epoch, epochs=epochs, validation_data=validation_data, callbacks=callbacks)
 
     def add_summary_writer(self, even_name):
         log_dir = self.get_event_path(even_name)
