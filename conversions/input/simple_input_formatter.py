@@ -31,3 +31,12 @@ class SimpleInputFormatter(InputFormatter):
 
     def get_state_dim(self):
         return 19
+
+    def format_array(self, input_length, array):
+        """
+        Formats the array to properly fit the model
+        :param input_length: The batch size of the array
+        :param array: A numpy array that is being rescaled
+        :return: A new array that has been properly formatted
+        """
+        return array.reshape(input_length, get_state_dim())

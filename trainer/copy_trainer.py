@@ -99,26 +99,25 @@ class CopyTrainer(DownloadTrainer, DefaultModelTrainer):
             return
 
         input_length = len(self.input_batch)
-        self.input_batch = np.array(self.input_batch)
-        self.input_batch = self.input_batch.reshape(input_length, get_state_dim())
+        input_batch = np.array(self.input_batch)
+        input_batch = self.model.input_formatter.format_array(input_length, input_batch)
 
-        output = np.argwhere(np.isnan(self.input_batch))
+        output = np.argwhere(np.isnan(input_batch))
         if len(output) > 0:
             print('nan indexes', output)
             for index in output:
-                self.input_batch[index[0]][index[1]] = 0
+                input_batch[index[0]][index[1]] = 0
 
         self.label_batch = np.array(self.label_batch)
         self.label_batch = self.label_batch.reshape(input_length, self.action_length)
 
-        print(input_length)
         if self.should_shuffle:
-            self.input_batch, self.label_batch = self.unison_shuffled_copies(self.input_batch, self.label_batch)
+            input_batch, self.label_batch = self.unison_shuffled_copies(input_batch, self.label_batch)
 
         if self.eval_file:
             self.controller_stats.get_amounts(input_array=self.input_batch, bot_output=np.transpose(self.label_batch))
         else:
-            self.model.run_train_step(True, {self.model.get_input_placeholder(): self.input_batch,
+            self.model.run_train_step(True, {self.model.get_input_placeholder(): input_batch,
                                              self.model.get_labels_placeholder(): self.label_batch})
 
         self.epoch += 1

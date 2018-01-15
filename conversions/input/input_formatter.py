@@ -190,6 +190,15 @@ class InputFormatter:
 
         return [score, goals, own_goals, assists, saves, shots, demolitions, diff_in_score]
 
+    def format_array(self, input_length, array):
+        """
+        Formats the array to properly fit the model
+        :param input_length: The batch size of the array
+        :param array: A numpy array that is being rescaled
+        :return: A new array that has been properly formatted
+        """
+        return array.reshape(input_length, get_state_dim())
+
     def flattenArrays(self, array_of_array):
         """
         Takes an array of arrays and flattens it into a single array
