@@ -192,7 +192,8 @@ class BaseKerasModel(BaseModel):
         super().add_saver(name, variable_list)
 
     def create_savers(self):
-        super().create_savers()
+        self.add_saver(self.QUICK_SAVE_KEY, True)
+        self.add_saver('NotQuickSave', False)
 
     def on_epoch_end(self, epoch, logs={}):
         if self.model.bot.save_weights:
@@ -202,7 +203,9 @@ class BaseKerasModel(BaseModel):
             self.model.save(self.model.bot.model_file_name + '.h5')
 
     def _save_model(self, session, saver, file_path, global_step):
-        super()._save_model(session, saver, file_path, global_step)
+        if saver:
+        self.model.save_weights(file_path)
+        self.model.save(file_path + '.h5')
 
     def _load_model(self, session, saver, path):
         super()._load_model(session, saver, path)
