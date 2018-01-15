@@ -17,6 +17,7 @@ class BaseKerasModel(BaseModel):
     kernel_regularizer = None
     loss_weights = None
     loss = None
+    tensorboard = None
 
     def __init__(self, session,
                  num_actions,
@@ -153,8 +154,11 @@ class BaseKerasModel(BaseModel):
     def _initialize_variables(self):
         super()._initialize_variables()
 
-    def run_train_step(self, calculate_summaries, input_states, actions):
-        super().run_train_step(calculate_summaries, input_states, actions)
+    def run_train_step(self, should_calculate_summaries, feed_dict=None, epoch=-1):
+        super().run_train_step(should_calculate_summaries, feed_dict, epoch)
+
+    def create_batched_inputs(self, inputs):
+
     def train_model_using_generator(self, epochs=2000, steps_per_epoch=100):
 
         early_stopping = EarlyStopping(monitor='loss', patience=500)
@@ -163,8 +167,7 @@ class BaseKerasModel(BaseModel):
         if self.log:
             log_dir = "logs/{}".format(time.strftime("%d-%m %H%M%S",
                                                      time.gmtime()))
-            tensorboard = TensorBoard(
-                write_graph=False, write_images=False, log_dir=log_dir, histogram_freq=10)
+
             callbacks.append(tensorboard)
             print("Saving TensorBoard logs to %s" % log_dir)
 
@@ -177,8 +180,11 @@ class BaseKerasModel(BaseModel):
 
 
 
-    def _add_summary_writer(self):
-        super()._add_summary_writer()
+    def add_summary_writer(self, even_name):
+        log_dir = self.get_event_path(even_name)
+        self.tensorboard = TensorBoard(
+            write_graph=False, write_images=False, log_dir=log_dir, histogram_freq=10)
+
 
     def load_config_file(self):
         super().load_config_file()
