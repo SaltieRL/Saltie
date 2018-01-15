@@ -195,37 +195,16 @@ class BaseKerasModel(BaseModel):
         self.add_saver(self.QUICK_SAVE_KEY, True)
         self.add_saver('NotQuickSave', False)
 
-    def on_epoch_end(self, epoch, logs={}):
-        if self.model.bot.save_weights:
-            self.model.save_weights(self.model.bot.weights_file_name)
-            print("\nSaved model weights (Saver callback)")
-        if self.model.bot.save_model:
-            self.model.save(self.model.bot.model_file_name + '.h5')
-
-
-    """THIS PART WAS IN INIT"""
-        if use_saved_weights or save_weights:
-            self.weights_file_name = self.model_file_name + '_weights.h5'
-            if use_saved_weights:
-                self.load_weights()
-
-    """THIS PART IS CALLED BY THE ABOVE"""
-        def load_weights(self):
-            if os.path.isfile(self.weights_file_name):
-                self.model.load_weights(self.weights_file_name, by_name=True)
-                print('\n\nLoaded model weights from %s' % self.weights_file_name)
-            else:
-                print('\n\nCannot load weights: File %s does not exist.' %
-                      self.weights_file_name)
-                print('Continuing with default weights')
-
     def _save_model(self, session, saver, file_path, global_step):
         if saver:
-        self.model.save_weights(file_path)
-        self.model.save(file_path + '.h5')
+            file_name = file_path + str(global_step)
+        else:
+            file_name = file_path
+        self.model.save_weights(file_name)
+        self.model.save(file_name + '.h5')
 
     def _load_model(self, session, saver, path):
-        super()._load_model(session, saver, path)
+        self.model.load_weights(path, by_name=True)
 
     def create_model_hash(self):
         return super().create_model_hash()
