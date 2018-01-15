@@ -105,7 +105,10 @@ class BaseKerasModel(BaseModel):
         # loss_weights['o_roll'] *= 0.001
 
     def get_input(self, model_input=None):
-        return Input(shape=(self.state_dim + 3,))
+        if model_input is None:
+            return Input(shape=(self.state_dim + 3,))
+        else:
+            return Input(shape=(self.state_dim + 3,), tensor=model_input)
 
     def _create_model(self, model_input):
         """Generates the Keras model"""
@@ -177,7 +180,6 @@ class BaseKerasModel(BaseModel):
         log_dir = self.get_event_path(even_name)
         self.tensorboard = TensorBoard(
             write_graph=False, write_images=False, log_dir=log_dir, histogram_freq=10)
-
 
     def load_config_file(self):
         super().load_config_file()
