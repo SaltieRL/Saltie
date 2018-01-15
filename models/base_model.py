@@ -30,6 +30,7 @@ class BaseModel:
     network_size = 128
     controller_predictions = None
     input_formatter = None
+    summarize = no_op
 
     """"
     This is a base class for all models It has a couple helper methods but is mainly used to provide a standard
@@ -146,14 +147,33 @@ class BaseModel:
         return loss, input, labels
 
     def create_batched_inputs(self, inputs):
-        outputs = inputs
+        """
+        Takes in the inputs and creates a batch variation of them.
+        :param inputs: This is an array or tuple of inputs that will be converted to their batch form.
+        :return: The outputs converted to their batch form.
+        """
+        outputs = tuple(inputs)
         if self.batch_size > self.mini_batch_size:
             ds = tf.data.Dataset.from_tensor_slices(tuple(inputs)).batch(self.mini_batch_size)
             self.iterator = ds.make_initializable_iterator()
             outputs = self.iterator.get_next()
         return outputs
 
-    def run_train_step(self, calculate_summaries, feed_dict):
+    def run_train_step(self, should_calculate_summaries, feed_dict=None, epoch=-1):
+        """
+        Runs a single train step of the model.
+        If batching is enable this will internally handle batching as well
+        :param should_calculate_summaries: True if summaries from this train step should be saved. False otherwise
+        :param feed_dict: The inputs we feed into the model.
+        :param epoch: What number iteration we should be on
+        :return: The epoch number of the internal model state
+        """
+
+        if epoch != -1:
+            self.train_iteration = epoch
+
+        should_summarize = should_calculate_summaries and self.summarize is not None and self.summary_writer is not None
+
         # perform one update of training
         if self.batch_size > self.mini_batch_size:
             self.sess.run([self.get_input_placeholder(), self.get_labels_placeholder(), self.iterator.initializer],
@@ -165,10 +185,10 @@ class BaseModel:
                 try:
                     result, summary_str = self.sess.run([
                         self.train_op,
-                        self.summarize if calculate_summaries else self.no_op
+                        self.summarize if should_summarize else self.no_op
                     ])
                     # emit summaries
-                    if calculate_summaries:
+                    if should_summarize:
                         self.summary_writer.add_summary(summary_str, self.train_iteration)
                         self.train_iteration += 1
                     counter += 1
@@ -178,13 +198,14 @@ class BaseModel:
         else:
             result, summary_str = self.sess.run([
                 self.train_op,
-                self.summarize if calculate_summaries else self.no_op
+                self.summarize if should_summarize else self.no_op
             ],
                 feed_dict=feed_dict)
             # emit summaries
-            if calculate_summaries:
+            if should_summarize:
                 self.summary_writer.add_summary(summary_str, self.train_iteration)
                 self.train_iteration += 1
+        return self.train_iteration
 
     def apply_feature_creation(self, feature_creator):
         self.state_feature_dim = self.state_dim + tensorflow_feature_creator.get_feature_dim()
@@ -291,7 +312,8 @@ class BaseModel:
             self._initialize_variables()
             print('unable to find model to load')
 
-        self._add_summary_writer()
+        if self.summary_writer is not None:
+            self.summary_writer.add_graph(self.sess.graph)
         self.is_initialized = True
 
     def run_train_step(self, calculate_summaries, input_states, actions):
@@ -341,14 +363,16 @@ class BaseModel:
             modified_path = complete_path + str(counter)
         return modified_path
 
-    def _add_summary_writer(self):
-        """Called to add summary data"""
-        if self.summary_writer is not None:
-            self.summarize = tf.summary.merge_all()
-            # graph was not available when journalist was created
-            self.summary_writer.add_graph(self.sess.graph)
-        else:
-            self.summarize = self.no_op
+    def add_summary_writer(self, event_name):
+        """
+        Called to add a way to summarize the model info.
+        This could be called before the graph is finalized
+        :param event_name: The file name of the summary
+        :return:
+        """
+        self.summary_writer = tf.summary.FileWriter(self.get_event_path(event_name))
+
+        self.summarize = tf.summary.merge_all()
 
     def load_config_file(self):
         """Loads a config file.  The config file is stored in self.config_file"""

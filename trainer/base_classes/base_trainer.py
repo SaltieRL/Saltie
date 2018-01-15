@@ -65,8 +65,7 @@ class BaseTrainer:
 
     def setup_model(self):
         self.model = self.instantiate_model(self.model_class)
-        self.model.summary_writer = tf.summary.FileWriter(
-            self.model.get_event_path(self.get_event_filename()))
+        self.model.add_summary_writer(self.get_event_filename())
 
     def get_event_filename(self):
         return 'event'
