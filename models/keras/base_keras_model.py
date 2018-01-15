@@ -155,6 +155,27 @@ class BaseKerasModel(BaseModel):
 
     def run_train_step(self, calculate_summaries, input_states, actions):
         super().run_train_step(calculate_summaries, input_states, actions)
+    def train_model_using_generator(self, epochs=2000, steps_per_epoch=100):
+
+        early_stopping = EarlyStopping(monitor='loss', patience=500)
+        saver = Saver()
+        callbacks = [early_stopping, saver]
+        if self.log:
+            log_dir = "logs/{}".format(time.strftime("%d-%m %H%M%S",
+                                                     time.gmtime()))
+            tensorboard = TensorBoard(
+                write_graph=False, write_images=False, log_dir=log_dir, histogram_freq=10)
+            callbacks.append(tensorboard)
+            print("Saving TensorBoard logs to %s" % log_dir)
+
+        validation_data = next(self.generator())
+        # print(validation_data)
+        self.generator_i = 0
+
+        self.model.fit_generator(self.generator(
+        ), steps_per_epoch=steps_per_epoch, epochs=epochs, validation_data=validation_data, callbacks=callbacks)
+
+
 
     def _add_summary_writer(self):
         super()._add_summary_writer()
