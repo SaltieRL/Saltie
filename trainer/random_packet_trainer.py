@@ -92,11 +92,8 @@ class RandomPacketTrainer(DefaultModelTrainer):
 
         # Running the model
         for i in tqdm(range(total_batches)):
-            result, summaries = sess.run([model.train_op,
-                                          model.summarize if model.summarize is not None else model.no_op])
+            model.run_train_step(True, None, i)
 
-            if model.summary_writer is not None:
-                model.summary_writer.add_summary(summaries, i)
             if ((i + 1) * batch_size) % save_step == 0:
                 print('\nStats at', (i + 1) * batch_size, 'frames (', i + 1, 'batches): ')
                 self.controller_stats.get_amounts()

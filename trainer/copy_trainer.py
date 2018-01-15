@@ -118,8 +118,8 @@ class CopyTrainer(DownloadTrainer, DefaultModelTrainer):
         if self.eval_file:
             self.controller_stats.get_amounts(input_array=self.input_batch, bot_output=np.transpose(self.label_batch))
         else:
-            self.model.run_train_step(True, self.input_batch, self.label_batch)
-
+            self.model.run_train_step(True, {self.model.get_input_placeholder(): self.input_batch,
+                                             self.model.get_labels_placeholder(): self.label_batch})
 
         self.epoch += 1
 
