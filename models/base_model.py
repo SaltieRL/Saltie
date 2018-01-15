@@ -1,4 +1,4 @@
-import hashlib
+import math
 import os
 import tensorflow as tf
 import numpy as np
@@ -42,6 +42,7 @@ class BaseModel:
                  config_file=None):
 
         # tensorflow machinery
+        self.train_iteration = 0
         self.optimizer = optimizer
         self.sess = session
         self.summary_writer = summary_writer
@@ -143,6 +144,47 @@ class BaseModel:
         #return a placeholder for labeled data
         labels = None
         return loss, input, labels
+
+    def create_batched_inputs(self, inputs):
+        outputs = inputs
+        if self.batch_size > self.mini_batch_size:
+            ds = tf.data.Dataset.from_tensor_slices(tuple(inputs)).batch(self.mini_batch_size)
+            self.iterator = ds.make_initializable_iterator()
+            outputs = self.iterator.get_next()
+        return outputs
+
+    def run_train_step(self, calculate_summaries, feed_dict):
+        # perform one update of training
+        if self.batch_size > self.mini_batch_size:
+            self.sess.run([self.get_input_placeholder(), self.get_labels_placeholder(), self.iterator.initializer],
+                          feed_dict=feed_dict)
+            num_batches = math.ceil(float(self.batch_size) / float(self.mini_batch_size))
+            # print('num batches', num_batches)
+            counter = 0
+            while counter < num_batches:
+                try:
+                    result, summary_str = self.sess.run([
+                        self.train_op,
+                        self.summarize if calculate_summaries else self.no_op
+                    ])
+                    # emit summaries
+                    if calculate_summaries:
+                        self.summary_writer.add_summary(summary_str, self.train_iteration)
+                        self.train_iteration += 1
+                    counter += 1
+                except tf.errors.OutOfRangeError:
+                    break
+            print('batch amount:', counter)
+        else:
+            result, summary_str = self.sess.run([
+                self.train_op,
+                self.summarize if calculate_summaries else self.no_op
+            ],
+                feed_dict=feed_dict)
+            # emit summaries
+            if calculate_summaries:
+                self.summary_writer.add_summary(summary_str, self.train_iteration)
+                self.train_iteration += 1
 
     def apply_feature_creation(self, feature_creator):
         self.state_feature_dim = self.state_dim + tensorflow_feature_creator.get_feature_dim()
@@ -464,4 +506,4 @@ class BaseModel:
 
     def get_labels_placeholder(self):
         """Returns the placeholder for getting what actions have been taken"""
-        return None
+        return self.no_op

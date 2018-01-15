@@ -203,50 +203,6 @@ class PolicyGradient(BaseActorCritic):
     def discount_rewards(self, input_rewards, input):
         return self.reward_manager.create_reward_graph(input)
 
-    #def parse_actions(self, taken_actions):
-    #    return tf.cast(self.action_handler.create_indexes_graph(taken_actions), tf.int32)
-
-    def run_train_step(self, calculate_summaries, input_states, actions, rewards=None):
-        # perform one update of training
-        if self.batch_size > self.mini_batch_size:
-            self.sess.run([self.input, self.taken_actions, self.iterator.initializer],
-                          feed_dict={self.input_placeholder: input_states, self.taken_actions_placeholder: actions})
-            num_batches = math.ceil(float(self.batch_size) / float(self.mini_batch_size))
-            # print('num batches', num_batches)
-            counter = 0
-            while counter < num_batches:
-                try:
-                    result, summary_str = self.sess.run([
-                        self.train_op,
-                        self.summarize if calculate_summaries else self.no_op
-                    ])
-                    # emit summaries
-                    if calculate_summaries:
-                        self.summary_writer.add_summary(summary_str, self.train_iteration)
-                        self.train_iteration += 1
-                    counter += 1
-                except tf.errors.OutOfRangeError:
-                    #print("End of training dataset.")
-                    break
-            print('batch amount:', counter)
-        else:
-            result, summary_str = self.sess.run([
-                    self.train_op,
-                    self.summarize if calculate_summaries else self.no_op
-                ],
-                feed_dict={
-                    self.input_placeholder: input_states,
-                    self.taken_actions_placeholder: actions
-                })
-            # emit summaries
-            if calculate_summaries:
-                self.summary_writer.add_summary(summary_str, self.train_iteration,
-                    )
-                self.train_iteration += 1
-
-        return None, None
-
-
     def get_model_name(self):
         return 'a_c_policy_gradient' + ('_split' if self.action_handler.is_split_mode else '') + str(self.num_layers) + '-layers'
 

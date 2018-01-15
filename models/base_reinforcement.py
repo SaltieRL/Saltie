@@ -62,18 +62,18 @@ class BaseReinforcement(base_model.BaseModel):
     def _initialize_variables(self):
         try:
             init = tf.global_variables_initializer()
-            if self.action_handler.is_split_mode():
-                actions_null = np.zeros((self.batch_size, self.action_handler.get_number_actions()))
-            else:
-                actions_null = np.zeros((self.batch_size,))
-            self.sess.run(init, feed_dict={self.input_placeholder: np.zeros((self.batch_size, self.state_dim)),
-                                           self.taken_actions_placeholder: actions_null})
+            self.sess.run(init)
         except Exception as e:
             print('failed to initialize')
             print(e)
             try:
                 init = tf.global_variables_initializer()
-                self.sess.run(init)
+                if self.action_handler.is_split_mode():
+                    actions_null = np.zeros((self.batch_size, self.action_handler.get_number_actions()))
+                else:
+                    actions_null = np.zeros((self.batch_size,))
+                self.sess.run(init, feed_dict={self.get_input_placeholder(): np.zeros((self.batch_size, self.state_dim)),
+                                               self.taken_actions_placeholder: actions_null})
             except Exception as e2:
                 print('failed to initialize again')
                 print(e2)
@@ -102,6 +102,9 @@ class BaseReinforcement(base_model.BaseModel):
             self.taken_actions = self.taken_actions_placeholder
             self.input_rewards = self.create_reward()
         return {}
+
+    def get_labels_placeholder(self):
+        return self.taken_actions
 
     def store_rollout(self, input_state, last_action, reward):
         if self.is_training:
@@ -164,24 +167,6 @@ class BaseReinforcement(base_model.BaseModel):
 
         # clean up
         self.clean_up()
-
-    def run_train_step(self, calculate_summaries, input_states, actions, rewards=None):
-        if rewards is None:
-            rewards = np.zeros([self.batch_size, 1])
-        # perform one update of training
-        result, summary_str = self.sess.run([
-            self.train_op,
-            self.summarize if calculate_summaries else self.no_op
-        ], feed_dict={
-            self.input_placeholder: input_states,
-            self.taken_actions_placeholder: actions,
-            self.input_rewards: rewards
-        })
-
-        if self.summary_writer is not None:
-            self.summary_writer.add_summary(summary_str, self.train_iteration)
-
-        return result, summary_str
 
     def anneal_exploration(self, stategy='linear'):
         ratio = max((self.anneal_steps - self.train_iteration) / float(self.anneal_steps), 0)

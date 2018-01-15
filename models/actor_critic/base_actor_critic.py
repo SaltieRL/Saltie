@@ -149,16 +149,12 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
         converted_input = self.get_input(model_input)
 
         if taken_actions is None:
-            actions_input = self.taken_actions_placeholder
+            actions_input = self.get_labels_placeholder()
         else:
             actions_input = taken_actions
-        if self.batch_size > self.mini_batch_size:
-            ds = tf.data.Dataset.from_tensor_slices((converted_input, actions_input)).batch(self.mini_batch_size)
-            self.iterator = ds.make_initializable_iterator()
-            batched_input, batched_taken_actions = self.iterator.get_next()
-        else:
-            batched_input = converted_input
-            batched_taken_actions = actions_input
+
+        batched_input, batched_taken_actions = self.create_batched_inputs([converted_input, actions_input])
+
         with tf.name_scope("training_network"):
             self.discounted_rewards = tf.constant(0.0)
             with tf.variable_scope("actor_network", reuse=True):
@@ -218,6 +214,7 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
             else:
                 action_scores = self.sess.run([self.smart_max],
                                               {self.input_placeholder: input_state})
+                print(action_scores)
 
             action_scores = np.array(action_scores).flatten()
             return action_scores
