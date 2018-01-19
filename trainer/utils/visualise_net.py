@@ -1,5 +1,6 @@
 from tkinter import *
 import numpy as np
+import ast
 
 # Some values useful for editing how the net gets shown
 x_spacing = 100
@@ -25,11 +26,12 @@ class Visualiser:
     info_text_neuron = None  # The info about the last neuron hovered over
     info_text_line = None  # The info about the last line (connection) hovered over
 
-    relu_number = None  # The spinbox to change the relu activation scale
-    relu_button = None
-    rotate = None  # The button to rotate the canvas
+    input_array = None  # The StringVar storing the array used when hitting generate
+    input_relu = None  # The StringVar storing the array used for the relu adaption
+    relu_number = None  # The IntVar storing the spinbox value
 
-    def __init__(self, inp):
+
+    def __init__(self, inp=None):
         # Initialising the window
         self.gui = Tk()
         self.gui.geometry('600x600')
@@ -66,14 +68,30 @@ class Visualiser:
         mainloop()
 
     def edit_stuff(self):
-        self.relu_number = Spinbox(self.eFrame, from_=1, to=1000, width=5)
-        self.relu_number.grid(row=1, column=0)
+        self.input_array = StringVar()
+        input_array_field = Entry(self.eFrame, textvariable=self.input_array)
+        input_array_field.bind('<Return>', lambda event: self.change_input())
+        input_array_field.grid(row=0, column=0)
+        input_array_button = Button(self.eFrame, command=self.change_input, text="Generate")
+        input_array_button.grid(row=0, column=1)
 
-        self.relu_button = Button(self.eFrame, command=self.change_relu_factor, text="Change high relu")
-        self.relu_button.grid(row=1, column=1)
+        self.input_relu = StringVar()
+        input_relu_field = Entry(self.eFrame, textvariable=self.input_relu)
+        input_relu_field.bind('<Return>', lambda event: self.change_relu())
+        input_relu_field.grid(row=1, column=0)
+        input_relu_button = Button(self.eFrame, command=self.change_relu, text="Edit relu")
+        input_relu_button.grid(row=1, column=1)
 
-        self.rotate = Button(self.eFrame, command=self.rotate_and_refresh, text="Rotate")
-        self.rotate.grid(row=2, column=0)
+        self.relu_number = IntVar()
+        self.relu_number.set(20)
+        relu_spin_box = Spinbox(self.eFrame, from_=1, to=1000, width=5, textvariable=self.relu_number)
+        relu_spin_box.bind('<Return>', lambda event: self.change_relu_factor())
+        relu_spin_box.grid(row=2, column=0)
+        relu_button = Button(self.eFrame, command=self.change_relu_factor, text="Change high relu")
+        relu_button.grid(row=2, column=1)
+
+        rotate = Button(self.eFrame, command=self.rotate_and_refresh, text="Rotate")
+        rotate.grid(row=3, column=0)
 
     def info_stuff(self):
         self.info_text_neuron = StringVar()
@@ -127,8 +145,9 @@ class Visualiser:
         self.canvas.configure(scrollregion=self.canvas.bbox('all'))
 
         # Generate the canvas itself
-        for i in range(len(self.layer_activations)):
-            self.create_layer(i)
+        if self.layer_activations is not None:
+            for i in range(len(self.layer_activations)):
+                self.create_layer(i)
 
     def create_circle(self, x0, y0, activation, relu, layer, neuron):
         if self.rotate_canvas:
@@ -137,6 +156,7 @@ class Visualiser:
             activation = activation if activation <= self.highrelu else self.highrelu
             rgb = int(-1 * (activation - self.highrelu) * 255 / self.highrelu)
         else:
+            activation = activation if activation <= 1 else 1
             rgb = int(-1 * (activation - 1) * 255)
         hex_color = "#{:02x}{:02x}{:02x}".format(rgb, rgb, rgb)
         tag = str(layer) + ";" + str(neuron)
@@ -156,19 +176,12 @@ class Visualiser:
 
         weight = self.obtain_weight()
         r, g, b = 0, 0, 0
-        print(weight)
         if weight >= 0:
             weight = weight if weight <= self.bigweight else self.bigweight
             r = int(-1 * (weight - self.bigweight) * 255 / self.bigweight)
-            g = 0
-            b = 0
         else:
             weight = weight if weight >= (-self.bigweight) else (-self.bigweight)
             b = int((weight + self.bigweight) * 255 / self.bigweight)
-            g = 0
-            r = 0
-
-        print(r, g, b)
         hex_color = "#{:02x}{:02x}{:02x}".format(r, g, b)
 
         tag = str(layer0) + ";" + str(neuron0) + ";" + str(layer1) + ";" + str(neuron1)
@@ -216,8 +229,24 @@ class Visualiser:
         self.refresh_canvas()
 
     def change_relu_factor(self):
-        self.highrelu = int(self.relu_number.get())
+        self.highrelu = self.relu_number.get()
         self.refresh_canvas()
+
+    def change_relu(self):
+        if self.input_relu.get():
+            try:
+                self.relu = ast.literal_eval(self.input_relu.get())
+                self.refresh_canvas()
+            except Exception:
+                pass
+
+    def change_input(self):
+        if self.input_array.get():
+            try:
+                self.layer_activations = ast.literal_eval(self.input_array.get())
+                self.refresh_canvas()
+            except Exception:
+                pass
 
     def config_options(self):
         # Make the canvas expandable
