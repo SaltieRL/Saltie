@@ -31,6 +31,7 @@ class BaseModel:
     controller_predictions = None
     input_formatter = None
     summarize = no_op
+    batched_inputs = None
 
     """"
     This is a base class for all models It has a couple helper methods but is mainly used to provide a standard
@@ -85,7 +86,6 @@ class BaseModel:
         Variables keep their value across multiple runs"""
         with tf.name_scope("model_inputs"):
             self.input_placeholder = tf.placeholder(tf.float32, shape=(None, self.state_dim), name="state_input")
-            self.input = self.input_placeholder
         return {}
 
     def store_rollout(self, input_state, last_action, reward):
@@ -154,6 +154,7 @@ class BaseModel:
         """
         outputs = tuple(inputs)
         if self.batch_size > self.mini_batch_size:
+            self.batched_inputs = inputs
             ds = tf.data.Dataset.from_tensor_slices(tuple(inputs)).batch(self.mini_batch_size)
             self.iterator = ds.make_initializable_iterator()
             outputs = self.iterator.get_next()
@@ -176,7 +177,8 @@ class BaseModel:
 
         # perform one update of training
         if self.batch_size > self.mini_batch_size:
-            self.sess.run([self.get_input_placeholder(), self.get_labels_placeholder(), self.iterator.initializer],
+            batches = self.batched_inputs + [self.iterator.initializer]
+            self.sess.run([batches],
                           feed_dict=feed_dict)
             num_batches = math.ceil(float(self.batch_size) / float(self.mini_batch_size))
             # print('num batches', num_batches)
@@ -314,6 +316,7 @@ class BaseModel:
 
         if self.summary_writer is not None:
             self.summary_writer.add_graph(self.sess.graph)
+            self.summarize = tf.summary.merge_all()
         self.is_initialized = True
 
     def get_model_name(self):
@@ -353,16 +356,15 @@ class BaseModel:
             modified_path = complete_path + str(counter)
         return modified_path
 
-    def add_summary_writer(self, event_name):
+    def add_summary_writer(self, event_name, is_replay=False):
         """
         Called to add a way to summarize the model info.
         This could be called before the graph is finalized
         :param event_name: The file name of the summary
+        :param is_replay: True if the events should be saved for replay analysis
         :return:
         """
-        self.summary_writer = tf.summary.FileWriter(self.get_event_path(event_name))
-
-        self.summarize = tf.summary.merge_all()
+        self.summary_writer = tf.summary.FileWriter(self.get_event_path(event_name, is_replay))
 
     def load_config_file(self):
         """Loads a config file.  The config file is stored in self.config_file"""

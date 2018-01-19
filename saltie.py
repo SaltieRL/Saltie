@@ -46,10 +46,8 @@ class Agent:
                                             config_file=config_file,
                                             is_training=False)
 
-        writer = self.model.summary_writer = tf.summary.FileWriter(
-            self.model.get_event_path('random_packet', is_replay=True))
+        self.model.add_summary_writer('random_packet', is_replay=True)
 
-        self.model.summary_writer = writer
         self.model.batch_size = 1
         self.model.mini_batch_size = 1
 

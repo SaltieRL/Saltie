@@ -52,12 +52,6 @@ class PolicyGradient(BaseActorCritic):
         except:
             print('unable to load total_loss_divider')
 
-    def get_input(self, model_input=None):
-        if model_input is None:
-            return super().get_input(self.input)
-        else:
-            return super().get_input(model_input)
-
     def create_training_op(self, logprobs, taken_actions):
         critic_gradients, critic_loss, critic_reg_loss = self.create_critic_gadients()
         actor_gradients, actor_loss, actor_reg_loss = self.create_actor_gradients(logprobs, taken_actions)

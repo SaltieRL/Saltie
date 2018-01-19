@@ -153,14 +153,13 @@ class BaseReinforcement(base_model.BaseModel):
         if len(self.state_buffer) == 0:
             return
         # whether to calculate summaries
-        calculate_summaries = (self.summarize is not None and self.summary_writer is not None and
-                               self.train_iteration % self.summary_every == 0)
 
         # update policy network with the rollout in batches
         input_states = np.array(self.state_buffer)
         actions = np.array(self.action_buffer)
         rewards = None
-        self.run_train_step(calculate_summaries, input_states, actions, rewards)
+        self.run_train_step(True, feed_dict={self.get_input_placeholder(): input_states,
+                                             self.get_labels_placeholder(): actions})
 
         self.anneal_exploration()
         self.train_iteration += 1

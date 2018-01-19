@@ -181,6 +181,7 @@ class DynamicActionHandler(SplitActionHandler):
                 output = tf.gather_nd(ranged_action, tf.stack([indexer, tf.cast(selection, tf.int32)], axis=1))
                 controller_output.append(output)
             else:
+                selection = tf.Print(selection, [selection], control)
                 controller_output.append(selection)
 
         # make sure everything is the same type
