@@ -2,16 +2,16 @@ from tkinter import *
 import numpy as np
 
 # Some values useful for editing how the net gets shown
-highrelu = 20
 x_spacing = 100
 y_spacing = 50
 circle_dia = 30
-rotate_canvas = False
 
 
 class Visualiser:
     gui = None  # The window
     relu = None  # Whether activations are through relu
+    highrelu = 20  # The
+    bigweight = 30
     layer_activations = None  # The values for the activations
     scale = 1.0  # The current scale of the canvas
     delta = 0.75  # The impact of scrolling
@@ -20,11 +20,14 @@ class Visualiser:
     iFrame = None  # The frame with the info
     cFrame = None  # The frame with the canvas
     canvas = None  # The canvas showing the net
+    rotate_canvas = False  # Should the canvas be rotated
 
     info_text_neuron = None  # The info about the last neuron hovered over
     info_text_line = None  # The info about the last line (connection) hovered over
 
     relu_number = None  # The spinbox to change the relu activation scale
+    relu_button = None
+    rotate = None  # The button to rotate the canvas
 
     def __init__(self, inp):
         # Initialising the window
@@ -33,9 +36,12 @@ class Visualiser:
         self.gui.title("Net visualisation")
 
         # Initialising all variables
+        self.highrelu = 20
         self.relu = [True, True, True, True, False]  # Is the layer using relu
+        self.bigweight = 30
         self.layer_activations = inp
         # del inp (Is it necessary? Might kill the original array as well, creating problems over there)
+        self.rotate_canvas = False
         self.last_layer = list()
         self.scale = 1.0
         self.delta = 0.75
@@ -54,15 +60,20 @@ class Visualiser:
 
         self.config_options()
 
+        self.canvas_stuff()
         self.edit_stuff()
         self.info_stuff()
-        self.canvas_stuff()
         mainloop()
 
     def edit_stuff(self):
-        self.relu_number = Spinbox(self.eFrame, from_=1, to=100)
+        self.relu_number = Spinbox(self.eFrame, from_=1, to=1000, width=5)
         self.relu_number.grid(row=1, column=0)
-        Label(self.eFrame, text="Customisation part is still wip").grid(row=0, column=0)
+
+        self.relu_button = Button(self.eFrame, command=self.change_relu_factor, text="Change high relu")
+        self.relu_button.grid(row=1, column=1)
+
+        self.rotate = Button(self.eFrame, command=self.rotate_and_refresh, text="Rotate")
+        self.rotate.grid(row=2, column=0)
 
     def info_stuff(self):
         self.info_text_neuron = StringVar()
@@ -120,11 +131,11 @@ class Visualiser:
             self.create_layer(i)
 
     def create_circle(self, x0, y0, activation, relu, layer, neuron):
-        if rotate_canvas:
+        if self.rotate_canvas:
             x0, y0 = y0, x0
         if relu:
-            activation = activation if activation <= highrelu else highrelu
-            rgb = int(-1 * (activation - highrelu) * 255 / highrelu)
+            activation = activation if activation <= self.highrelu else self.highrelu
+            rgb = int(-1 * (activation - self.highrelu) * 255 / self.highrelu)
         else:
             rgb = int(-1 * (activation - 1) * 255)
         hex_color = "#{:02x}{:02x}{:02x}".format(rgb, rgb, rgb)
@@ -139,12 +150,29 @@ class Visualiser:
         self.canvas.tag_bind(tag, "<Motion>", handler)
 
     def create_line(self, x0, y0, x1, y1, layer0, neuron0, layer1, neuron1):
-        if rotate_canvas:
+        if self.rotate_canvas:
             x0, y0, x1, y1 = y0, x0, y1, x1
         half = .5 * circle_dia
 
+        weight = self.obtain_weight()
+        r, g, b = 0, 0, 0
+        print(weight)
+        if weight >= 0:
+            weight = weight if weight <= self.bigweight else self.bigweight
+            r = int(-1 * (weight - self.bigweight) * 255 / self.bigweight)
+            g = 0
+            b = 0
+        else:
+            weight = weight if weight >= (-self.bigweight) else (-self.bigweight)
+            b = int((weight + self.bigweight) * 255 / self.bigweight)
+            g = 0
+            r = 0
+
+        print(r, g, b)
+        hex_color = "#{:02x}{:02x}{:02x}".format(r, g, b)
+
         tag = str(layer0) + ";" + str(neuron0) + ";" + str(layer1) + ";" + str(neuron1)
-        self.canvas.create_line(x0 + half, y0 + half, x1 + half, y1 + half, tags=tag)
+        self.canvas.create_line(x0 + half, y0 + half, x1 + half, y1 + half, fill=hex_color, tags=tag)
 
         def handler(event, l0=layer0, n0=neuron0, l1=layer1, n1=neuron1):
             self.info_text_line.set(
@@ -153,6 +181,10 @@ class Visualiser:
 
         self.canvas.tag_bind(tag, "<Motion>", handler)
         self.canvas.tag_lower(tag)
+
+
+    def obtain_weight(self):
+        return np.random.randint(-30, 30)
 
     def create_layer(self, layer):
         activations = self.layer_activations[layer]
@@ -172,6 +204,21 @@ class Visualiser:
             neuron += 1
         self.last_layer = this_layer
 
+    def refresh_canvas(self):
+        self.canvas.scale('all', 0, 0, 1, 1)
+        self.scale = 1
+        self.canvas.delete('all')
+        for i in range(len(self.layer_activations)):
+            self.create_layer(i)
+
+    def rotate_and_refresh(self):
+        self.rotate_canvas = not self.rotate_canvas
+        self.refresh_canvas()
+
+    def change_relu_factor(self):
+        self.highrelu = int(self.relu_number.get())
+        self.refresh_canvas()
+
     def config_options(self):
         # Make the canvas expandable
         self.gui.grid_rowconfigure(0, weight=1)
@@ -180,4 +227,4 @@ class Visualiser:
         self.cFrame.grid_rowconfigure(0, weight=1)
         self.cFrame.grid_columnconfigure(0, weight=1)
 
-        self.gui.grid_columnconfigure(0, minsize=200)
+        self.gui.grid_columnconfigure(0, minsize=100)
