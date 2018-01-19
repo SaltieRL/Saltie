@@ -32,6 +32,7 @@ class BaseModel:
     input_formatter = None
     summarize = no_op
     batched_inputs = None
+    iterator = None
 
     """"
     This is a base class for all models It has a couple helper methods but is mainly used to provide a standard
@@ -177,9 +178,8 @@ class BaseModel:
 
         # perform one update of training
         if self.batch_size > self.mini_batch_size:
-            batches = self.batched_inputs + [self.iterator.initializer]
-            self.sess.run([batches],
-                          feed_dict=feed_dict)
+            self.sess.run([self.input_placeholder, self.get_labels_placeholder(), self.iterator.initializer],
+                          feed_dict={self.input_placeholder: feed_dict[0], self.get_labels_placeholder(): feed_dict[1]})
             num_batches = math.ceil(float(self.batch_size) / float(self.mini_batch_size))
             # print('num batches', num_batches)
             counter = 0

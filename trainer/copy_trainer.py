@@ -1,6 +1,5 @@
 import numpy as np
 
-from conversions.input.input_formatter import get_state_dim
 from trainer.base_classes.default_model_trainer import DefaultModelTrainer
 from trainer.base_classes.download_trainer import DownloadTrainer
 from trainer.utils import controller_statistics
@@ -98,9 +97,8 @@ class CopyTrainer(DownloadTrainer, DefaultModelTrainer):
         if len(self.input_batch) <= 1 or len(self.label_batch) <= 1:
             return
 
-        input_length = len(self.input_batch)
         input_batch = np.array(self.input_batch)
-        input_batch = self.model.input_formatter.format_array(input_length, input_batch)
+        input_batch = self.model.input_formatter.format_array(input_batch)
 
         output = np.argwhere(np.isnan(input_batch))
         if len(output) > 0:
@@ -108,17 +106,16 @@ class CopyTrainer(DownloadTrainer, DefaultModelTrainer):
             for index in output:
                 input_batch[index[0]][index[1]] = 0
 
-        self.label_batch = np.array(self.label_batch)
-        self.label_batch = self.label_batch.reshape(input_length, self.action_length)
+        self.label_batch = np.array(self.label_batch, dtype=np.float32)
 
         if self.should_shuffle:
             input_batch, self.label_batch = self.unison_shuffled_copies(input_batch, self.label_batch)
 
         if self.eval_file:
-            self.controller_stats.get_amounts(input_array=self.input_batch, bot_output=np.transpose(self.label_batch))
+            pass
+            # self.controller_stats.get_amounts(input_array=self.input_batch, bot_output=np.transpose(self.label_batch))
         else:
-            self.model.run_train_step(True, {self.model.get_input_placeholder(): input_batch,
-                                             self.model.get_labels_placeholder(): self.label_batch})
+            self.model.run_train_step(True, feed_dict=[input_batch, self.label_batch])
 
         self.epoch += 1
 

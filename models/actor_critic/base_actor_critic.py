@@ -26,7 +26,6 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
     # tensorflow objects
     discounted_rewards = None
     estimated_values = None
-    iterator = None
     logprobs = None
 
     def __init__(self, session,
