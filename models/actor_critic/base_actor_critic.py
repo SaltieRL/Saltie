@@ -164,6 +164,8 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
 
             taken_actions = self.parse_actions(batched_taken_actions)
 
+        self.log_output_data()
+
         self.train_op = self.create_training_op(self.logprobs, taken_actions)
 
     def create_reinforcement_training_model(self, model_input=None):
@@ -284,6 +286,13 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
     def parse_actions(self, taken_actions):
         return taken_actions
 
+    def log_output_data(self):
+        """Logs the output of the last layer of the model"""
+        for i in range(self.action_handler.get_number_actions()):
+            variable_name = str(self.action_handler.action_list_names[i])
+            with tf.variable_scope(variable_name):
+                tf.summary.histogram(variable_name + '_output', self.actor_last_row_layer[i])
+
     def get_regularization_loss(self, variables, prefix=None):
         normalized_variables = [tf.reduce_sum(tf.nn.l2_loss(x) * self.reg_param)
                                 for x in variables]
@@ -323,7 +332,6 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
                                                                        variable_list=last_layer_list[i], dropout=False)[0]
                     scaled_layer = self.action_handler.scale_layer(layer, i)
                     self.actor_last_row_layer.append(scaled_layer)
-                    # tf.summary.histogram(variable_name + '_output', scaled_layer)
 
             return tf.concat(self.actor_last_row_layer, 1)
 
