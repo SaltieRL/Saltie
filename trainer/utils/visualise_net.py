@@ -217,9 +217,9 @@ class Visualiser:
             this_layer.append([x, y])
             if layer_index != 0:
                 nn = 0
-                #for n in self.last_layer:
-                #    self.create_line(n[0], n[1], x, y, layer_index - 1, nn, layer_index, neuron)
-                #    nn += 1
+                for n in self.last_layer:
+                    self.create_line(n[0], n[1], x, y, layer_index - 1, nn, layer_index, neuron)
+                    nn += 1
             self.create_circle(x, y, activation, self.act_type[layer_index], layer_index, split_index, neuron)
             y += y_spacing
             neuron += 1
