@@ -60,7 +60,7 @@ class CopyTrainer(DownloadTrainer, DefaultModelTrainer):
         self.input_batch = []
         self.label_batch = []
         self.input_game_tick = []
-        if self.file_number % self.eval_number == 0:
+        if self.file_number % self.eval_number == 0 and False:
             self.eval_file = True
             self.action_length = self.action_handler.control_size
         else:
@@ -108,14 +108,14 @@ class CopyTrainer(DownloadTrainer, DefaultModelTrainer):
 
         self.label_batch = np.array(self.label_batch, dtype=np.float32)
 
-        if self.should_shuffle:
+        if self.should_shuffle and False:
             input_batch, self.label_batch = self.unison_shuffled_copies(input_batch, self.label_batch)
 
         if self.eval_file:
             pass
             # self.controller_stats.get_amounts(input_array=self.input_batch, bot_output=np.transpose(self.label_batch))
         else:
-            self.model.run_train_step(True, feed_dict=[input_batch, self.label_batch])
+            self.model.run_train_step(True, input_batch, self.label_batch)
 
         self.epoch += 1
 
