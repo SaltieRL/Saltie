@@ -1,16 +1,12 @@
 # Defined as a generic bot, can use multiple models
-from conversions.input import input_formatter
-from conversions.input.input_formatter import InputFormatter
 import importlib
 import inspect
-from modelHelpers.actions import action_handler, action_factory, dynamic_action_handler
+from modelHelpers.actions import action_factory
 from modelHelpers import reward_manager
 from modelHelpers.tensorflow_feature_creator import TensorflowFeatureCreator
-from models.actor_critic import policy_gradient
 import livedata.live_data_util as live_data_util
 
 import numpy as np
-import random
 import tensorflow as tf
 import time
 
@@ -33,7 +29,6 @@ class Agent:
         self.config_file = config_file
         self.index = index
         self.load_config_file()
-        self.inp = InputFormatter(team, index)
         self.reward_manager = reward_manager.RewardManager()
         config = tf.ConfigProto(
             device_count={'GPU': 0}
@@ -41,21 +36,18 @@ class Agent:
         self.sess = tf.Session(config=config)
         # self.sess = tf.Session()
         self.actions_handler = action_factory.get_handler(control_scheme=self.control_scheme)
-        self.state_dim = input_formatter.get_state_dim()
         self.num_actions = self.actions_handler.get_logit_size()
         print('num_actions', self.num_actions)
         self.model = self.get_model_class()(self.sess,
-                                            self.state_dim,
                                             self.num_actions,
+                                            input_formatter_info=[team, index],
                                             player_index=self.index,
                                             action_handler=self.actions_handler,
                                             config_file=config_file,
                                             is_training=False)
 
-        writer = self.model.summary_writer = tf.summary.FileWriter(
-            self.model.get_event_path('random_packet', is_replay=True))
+        self.model.add_summary_writer('random_packet', is_replay=True)
 
-        self.model.summary_writer = writer
         self.model.batch_size = 1
         self.model.mini_batch_size = 1
 
@@ -66,7 +58,7 @@ class Agent:
         self.model.apply_feature_creation(TensorflowFeatureCreator())
 
         try:
-            self.model.create_model(self.model.input_placeholder)
+            self.model.create_model(self.model.get_input_placeholder())
         except TypeError as e:
             raise Exception('failed to create model') from e
 
@@ -138,8 +130,8 @@ class Agent:
         if self.last_frame_time is not None:
             frame_time = time.time() - self.last_frame_time
         self.last_frame_time = time.time()
-        input_state = self.inp.create_input_array(game_tick_packet, frame_time)
-        if self.state_dim != len(input_state):
+        input_state = self.model.create_input_array(game_tick_packet, frame_time)
+        if self.model.state_dim != len(input_state):
             print('wrong input size', self.index, len(input_state))
             return self.actions_handler.create_controller_from_selection(
                 self.actions_handler.get_random_option())  # do not return anything
@@ -172,4 +164,3 @@ class Agent:
         except Exception as e:
             print('creating hash exception', e)
             return 0
-0

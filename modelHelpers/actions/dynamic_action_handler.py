@@ -62,29 +62,7 @@ class DynamicActionHandler(SplitActionHandler):
         action_data = np.arange(*item[1])
         return action_data
 
-    def create_actions(self):
-        self.reset()
-
-        for i, item in enumerate(self.control_names):
-            self.control_names_index_map[item] = i
-
-        ranges = self.control_scheme[0]
-        combo_scheme = self.control_scheme[1]
-        copies = self.control_scheme[2]
-
-        for item in ranges:
-            action = self.create_range_action(item)
-            self.action_sizes.append(len(action))
-            self.action_name_index_map[item[0]] = len(self.action_list_names)
-            if len(item) > 2:
-                self.action_loss_type_map[len(self.action_list_names)] = item[2]
-            else:
-                self.action_loss_type_map[len(self.action_list_names)] = LOSS_SPARSE_CROSS
-            self.action_list_names.append(item[0])
-            self.actions.append(action)
-
-        self.ranged_actions = list(self.actions)
-
+    def create_combo_actions(self, combo_scheme):
         for item in combo_scheme:
             action = self.create_range_action(item)
             self.combo_name_list.append(item[0])
@@ -101,6 +79,38 @@ class DynamicActionHandler(SplitActionHandler):
         self.action_list_names.append(COMBO)
         self.actions.append(self.button_combo)
 
+    def create_ranged_actions(self, ranges):
+        for item in ranges:
+            action = self.create_range_action(item)
+            self.action_sizes.append(len(action))
+            self.action_name_index_map[item[0]] = len(self.action_list_names)
+            if len(item) > 2:
+                self.action_loss_type_map[len(self.action_list_names)] = item[2]
+            else:
+                self.action_loss_type_map[len(self.action_list_names)] = LOSS_SPARSE_CROSS
+            self.action_list_names.append(item[0])
+            self.actions.append(action)
+
+        self.ranged_actions = list(self.actions)
+
+    def create_actions(self):
+        self.reset()
+
+        for i, item in enumerate(self.control_names):
+            self.control_names_index_map[item] = i
+
+        ranges = self.control_scheme[0]
+        combo_scheme = self.control_scheme[1]
+        copies = self.control_scheme[2]
+
+        if len(ranges) > 0:
+            self.create_ranged_actions(ranges)
+
+        if len(combo_scheme) > 0:
+            self.create_combo_actions(combo_scheme)
+        else:
+            self.action_name_index_map[COMBO] = -1
+
         for item in copies:
             self.action_name_index_map[item[0]] = self.action_name_index_map[item[1]]
         return self.actions
@@ -110,7 +120,7 @@ class DynamicActionHandler(SplitActionHandler):
 
     def create_controller_from_selection(self, action_selection):
         if len(action_selection) != len(self.actions):
-            raise Exception('Invalid action selection size')
+            raise Exception('Invalid action selection size' + str(len(action_selection)) + ':' + str(len(self.actions)))
 
         combo_index = self.action_name_index_map[COMBO]
         controller_output = []
@@ -171,6 +181,7 @@ class DynamicActionHandler(SplitActionHandler):
                 output = tf.gather_nd(ranged_action, tf.stack([indexer, tf.cast(selection, tf.int32)], axis=1))
                 controller_output.append(output)
             else:
+                # selection = tf.Print(selection, [selection], control)
                 controller_output.append(selection)
 
         # make sure everything is the same type

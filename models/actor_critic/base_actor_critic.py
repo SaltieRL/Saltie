@@ -1,10 +1,10 @@
-from conversions import output_formatter
 from models import base_reinforcement
 from models import base_model
 import numpy as np
 import tensorflow as tf
 import random
 import livedata.live_data_util as live_data_util
+import collections
 
 
 class BaseActorCritic(base_reinforcement.BaseReinforcement):
@@ -26,23 +26,28 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
     # tensorflow objects
     discounted_rewards = None
     estimated_values = None
-    iterator = None
     logprobs = None
 
     def __init__(self, session,
-                 state_dim,
                  num_actions,
+                 input_formatter_info=[0, 0],
                  player_index=-1,
                  action_handler=None,
                  is_training=False,
                  optimizer=tf.train.GradientDescentOptimizer(learning_rate=0.1),
                  summary_writer=None,
                  summary_every=100,
-                 config_file=None,
-                 discount_factor=0.99,  # discount future rewards
+                 config_file=None
                  ):
-        super().__init__(session, state_dim, num_actions, player_index, action_handler, is_training, optimizer,
-                         summary_writer, summary_every, config_file, discount_factor)
+        super().__init__(session, num_actions,
+                         input_formatter_info=input_formatter_info,
+                         player_index=player_index,
+                         action_handler=action_handler,
+                         is_training=is_training,
+                         optimizer=optimizer,
+                         summary_writer=summary_writer,
+                         summary_every=summary_every,
+                         config_file=config_file)
         if player_index >= 0:
             self.rotating_expected_reward_buffer = live_data_util.RotatingBuffer(player_index)
 
@@ -86,7 +91,7 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
             # input_tensor = tf.Print(input_tensor, [input_tensor], str(index))
             return tf.squeeze(input_tensor, axis=1)
         argmax_index = tf.cast(tf.argmax(input_tensor, axis=1), tf.int32)
-        indexer = tf.range(0, self.mini_batch_size)
+        indexer = tf.range(0, self.batch_size)
         slicer_data = tf.stack([indexer, argmax_index], axis=1)
         sliced_tensor = tf.gather_nd(input_tensor, slicer_data)
         condition = tf.greater(sliced_tensor, self.action_threshold)
@@ -143,16 +148,12 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
         converted_input = self.get_input(model_input)
 
         if taken_actions is None:
-            actions_input = self.taken_actions_placeholder
+            actions_input = self.get_labels_placeholder()
         else:
             actions_input = taken_actions
-        if self.batch_size > self.mini_batch_size:
-            ds = tf.data.Dataset.from_tensor_slices((converted_input, actions_input)).batch(self.mini_batch_size)
-            self.iterator = ds.make_initializable_iterator()
-            batched_input, batched_taken_actions = self.iterator.get_next()
-        else:
-            batched_input = converted_input
-            batched_taken_actions = actions_input
+
+        batched_input, batched_taken_actions = self.create_batched_inputs([converted_input, actions_input])
+
         with tf.name_scope("training_network"):
             self.discounted_rewards = tf.constant(0.0)
             with tf.variable_scope("actor_network", reuse=True):
@@ -163,10 +164,9 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
 
             taken_actions = self.parse_actions(batched_taken_actions)
 
+        self.log_output_data()
+
         self.train_op = self.create_training_op(self.logprobs, taken_actions)
-        if model_input is None:
-            return self.input_placeholder, self.taken_actions_placeholder
-        return model_input, self.taken_actions_placeholder
 
     def create_reinforcement_training_model(self, model_input=None):
         converted_input = self.get_input(model_input)
@@ -212,6 +212,7 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
             else:
                 action_scores = self.sess.run([self.smart_max],
                                               {self.input_placeholder: input_state})
+                print(action_scores)
 
             action_scores = np.array(action_scores).flatten()
             return action_scores
@@ -285,6 +286,13 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
     def parse_actions(self, taken_actions):
         return taken_actions
 
+    def log_output_data(self):
+        """Logs the output of the last layer of the model"""
+        for i in range(self.action_handler.get_number_actions()):
+            variable_name = str(self.action_handler.action_list_names[i])
+            with tf.variable_scope(variable_name):
+                tf.summary.histogram(variable_name + '_output', self.actor_last_row_layer[i])
+
     def get_regularization_loss(self, variables, prefix=None):
         normalized_variables = [tf.reduce_sum(tf.nn.l2_loss(x) * self.reg_param)
                                 for x in variables]
@@ -313,6 +321,8 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
                 return self.actor_last_row_layer
 
             self.actor_last_row_layer = []
+            if not isinstance(inner_layer, collections.Sequence):
+                inner_layer = [inner_layer] * self.action_handler.get_number_actions()
             for i, item in enumerate(self.action_handler.get_action_sizes()):
                 variable_name = str(self.action_handler.action_list_names[i])
                 with tf.variable_scope(variable_name):
@@ -322,7 +332,6 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
                                                                        variable_list=last_layer_list[i], dropout=False)[0]
                     scaled_layer = self.action_handler.scale_layer(layer, i)
                     self.actor_last_row_layer.append(scaled_layer)
-                    # tf.summary.histogram(variable_name + '_output', scaled_layer)
 
             return tf.concat(self.actor_last_row_layer, 1)
 

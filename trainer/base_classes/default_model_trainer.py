@@ -50,8 +50,7 @@ class DefaultModelTrainer(BaseTrainer):
         if self.should_apply_features:
             self.model.apply_feature_creation(self.feature_creator)
 
-
     def instantiate_model(self, model_class):
-        return model_class(self.sess, get_state_dim(),
+        return model_class(self.sess,
                            self.action_handler.get_logit_size(), action_handler=self.action_handler, is_training=True,
                            optimizer=self.optimizer, config_file=self.create_config())

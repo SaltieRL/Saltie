@@ -46,8 +46,8 @@ class RandomPacketTrainer(DefaultModelTrainer):
         self.teacher = self.teacher_package.split('.')[-1]
 
     def instantiate_model(self, model_class):
-        return model_class(self.sess, self.input_formatter.get_state_dim(),
-                           self.action_handler.get_logit_size(), action_handler=self.action_handler, is_training=True,
+        return model_class(self.sess, self.action_handler.get_logit_size(),
+                           action_handler=self.action_handler, is_training=True,
                            optimizer=self.optimizer,
                            config_file=self.create_config(), teacher=self.teacher)
 
@@ -92,11 +92,8 @@ class RandomPacketTrainer(DefaultModelTrainer):
 
         # Running the model
         for i in tqdm(range(total_batches)):
-            result, summaries = sess.run([model.train_op,
-                                          model.summarize if model.summarize is not None else model.no_op])
+            model.run_train_step(True, None, i)
 
-            if model.summary_writer is not None:
-                model.summary_writer.add_summary(summaries, i)
             if ((i + 1) * batch_size) % save_step == 0:
                 print('\nStats at', (i + 1) * batch_size, 'frames (', i + 1, 'batches): ')
                 self.controller_stats.get_amounts()
