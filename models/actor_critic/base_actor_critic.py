@@ -91,7 +91,7 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
             # input_tensor = tf.Print(input_tensor, [input_tensor], str(index))
             return tf.squeeze(input_tensor, axis=1)
         argmax_index = tf.cast(tf.argmax(input_tensor, axis=1), tf.int32)
-        indexer = tf.range(0, self.mini_batch_size)
+        indexer = tf.range(0, self.batch_size)
         slicer_data = tf.stack([indexer, argmax_index], axis=1)
         sliced_tensor = tf.gather_nd(input_tensor, slicer_data)
         condition = tf.greater(sliced_tensor, self.action_threshold)
