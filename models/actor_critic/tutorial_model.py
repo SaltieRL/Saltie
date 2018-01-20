@@ -38,6 +38,8 @@ class TutorialModel(PolicyGradient):
                          config_file=config_file)
         if teacher is not None:
             self.teacher = '_' + teacher
+        else:
+            self.teacher = ''
 
     def printParameters(self):
         super().printParameters()
