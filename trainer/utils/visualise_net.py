@@ -51,7 +51,8 @@ class Visualiser:
         self.act_type = [[self.model_info[i][n][2] for n in range(len(self.model_info[i]))] for i in range(self.n_layers)]
         self.randomiser = random_packet_creator.TensorflowPacketGenerator(1)
         self.input_formatter = tensorflow_input_formatter.TensorflowInputFormatter(0, 0, 1, None)
-        self.layer_activations = inp if inp is not None else self.model.get_activations(self.input_formatter.create_input_array(self.randomiser.get_random_array()))
+        first_input = self.model.sess.run(self.input_formatter.create_input_array(self.randomiser.get_random_array()))
+        self.layer_activations = inp if inp is not None else self.model.get_activations(first_input)
 
         self.last_layer = list()
         for item in self.layer_activations:
@@ -252,7 +253,8 @@ class Visualiser:
                 pass
 
     def layer_activations_random(self):
-        self.layer_activations = self.model.get_activations(self.input_formatter.create_input_array(self.randomiser.get_random_array()))
+        random_array = self.model.sess.run(self.input_formatter.create_input_array(self.randomiser.get_random_array()))
+        self.layer_activations = self.model.get_activations(random_array)
         self.refresh_canvas()
 
     def config_options(self):
