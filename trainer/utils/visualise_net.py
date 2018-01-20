@@ -243,7 +243,8 @@ class Visualiser:
                 pass
 
     def layer_activations_random(self):
-        self.layer_activations = self.model.get_activations(self.input_formatter.create_input_array(self.randomiser.get_random_array()))
+        random_array = self.model.sess.run(self.input_formatter.create_input_array(self.randomiser.get_random_array()))
+        self.layer_activations = self.model.get_activations(random_array)
         self.refresh_canvas()
 
     def config_options(self):
