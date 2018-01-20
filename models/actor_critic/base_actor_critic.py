@@ -1,10 +1,10 @@
-from conversions import output_formatter
 from models import base_reinforcement
 from models import base_model
 import numpy as np
 import tensorflow as tf
 import random
 import livedata.live_data_util as live_data_util
+import collections
 
 
 class BaseActorCritic(base_reinforcement.BaseReinforcement):
@@ -314,6 +314,8 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
                 return self.actor_last_row_layer
 
             self.actor_last_row_layer = []
+            if not isinstance(inner_layer, collections.Sequence):
+                inner_layer = [inner_layer] * self.action_handler.get_number_actions()
             for i, item in enumerate(self.action_handler.get_action_sizes()):
                 variable_name = str(self.action_handler.action_list_names[i])
                 with tf.variable_scope(variable_name):
