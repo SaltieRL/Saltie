@@ -56,15 +56,15 @@ class Visualiser:
         self.layer_activations = inp if inp is not None else self.model.get_activations(first_input)
 
         self.last_layer = list()
-        for item in self.layer_activations:
-            if len(item) > self.biggestarraylen:
-                self.biggestarraylen = len(item)
+        for layer in range(len(self.layer_activations)):
+            for split in range(len(self.layer_activations[layer])):
+                if len(self.get_activations(layer, split)) > self.biggestarraylen:
+                    self.biggestarraylen = len(self.get_activations(layer, split))
 
         self.biggest_split = 0
         for item in self.model_info:
             if len(item) > self.biggest_split:
                 self.biggest_split = len(item)
-        print(self.biggest_split)
 
         self.current_split_layer = 0
 
@@ -265,7 +265,7 @@ class Visualiser:
         self.gui.grid_columnconfigure(0, minsize=100)
 
     def get_activations(self, layer, split):
-        return np.squeeze(self.layer_activations[layer][split])
+        return self.layer_activations[layer][split][0]
 
 
 if __name__ == '__main__':
