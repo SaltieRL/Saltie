@@ -264,4 +264,6 @@ if __name__ == '__main__':
         action_handler = action_factory.get_handler(control_scheme=controls)
         action_handler.get_logit_size()
         model = tutorial_model.TutorialModel(sess, action_handler.get_logit_size(), action_handler=action_handler)
+        model.create_model()
+        model.initialize_model()
         Visualiser(sess, model)
