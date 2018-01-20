@@ -27,6 +27,10 @@ class TutorialModel(PolicyGradient):
                  config_file=None,
                  teacher=None
                  ):
+        if teacher is not None:
+            self.teacher = '_' + teacher
+        else:
+            self.teacher = ''
         super().__init__(session, num_actions,
                          input_formatter_info=input_formatter_info,
                          player_index=player_index,
@@ -36,10 +40,6 @@ class TutorialModel(PolicyGradient):
                          summary_writer=summary_writer,
                          summary_every=summary_every,
                          config_file=config_file)
-        if teacher is not None:
-            self.teacher = '_' + teacher
-        else:
-            self.teacher = ''
 
     def printParameters(self):
         super().printParameters()
