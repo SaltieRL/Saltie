@@ -171,7 +171,7 @@ class Visualiser:
             activation = activation if activation <= 1 else 1
             rgb = int(-1 * (activation - 1) * 255)
         hex_color = "#{:02x}{:02x}{:02x}".format(rgb, rgb, rgb)
-        tag = str(layer_index) + ";" + str(neuron)
+        tag = str(layer_index) + ";" + str(split_index) + ";" + str(neuron)
         self.canvas.create_oval(x0, y0, x0 + circle_dia, y0 + circle_dia, fill=hex_color, tags=tag)
 
         def handler(event, la=layer_index, sp=split_index, ne=neuron):
