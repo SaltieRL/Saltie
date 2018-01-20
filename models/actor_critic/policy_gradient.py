@@ -206,5 +206,6 @@ class PolicyGradient(BaseActorCritic):
         :param cross_entropy_loss:
         :return: The calculated_tensor, If the result is a scalar.
         """
-        return self.action_handler.get_action_loss_from_logits(logprobs, taken_actions, index), 1.0, True
+        return tf.reduce_mean(
+            self.action_handler.get_action_loss_from_logits(logprobs, taken_actions, index)), 1.0, True
 

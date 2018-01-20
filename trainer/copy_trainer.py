@@ -42,7 +42,8 @@ class CopyTrainer(DownloadTrainer, DefaultModelTrainer):
         return model_class(self.sess,
                            self.action_handler.get_logit_size(), action_handler=self.action_handler, is_training=True,
                            optimizer=self.optimizer,
-                           config_file=self.create_config(), teacher='replay_files')
+                           config_file=self.create_config())
+                           #, teacher='replay_files')
 
     def setup_model(self):
         super().setup_model()
@@ -50,10 +51,10 @@ class CopyTrainer(DownloadTrainer, DefaultModelTrainer):
         self.model.create_copy_training_model()
         self.model.create_savers()
         self.model.initialize_model()
-        self.controller_stats = controller_statistics.OutputChecks(self.sess, self.action_handler,
-                                                                   self.batch_size, self.model.smart_max,
-                                                                   model_placeholder=self.model.input_placeholder)
-        self.controller_stats.create_model()
+        #self.controller_stats = controller_statistics.OutputChecks(self.sess, self.action_handler,
+        #                                                           self.batch_size, self.model.smart_max,
+        #                                                           model_placeholder=self.model.input_placeholder)
+        # self.controller_stats.create_model()
 
     def start_new_file(self):
 

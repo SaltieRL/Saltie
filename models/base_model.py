@@ -178,7 +178,7 @@ class BaseModel:
 
         # perform one update of training
         if self.batch_size > self.mini_batch_size:
-            self.sess.run([self.input_placeholder, self.get_labels_placeholder(), self.iterator.initializer],
+            _, = self.sess.run([self.iterator.initializer],
                           feed_dict={self.input_placeholder: input_array, self.get_labels_placeholder(): label_array})
             num_batches = math.ceil(float(self.batch_size) / float(self.mini_batch_size))
             # print('num batches', num_batches)
@@ -188,7 +188,8 @@ class BaseModel:
                     result, summary_str = self.sess.run([
                         self.train_op,
                         self.summarize if should_summarize else self.no_op
-                    ])
+                    ],
+                    feed_dict={self.input_placeholder: input_array, self.get_labels_placeholder(): label_array})
                     # emit summaries
                     if should_summarize:
                         self.summary_writer.add_summary(summary_str, self.train_iteration)
@@ -196,13 +197,15 @@ class BaseModel:
                     counter += 1
                 except tf.errors.OutOfRangeError:
                     break
+                except Exception as e:
+                    print(e)
             print('batch amount:', counter)
         else:
             result, summary_str = self.sess.run([
                 self.train_op,
                 self.summarize if should_summarize else self.no_op
             ],
-                feed_dict=feed_dict)
+                feed_dict={self.input_placeholder: input_array, self.get_labels_placeholder(): label_array})
             # emit summaries
             if should_summarize:
                 self.summary_writer.add_summary(summary_str, self.train_iteration)
@@ -311,7 +314,6 @@ class BaseModel:
                 print("Unexpected error loading model:", e)
                 print('unable to load model')
         else:
-            self._initialize_variables()
             print('unable to find model to load')
 
         if self.summary_writer is not None:
