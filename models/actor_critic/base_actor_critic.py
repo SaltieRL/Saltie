@@ -325,7 +325,7 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
                                                                        variable_list=last_layer_list[i], dropout=False)[0]
                     scaled_layer = self.action_handler.scale_layer(layer, i)
                     self.actor_last_row_layer.append(scaled_layer)
-                    tf.summary.histogram(variable_name + '_output', scaled_layer)
+                    # tf.summary.histogram(variable_name + '_output', scaled_layer)
 
             return tf.concat(self.actor_last_row_layer, 1)
 
