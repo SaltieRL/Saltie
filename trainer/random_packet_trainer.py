@@ -59,10 +59,8 @@ class RandomPacketTrainer(DefaultModelTrainer):
 
         real_output = output_creator.get_output_vector(game_tick_packet)
         real_indexes = self.action_handler.create_action_indexes_graph(tf.stack(real_output, axis=1))
-        reshaped = tf.cast(real_indexes, tf.int32)
-        self.model.taken_actions = reshaped
         self.model.create_model(input_state)
-        self.model.create_copy_training_model(input_state)
+        self.model.create_copy_training_model(model_input=input_state, taken_actions=real_indexes)
         self.model.create_savers()
         self.model.initialize_model()
 
@@ -70,8 +68,10 @@ class RandomPacketTrainer(DefaultModelTrainer):
         self.model.printParameters()
 
         # Initialising statistics and printing them before training
-        self.controller_stats = controller_statistics.OutputChecks(self.batch_size, self.model.argmax, game_tick_packet,
-                                                                   input_state, self.sess, self.action_handler, output_creator)
+        self.controller_stats = controller_statistics.OutputChecks(self.sess, self.action_handler,
+                                                                   self.batch_size, self.model.smart_max,
+                                                                   game_tick_packet=game_tick_packet,
+                                                                   bot=output_creator)
         self.controller_stats.create_model()
 
     def _run_trainer(self):

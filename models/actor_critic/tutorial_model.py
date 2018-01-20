@@ -12,6 +12,8 @@ class TutorialModel(PolicyGradient):
     gated_layer_name = "gated_layer"
     max_gradient = 10.0
     total_loss_divider = 2.0
+    # hidden_layer_activation = tf.nn.relu6
+    # hidden_layer_activation = tf.tanh
 
     def __init__(self, session, state_dim, num_actions, player_index=-1, action_handler=None, is_training=False,
                  optimizer=tf.train.GradientDescentOptimizer(learning_rate=0.1), summary_writer=None, summary_every=100,
@@ -83,18 +85,24 @@ class TutorialModel(PolicyGradient):
 
     def calculate_loss_of_actor(self, logprobs, taken_actions, index):
         cross_entropy_loss, initial_wrongness, __ = super().calculate_loss_of_actor(logprobs, taken_actions, index)
-        wrongNess = tf.constant(initial_wrongness)
+        wrongness = tf.constant(initial_wrongness)
         argmax = tf.argmax(logprobs, axis=1)
         if self.action_handler.action_list_names[index] != 'combo':
-            wrongNess += tf.cast(tf.abs(tf.cast(argmax, tf.int32) - taken_actions), tf.float32)
+            if self.action_handler.is_classification(index):
+                wrongness += tf.cast(tf.abs(tf.cast(argmax, tf.float32) - taken_actions), tf.float32)
+            else:
+                # doing anything else is very very slow
+                wrongness += 0.0
         else:
             # use temporarily
-            wrongNess += tf.cast(tf.abs(tf.cast(argmax, tf.int32) - taken_actions), tf.float32) / 2.0
+            wrongness += tf.log(1.0 + tf.cast(tf.abs(tf.cast(argmax, tf.float32) - taken_actions), tf.float32))
             #argmax = self.argmax[index]
-            #number = tf.bitwise.bitwise_xor(tf.cast(self.argmax[index], tf.int32), taken_actions)
+
+            #wrongness += tf.log(1.0 + tf.cast(tf.bitwise.bitwise_xor(
+            #    tf.cast(self.argmax[index], tf.int32), taken_actions), tf.float32))
             # result = self.fancy_calculate_number_of_ones(number) # can't use until version 1.5
 
-        return cross_entropy_loss, wrongNess, False
+        return cross_entropy_loss, wrongness, False
 
     def create_gated_layer(self, inner_layer, input_state, layer_number, network_size, network_prefix, variable_list=None, scope=None):
         with tf.variable_scope(self.gated_layer_name):

@@ -26,6 +26,7 @@ class Agent:
     previous_owngoals = 0
     is_online_training = False
     is_graphing = True
+    control_scheme = None
 
     def __init__(self, name, team, index, config_file=None):
         self.last_frame_time = None
@@ -39,7 +40,7 @@ class Agent:
         )
         self.sess = tf.Session(config=config)
         # self.sess = tf.Session()
-        self.actions_handler = action_factory.get_handler(control_scheme=dynamic_action_handler.super_split_scheme)
+        self.actions_handler = action_factory.get_handler(control_scheme=self.control_scheme)
         self.state_dim = input_formatter.get_state_dim()
         self.num_actions = self.actions_handler.get_logit_size()
         print('num_actions', self.num_actions)
@@ -62,7 +63,7 @@ class Agent:
 
         self.model.is_online_training = self.is_online_training
 
-        # self.model.apply_feature_creation(TensorflowFeatureCreator())
+        self.model.apply_feature_creation(TensorflowFeatureCreator())
 
         try:
             self.model.create_model(self.model.input_placeholder)
@@ -95,10 +96,15 @@ class Agent:
             self.is_online_training = self.config_file.getboolean(MODEL_CONFIGURATION_HEADER, 'train_online')
         except:
             print('not training online')
+        try:
+            control_scheme = self.config_file.get(MODEL_CONFIGURATION_HEADER, 'control_scheme')
+        except Exception as e:
+            control_scheme = 'default_scheme'
 
         print('getting model from', model_package)
         print('name of model', model_name)
         self.model_class = self.get_class(model_package, model_name)
+        self.control_scheme = self.get_field('modelHelpers.actions.action_factory', control_scheme)
 
     def get_class(self, class_package, class_name):
         class_package = importlib.import_module(class_package)
@@ -108,6 +114,13 @@ class Agent:
                 return class_group[1]
         return None
 
+    def get_field(self, class_package, class_name):
+        class_package = importlib.import_module(class_package)
+        module_classes = inspect.getmembers(class_package)
+        for class_group in module_classes:
+            if class_group[0] == class_name:
+                return class_group[1]
+        return None
 
     def get_model_class(self):
         if self.model_class is None:

@@ -8,34 +8,45 @@ class OutputChecks:
     game_tick_packet = None
     accuracy_over_time = None
     bot_data_over_time = None
+    requires_input = False
     requires_output = False
+    controls = None
 
-    def __init__(self, packets, model_output, game_tick_packet, input_array, tf_session, action_handler,
-                 bot=None):
+    def __init__(self, tf_session, action_handler, batch_size, model_output,
+                 game_tick_packet=None,
+                 bot=None,
+                 model_placeholder=None):
         self.sess = tf_session
-        self.packets = packets
+        self.batch_size = batch_size
         self.game_tick_packet = game_tick_packet
-        self.input_array = input_array
-        self.packet_generator = random_packet_creator.TensorflowPacketGenerator(packets)
         self.tutorial_bot = bot
         self.model_output = model_output
+        self.model_input = model_placeholder
         self.actionHandler = action_handler
 
         if self.tutorial_bot is None:
             self.requires_output = True
 
+        if self.model_input is not None:
+            self.requires_input = True
+
     def create_model(self):
         # clear history
         self.accuracy_over_time = []
         self.bot_data_over_time = []
+        self.controls = tf.transpose(
+            self.actionHandler.create_tensorflow_controller_from_selection(self.model_output,
+                                                                           self.batch_size))
 
-    def get_amounts(self, bot_output=None):
-        controls = tf.transpose(
-            self.actionHandler.create_tensorflow_controller_from_selection(self.model_output, self.packets))
+    def get_amounts(self, input_array=None, bot_output=None):
+
         if not self.requires_output:
             bot_output = self.sess.run(self.tutorial_bot.get_output_vector(self.game_tick_packet))
 
-        output = self.sess.run(controls)
+        if not self.requires_input:
+            output = self.sess.run(self.controls)
+        else:
+            output = self.sess.run(self.controls, feed_dict={self.model_input: input_array})
 
         accuracy = np.sum(np.isclose(output, bot_output, 0.01), 1) / np.size(output[1])
         self.accuracy_over_time.append(accuracy)

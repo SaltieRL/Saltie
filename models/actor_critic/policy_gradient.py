@@ -1,9 +1,10 @@
+import numpy as np
 import tensorflow as tf
+import math
 
 from models import base_model
 from models.actor_critic.base_actor_critic import BaseActorCritic
 from modelHelpers import tensorflow_reward_manager
-import numpy as np
 
 
 class PolicyGradient(BaseActorCritic):
@@ -84,11 +85,13 @@ class PolicyGradient(BaseActorCritic):
             merged_gradient_list += item[0]
             total_loss += item[1]
 
+        total_loss = tf.check_numerics(total_loss, 'actor loss')
+
         tf.summary.scalar("total_actor_loss", tf.reduce_mean(total_loss))
 
         total_loss = total_loss / self.total_loss_divider
 
-        total_loss += actor_reg_loss
+        # total_loss += actor_reg_loss
 
         # total_loss = tf.Print(total_loss, [total_loss], 'total_loss')
 
@@ -111,23 +114,26 @@ class PolicyGradient(BaseActorCritic):
             taken_actions = tf.squeeze(taken_actions, axis=[1])
 
         # calculates the entropy loss from getting the label wrong
-        cross_entropy_loss, wrongNess, reduced = self.calculate_loss_of_actor(logprobs, taken_actions, index)
+        cross_entropy_loss, wrongness, reduced = self.calculate_loss_of_actor(logprobs, taken_actions, index)
         if not reduced:
-            tf.summary.histogram('actor_wrongness', wrongNess)
+            if self.action_handler.is_classification(index):
+                tf.summary.histogram('actor_wrongness', wrongness)
+            else:
+                tf.summary.histogram('actor_wrongness', cross_entropy_loss)
         with tf.name_scope("compute_pg_gradients"):
-            pg_loss = cross_entropy_loss * (wrongNess * wrongNess)
+            actor_loss = cross_entropy_loss * (wrongness * wrongness)
 
-            pg_loss = tf.check_numerics(pg_loss, 'nan pg_loss')
+            actor_loss = tf.check_numerics(actor_loss, 'nan pg_loss')
 
             if reduced:
-                pg_loss = tf.reduce_mean(pg_loss, name='pg_loss')
-                tf.summary.scalar("actor_x_entropy_loss", cross_entropy_loss)
+                actor_loss = tf.reduce_mean(actor_loss, name='pg_loss')
+                tf.summary.scalar(self.action_handler.get_loss_type(index), cross_entropy_loss)
             else:
-                tf.summary.scalar("actor_x_entropy_loss", tf.reduce_mean(cross_entropy_loss))
+                tf.summary.scalar(self.action_handler.get_loss_type(index), tf.reduce_mean(cross_entropy_loss))
 
             actor_reg_loss = self.get_regularization_loss(actor_network_variables, prefix="actor")
 
-            actor_loss = pg_loss + actor_reg_loss * self.reg_param
+            actor_loss = actor_loss + actor_reg_loss * self.reg_param
 
             # compute actor gradients
             actor_gradients = self.optimizer.compute_gradients(actor_loss,
@@ -176,7 +182,9 @@ class PolicyGradient(BaseActorCritic):
         for i, (grad, var) in enumerate(gradients):
             # clip gradients by norm
             if grad is not None:
-                gradients[i] = (tf.clip_by_norm(grad, self.max_gradient), var)
+                post_clipping = tf.clip_by_norm(grad, self.max_gradient)
+                post_nanning = tf.where(tf.is_nan(post_clipping), tf.zeros_like(post_clipping), post_clipping)
+                gradients[i] = (post_nanning, var)
 
         self.add_histograms(gradients)
         # training update
@@ -198,9 +206,10 @@ class PolicyGradient(BaseActorCritic):
         if self.batch_size > self.mini_batch_size:
             self.sess.run([self.input, self.taken_actions, self.iterator.initializer],
                           feed_dict={self.input_placeholder: input_states, self.taken_actions_placeholder: actions})
-
+            num_batches = math.ceil(float(self.batch_size) / float(self.mini_batch_size))
+            # print('num batches', num_batches)
             counter = 0
-            while True:
+            while counter < num_batches:
                 try:
                     result, summary_str = self.sess.run([
                         self.train_op,
@@ -242,6 +251,5 @@ class PolicyGradient(BaseActorCritic):
         :param cross_entropy_loss:
         :return: The calculated_tensor, If the result is a scalar.
         """
-        return tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logprobs,
-                                                       labels=taken_actions), 1.0, True
+        return self.action_handler.get_action_loss_from_logits(logprobs, taken_actions, index), 1.0, True
 

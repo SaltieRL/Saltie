@@ -92,13 +92,12 @@ class ActionHandler:
     def create_tensorflow_controller_from_selection(self, action_selection, batch_size=1, should_stack=True):
         combo_actions = self.actions
         indexer = tf.constant(1, dtype=tf.int32)
-        action_selection = tf.cast(action_selection, tf.int32)
         if batch_size > 1:
             multiplier = tf.constant([int(batch_size), 1, 1])
             combo_actions = tf.tile(tf.expand_dims(combo_actions, 0), multiplier)
             indexer = tf.constant(np.arange(0, batch_size, 1), dtype=tf.int32)
 
-        button_combo = tf.gather_nd(combo_actions, tf.stack([indexer, action_selection[3]], axis=1))
+        button_combo = tf.gather_nd(combo_actions, tf.stack([indexer, tf.cast(action_selection[3], tf.int32)], axis=1))
         new_shape = [self.get_logit_size(), batch_size]
         button_combo = tf.reshape(button_combo, new_shape)
         controller_option = button_combo
@@ -195,17 +194,6 @@ class ActionHandler:
         """
         return split_func(numpy_array)
 
-    def get_cross_entropy_with_logits(self, labels, logits, name):
-        """
-        :param tf:
-        :param labels:
-        :param logits:
-        :param name:
-        :return:
-        """
-        return tf.nn.softmax_cross_entropy_with_logits(
-            labels=labels, logits=logits, name=name + 'ns')
-
     def _find_closet_real_number_graph(self, number):
         pure_number = tf.round(number * 2.0) / 2.0
         comparison = tf.Variable(np.array([-1.0, -0.5, 0.0, 0.5, 1.0]), dtype=tf.float32)
@@ -243,3 +231,28 @@ class ActionHandler:
             combo_list.append(bucketed_control)
 
         return self._create_combo_index_graph(combo_list)
+
+    def get_action_loss_from_logits(self, logits, labels, index):
+        """
+        :param logits: A tensorflow logit
+        :param labels: A label of what accured
+        :param index: The index of the control in the actions list this maps to
+        :return: The loss for this particular action
+        """
+        return tf.nn.softmax_cross_entropy_with_logits(
+            labels=labels, logits=logits, name=str(index) + 'ns')
+
+    def get_last_layer_activation_function(self, func, index):
+        return func
+
+    def scale_layer(self, layer, index):
+        """
+        Scales the layer if required
+        :param layer: the output layer of the model
+        :param index: The index regarding this specific action
+        :return: A scaled layer
+        """
+        return layer
+
+    def get_loss_type(self, index):
+        return 'softmax'

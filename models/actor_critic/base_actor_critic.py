@@ -58,24 +58,33 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
         super().load_config_file()
         try:
             self.num_layers = self.config_file.getint(base_model.MODEL_CONFIGURATION_HEADER,
-                                             'num_layers')
+                                                      'num_layers')
         except:
             print('unable to load num_layers')
 
         try:
             self.network_size = self.config_file.getint(base_model.MODEL_CONFIGURATION_HEADER,
-                                                      'num_width')
+                                                        'num_width')
         except:
             print('unable to load the width of each layer')
 
 
         try:
             self.forced_frame_action = self.config_file.getint(base_model.MODEL_CONFIGURATION_HEADER,
-                                                         'exploration_factor')
+                                                               'exploration_factor')
         except:
             print('unable to load exploration_factor')
 
-    def smart_argmax(self, input_tensor):
+        try:
+            self.keep_prob = self.config_file.getfloat(base_model.MODEL_CONFIGURATION_HEADER,
+                                                     'keep_probability')
+        except:
+            print('unable to load keep_probability')
+
+    def smart_argmax(self, input_tensor, index):
+        if not self.action_handler.is_classification(index):
+            # input_tensor = tf.Print(input_tensor, [input_tensor], str(index))
+            return tf.squeeze(input_tensor, axis=1)
         argmax_index = tf.cast(tf.argmax(input_tensor, axis=1), tf.int32)
         indexer = tf.range(0, self.mini_batch_size)
         slicer_data = tf.stack([indexer, argmax_index], axis=1)
@@ -124,7 +133,8 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
                                                                      lambda input_tensor: tf.argmax(
                                                                          tf.nn.softmax(input_tensor), axis=1),
                                                                      return_as_list=True)
-        self.smart_max = self.action_handler.run_func_on_split_tensors(self.policy_outputs,
+        indexes = np.arange(0, self.action_handler.get_number_actions(), 1).tolist()
+        self.smart_max = self.action_handler.run_func_on_split_tensors([self.policy_outputs, indexes],
                                                                        self.smart_argmax,
                                                                        return_as_list=True)
         return self.predicted_actions, self.action_scores
@@ -142,7 +152,7 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
             batched_input, batched_taken_actions = self.iterator.get_next()
         else:
             batched_input = converted_input
-            batched_taken_actions = self.taken_actions
+            batched_taken_actions = actions_input
         with tf.name_scope("training_network"):
             self.discounted_rewards = tf.constant(0.0)
             with tf.variable_scope("actor_network", reuse=True):
@@ -214,7 +224,10 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
                              initializer=tf.random_normal_initializer())
         b = tf.get_variable(bias_name, [output_size],
                              initializer=tf.random_normal_initializer())
-        layer_output = activation_function(tf.matmul(input, W) + b)
+        if activation_function is not None:
+            layer_output = activation_function(tf.matmul(input, W) + b)
+        else:
+            layer_output = tf.matmul(input, W) + b
         if variable_list is not None:
             variable_list.append(W)
             variable_list.append(b)
@@ -301,10 +314,15 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
 
             self.actor_last_row_layer = []
             for i, item in enumerate(self.action_handler.get_action_sizes()):
-                with tf.variable_scope(str(self.action_handler.action_list_names[i])):
-                    self.actor_last_row_layer.append(self.create_layer(activation_function, inner_layer[i], last_layer_name,
+                variable_name = str(self.action_handler.action_list_names[i])
+                with tf.variable_scope(variable_name):
+                    fixed_activation = self.action_handler.get_last_layer_activation_function(activation_function, i)
+                    layer = self.create_layer(fixed_activation, inner_layer[i], last_layer_name,
                                                                        network_size, item, network_prefix,
-                                                                       variable_list=last_layer_list[i], dropout=False)[0])
+                                                                       variable_list=last_layer_list[i], dropout=False)[0]
+                    scaled_layer = self.action_handler.scale_layer(layer, i)
+                    self.actor_last_row_layer.append(scaled_layer)
+                    # tf.summary.histogram(variable_name + '_output', scaled_layer)
 
             return tf.concat(self.actor_last_row_layer, 1)
 

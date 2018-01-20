@@ -9,6 +9,7 @@ from trainer.base_classes.base_trainer import BaseTrainer
 
 class DefaultModelTrainer(BaseTrainer):
     OPTIMIZER_CONFIG_HEADER = 'Optimizer Config'
+    MISC_CONFIG_HEADER = 'Misc Config'
     action_handler = None
     sess = None
     input_formatter = None
@@ -16,6 +17,7 @@ class DefaultModelTrainer(BaseTrainer):
     learning_rate = None
     should_apply_features = None
     feature_creator = None
+    control_scheme = 'default_scheme'
 
     def load_config(self):
         super().load_config()
@@ -28,9 +30,14 @@ class DefaultModelTrainer(BaseTrainer):
             self.should_apply_features = config.getboolean(self.OPTIMIZER_CONFIG_HEADER, 'should_apply_features')
         except Exception as e:
             self.should_apply_features = False
+        try:
+            self.control_scheme = config.get(self.MISC_CONFIG_HEADER, 'control_scheme')
+        except Exception as e:
+            self.control_scheme = 'default_scheme'
 
     def setup_trainer(self):
-        self.action_handler = action_factory.get_handler(control_scheme=dynamic_action_handler.super_split_scheme)
+        controls = self.get_field('modelHelpers.actions.action_factory', self.control_scheme)
+        self.action_handler = action_factory.get_handler(control_scheme=controls)
         self.sess = tf.Session()
         if self.should_apply_features:
             self.feature_creator = TensorflowFeatureCreator()

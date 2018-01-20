@@ -248,19 +248,6 @@ class SplitActionHandler(ActionHandler):
 
         return result
 
-    def get_cross_entropy_with_logits(self, labels, logits, name):
-        """
-        In split mode there can be more than one class at a time.
-        This is so that
-        :param tf:
-        :param labels:
-        :param logits:
-        :param name:
-        :return:
-        """
-        return tf.nn.sigmoid_cross_entropy_with_logits(
-            labels=tf.cast(labels, tf.float32), logits=logits, name=name+'s')
-
     def create_action_indexes_graph(self, real_action, batch_size=None):
         #slice each index
         throttle = tf.slice(real_action, [0, 0], [-1, 1])

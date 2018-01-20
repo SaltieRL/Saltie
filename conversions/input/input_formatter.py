@@ -77,7 +77,13 @@ class InputFormatter:
         return player_car, team_members, enemies, own_team_score, enemy_team_score
 
     def create_result_array(self, array):
-        return np.array(array, dtype=np.float32)
+        np_version = np.array(array, dtype=np.float32)
+        output = np.argwhere(np.isnan(np_version))
+        if len(output) > 0:
+            print('nan indexes', output)
+            for index in output:
+                np_version[index[0]] = 0
+        return np_version
 
     def get_player_goals(self, game_tick_packet, index):
         return game_tick_packet.gamecars[index].Score.Goals

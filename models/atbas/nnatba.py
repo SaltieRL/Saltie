@@ -52,11 +52,11 @@ class NNAtba(base_model.BaseModel):
         layer_3 = tf.nn.sigmoid(tf.add(tf.matmul(layer_2, self.weights['out']), self.biases['out']))
         return layer_3
 
-    def create_copy_training_model(self):
+    def create_copy_training_model(self, model_input=None, taken_actions=None):
         self.labels = tf.placeholder(tf.int64, shape=(None, self.num_actions))
 
-        cross_entropy = self.action_handler.get_cross_entropy_with_logits(
-            labels=self.labels, logits=self.logits, name='xentropy')
+        cross_entropy = self.action_handler.get_action_loss_from_logits(
+            labels=self.labels, logits=self.logits, index=0)
         loss = tf.reduce_mean(cross_entropy, name='xentropy_mean')
 
         self.train_op = self.optimizer.minimize(loss)
