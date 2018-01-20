@@ -161,7 +161,7 @@ class Visualiser:
         if self.layer_activations is not None:
             self.refresh_canvas()
 
-    def create_circle(self, x0, y0, activation, type, layer, neuron):
+    def create_circle(self, x0, y0, activation, type, layer_index, split_index, neuron):
         if self.rotate_canvas:
             x0, y0 = y0, x0
         if type == 'relu':
@@ -171,13 +171,13 @@ class Visualiser:
             activation = activation if activation <= 1 else 1
             rgb = int(-1 * (activation - 1) * 255)
         hex_color = "#{:02x}{:02x}{:02x}".format(rgb, rgb, rgb)
-        tag = str(layer) + ";" + str(neuron)
+        tag = str(layer_index) + ";" + str(neuron)
         self.canvas.create_oval(x0, y0, x0 + circle_dia, y0 + circle_dia, fill=hex_color, tags=tag)
 
-        def handler(event, la=layer, ne=neuron):
+        def handler(event, la=layer_index, sp=split_index, ne=neuron):
             self.info_text_neuron.set("Index: " + str(la) + ", " + str(ne) + "\nActivation type: " + (
-                "Relu" if self.act_type[layer] is 'relu' else "Sigmoid") + "\nActivation: " +
-                                      str(self.get_activations(layer, 0)[neuron]))
+                "Relu" if self.act_type[layer_index] is 'relu' else "Sigmoid") + "\nActivation: " +
+                                      str(self.get_activations(la, sp)[ne]))
 
         self.canvas.tag_bind(tag, "<Motion>", handler)
 
@@ -220,7 +220,7 @@ class Visualiser:
                 #for n in self.last_layer:
                 #    self.create_line(n[0], n[1], x, y, layer_index - 1, nn, layer_index, neuron)
                 #    nn += 1
-            self.create_circle(x, y, activation, self.act_type[layer_index], layer_index, neuron)
+            self.create_circle(x, y, activation, self.act_type[layer_index], layer_index, split_index, neuron)
             y += y_spacing
             neuron += 1
         self.last_layer = this_layer
