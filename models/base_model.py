@@ -527,7 +527,13 @@ class BaseModel:
         return self.no_op
 
     def get_variables_activations(self):
-        """Returns the weights, biases and activation type for each layer"""
+        """
+        Returns the weights, biases and activation type for each layer
+        :return: Return using [layer1, layer2, etc.] layer: [weights, biases, activation]
+        weights: [neuron0, neuron1, neuron2, etc.] which each include (from prev. layer): [neuron0, neuron1, etc.]
+        biases: [neuron0, neuron1, etc.] Each holding the bias value.
+        ex. layer: [[[[1, 2, 3], [2, 5, 1], [2, 5, 1]], [1, 4, 2, 1, 4], 'relu'], next layer]
+        """
         r = list()
         weights = list()
         biases = list()
@@ -543,10 +549,7 @@ class BaseModel:
             biases.append(np.random.rand())
         r.append([weights, biases, 'sigmoid'])
         return r
-        # Return using [layer1, layer2, etc.] layer: [weights, biases, activation]
-        # weights: [neuron0, neuron1, neuron2, etc.] which each include (from prev. layer): [neuron0, neuron1, etc.]
-        # biases: [neuron0, neuron1, etc.] Each holding the bias value.
-        # ex. layer: [[[[1, 2, 3], [2, 5, 1], [2, 5, 1]], [1, 4, 2, 1, 4], 'relu'], next layer]
+
 
     def get_activations(self, input_array=None):
         return [[np.random.randint(0, 30) for i in range(7)], [np.random.rand() for i in range(5)]]
