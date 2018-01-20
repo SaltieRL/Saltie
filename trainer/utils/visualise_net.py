@@ -176,8 +176,8 @@ class Visualiser:
 
         def handler(event, la=layer, ne=neuron):
             self.info_text_neuron.set("Index: " + str(la) + ", " + str(ne) + "\nActivation type: " + (
-                "Relu" if self.act_type[layer] is 'relu' else "Sigmoid") + "\nActivation: " + str(
-                self.layer_activations[layer][neuron]))
+                "Relu" if self.act_type[layer] is 'relu' else "Sigmoid") + "\nActivation: " +
+                                      str(self.get_activations(layer, 0)[neuron]))
 
         self.canvas.tag_bind(tag, "<Motion>", handler)
 
@@ -208,7 +208,7 @@ class Visualiser:
         self.canvas.tag_lower(tag)
 
     def create_layer(self, layer_index, split_index):
-        activations = np.squeeze(self.layer_activations[layer_index][split_index])
+        activations = self.get_activations(layer_index, split_index)
         x = layer_index * x_spacing
         y = (self.biggestarraylen - len(activations)) * y_spacing * .5
         this_layer = list()
@@ -217,9 +217,9 @@ class Visualiser:
             this_layer.append([x, y])
             if layer_index != 0:
                 nn = 0
-                for n in self.last_layer:
-                    self.create_line(n[0], n[1], x, y, layer_index - 1, nn, layer_index, neuron)
-                    nn += 1
+                #for n in self.last_layer:
+                #    self.create_line(n[0], n[1], x, y, layer_index - 1, nn, layer_index, neuron)
+                #    nn += 1
             self.create_circle(x, y, activation, self.act_type[layer_index], layer_index, neuron)
             y += y_spacing
             neuron += 1
@@ -263,6 +263,9 @@ class Visualiser:
         self.cFrame.grid_columnconfigure(0, weight=1)
 
         self.gui.grid_columnconfigure(0, minsize=100)
+
+    def get_activations(self, layer, split):
+        return np.squeeze(self.layer_activations[layer][split])
 
 
 if __name__ == '__main__':
