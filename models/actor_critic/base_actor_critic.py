@@ -380,3 +380,27 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
                            tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope=scope_name))
         else:
             self.add_saver(saver_name, variable_list)
+
+    def get_variables_activations(self):
+        unified_layers = np.array(self.all_but_last_actor_layer).reshape((-1, 2))
+        split_layers = np.array(self.last_row_variables).reshape((len(self.last_row_variables), -1, 2))
+        unified_layers = self.sess.run(unified_layers.tolist())
+        split_layers = self.sess.run(split_layers.tolist())
+        network_variables = []
+        for element in unified_layers:
+            layer = element + ['relu']
+            network_variables.append(layer)
+        for i, split in enumerate(split_layers):
+            split_layer = []
+            for j, element in enumerate(split):
+                if j == len(split) - 1:
+                    output_type = ['sigmoid' if self.action_handler.is_classification(i) else 'none']
+                else:
+                    output_type = ['relu']
+                layer = element + output_type
+                split_layer.append(layer)
+            network_variables.append(split_layer)
+        return network_variables
+
+    def get_activations(self, input_array=None):
+        return self.sess.run(self.layers, feed_dict={self.get_input_placeholder(): input_array})

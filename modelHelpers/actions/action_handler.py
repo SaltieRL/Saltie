@@ -256,3 +256,6 @@ class ActionHandler:
 
     def get_loss_type(self, index):
         return 'softmax'
+
+    def is_classification(self, index):
+        return True
