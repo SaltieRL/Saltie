@@ -158,8 +158,7 @@ class BaseReinforcement(base_model.BaseModel):
         input_states = np.array(self.state_buffer)
         actions = np.array(self.action_buffer)
         rewards = None
-        self.run_train_step(True, feed_dict={self.get_input_placeholder(): input_states,
-                                             self.get_labels_placeholder(): actions})
+        self.run_train_step(True, feed_dict=self.create_feed_dict(input_states, actions))
 
         self.anneal_exploration()
         self.train_iteration += 1

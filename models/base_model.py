@@ -31,7 +31,6 @@ class BaseModel:
     controller_predictions = None
     input_formatter = None
     summarize = no_op
-    batched_inputs = None
     iterator = None
 
     """"
@@ -155,13 +154,15 @@ class BaseModel:
         """
         outputs = tuple(inputs)
         if self.batch_size > self.mini_batch_size:
-            self.batched_inputs = inputs
             ds = tf.data.Dataset.from_tensor_slices(tuple(inputs)).batch(self.mini_batch_size)
             self.iterator = ds.make_initializable_iterator()
             outputs = self.iterator.get_next()
         return outputs
 
-    def run_train_step(self, should_calculate_summaries, input_array, label_array, epoch=-1):
+    def create_feed_dict(self, input_array, label_array):
+        return {self.get_input_placeholder(): input_array, self.get_labels_placeholder(): label_array}
+
+    def run_train_step(self, should_calculate_summaries, feed_dict=None, epoch=-1):
         """
         Runs a single train step of the model.
         If batching is enable this will internally handle batching as well
@@ -179,7 +180,7 @@ class BaseModel:
         # perform one update of training
         if self.batch_size > self.mini_batch_size:
             _, = self.sess.run([self.iterator.initializer],
-                          feed_dict={self.input_placeholder: input_array, self.get_labels_placeholder(): label_array})
+                          feed_dict=feed_dict)
             num_batches = math.ceil(float(self.batch_size) / float(self.mini_batch_size))
             # print('num batches', num_batches)
             counter = 0
@@ -188,8 +189,7 @@ class BaseModel:
                     result, summary_str = self.sess.run([
                         self.train_op,
                         self.summarize if should_summarize else self.no_op
-                    ],
-                    feed_dict={self.input_placeholder: input_array, self.get_labels_placeholder(): label_array})
+                    ])
                     # emit summaries
                     if should_summarize:
                         self.summary_writer.add_summary(summary_str, self.train_iteration)
@@ -205,7 +205,7 @@ class BaseModel:
                 self.train_op,
                 self.summarize if should_summarize else self.no_op
             ],
-                feed_dict={self.input_placeholder: input_array, self.get_labels_placeholder(): label_array})
+                feed_dict=feed_dict)
             # emit summaries
             if should_summarize:
                 self.summary_writer.add_summary(summary_str, self.train_iteration)

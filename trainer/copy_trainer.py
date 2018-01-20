@@ -51,17 +51,17 @@ class CopyTrainer(DownloadTrainer, DefaultModelTrainer):
         self.model.create_copy_training_model()
         self.model.create_savers()
         self.model.initialize_model()
-        #self.controller_stats = controller_statistics.OutputChecks(self.sess, self.action_handler,
-        #                                                           self.batch_size, self.model.smart_max,
-        #                                                           model_placeholder=self.model.input_placeholder)
-        # self.controller_stats.create_model()
+        self.controller_stats = controller_statistics.OutputChecks(self.sess, self.action_handler,
+                                                                   self.batch_size, self.model.smart_max,
+                                                                   model_placeholder=self.model.input_placeholder)
+        self.controller_stats.create_model()
 
     def start_new_file(self):
 
         self.input_batch = []
         self.label_batch = []
         self.input_game_tick = []
-        if self.file_number % self.eval_number == 0 and False:
+        if self.file_number % self.eval_number == 0:
             self.eval_file = True
             self.action_length = self.action_handler.control_size
         else:
@@ -109,14 +109,14 @@ class CopyTrainer(DownloadTrainer, DefaultModelTrainer):
 
         self.label_batch = np.array(self.label_batch, dtype=np.float32)
 
-        if self.should_shuffle and False:
+        if self.should_shuffle:
             input_batch, self.label_batch = self.unison_shuffled_copies(input_batch, self.label_batch)
 
         if self.eval_file:
-            pass
-            # self.controller_stats.get_amounts(input_array=self.input_batch, bot_output=np.transpose(self.label_batch))
+            self.controller_stats.get_amounts(input_array=self.input_batch, bot_output=np.transpose(self.label_batch))
         else:
-            self.model.run_train_step(True, input_batch, self.label_batch)
+            feed_dict = self.model.create_feed_dict(input_batch, self.label_batch)
+            self.model.run_train_step(True, feed_dict=feed_dict)
 
         self.epoch += 1
 
