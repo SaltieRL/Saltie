@@ -384,18 +384,18 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
 
     def get_variables_activations(self):
         unified_layers = np.array(self.all_but_last_actor_layer).reshape((-1, 2))
-        split_layers = np.array(self.last_row_variables).reshape((len(self.last_row_variables), -1, 2))
+        split_layers = np.array(self.last_row_variables).reshape((-1, len(self.last_row_variables), 2))
         unified_layers = self.sess.run(unified_layers.tolist())
         split_layers = self.sess.run(split_layers.tolist())
         network_variables = []
         for element in unified_layers:
             layer = element + ['relu']
-            network_variables.append(layer)
-        for i, split in enumerate(split_layers):
+            network_variables.append([layer])
+        for i, layer in enumerate(split_layers):
             split_layer = []
-            for j, element in enumerate(split):
-                if j == len(split) - 1:
-                    output_type = ['sigmoid' if self.action_handler.is_classification(i) else 'none']
+            for j, element in enumerate(layer):
+                if i == len(split_layers) - 1:
+                    output_type = ['sigmoid' if self.action_handler.is_classification(j) else 'none']
                 else:
                     output_type = ['relu']
                 layer = element + output_type
