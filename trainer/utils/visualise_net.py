@@ -1,9 +1,10 @@
 from tkinter import *
-import numpy as np
 import ast
-from models import base_model
 from trainer.utils import random_packet_creator
 from conversions.input import tensorflow_input_formatter
+import tensorflow as tf
+from models.actor_critic import tutorial_model
+from modelHelpers.actions import action_factory
 
 # Some values useful for editing how the net gets shown
 x_spacing = 100
@@ -42,6 +43,9 @@ class Visualiser:
         # Initialising all variables
         self.big_relu = 20
         self.big_weight = 20
+
+        if 'string' is True:
+            print(True)
 
         self.model_info = model.get_variables_activations()
         self.n_layers = len(self.model_info)
@@ -250,3 +254,14 @@ class Visualiser:
         self.cFrame.grid_columnconfigure(0, weight=1)
 
         self.gui.grid_columnconfigure(0, minsize=100)
+
+
+if __name__ == '__main__':
+    with tf.Session() as sess:
+        inp = [[0, 1, 3, 4, 5, 6, 7, 8, 9, 10], [4, 5, 6, 7, 8, 9, 10, 1, 2, 3, 4, 0], [5, 2, 43, 34, 234, 3, 4],
+               [5, 7, 2, 5, 7, 19], [1, 0, 0.5, 0.1, 0.6]]
+        controls = action_factory.default_scheme
+        action_handler = action_factory.get_handler(control_scheme=controls)
+        action_handler.get_logit_size()
+        model = tutorial_model.TutorialModel(sess, action_handler.get_logit_size(), action_handler=action_handler)
+        Visualiser(sess, model)
