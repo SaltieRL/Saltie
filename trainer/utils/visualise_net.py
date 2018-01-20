@@ -54,7 +54,8 @@ class Visualiser:
         self.randomiser = random_packet_creator.TensorflowPacketGenerator(1)
         self.model = model
         self.input_formatter = tensorflow_input_formatter.TensorflowInputFormatter(0, 0, 1, None)
-        self.layer_activations = inp if inp is not None else self.model.get_activations(self.input_formatter.create_input_array(self.randomiser.get_random_array()))
+        first_input = self.model.sess.run(self.input_formatter.create_input_array(self.randomiser.get_random_array()))
+        self.layer_activations = inp if inp is not None else self.model.get_activations(first_input)
 
         self.last_layer = list()
         for item in self.layer_activations:

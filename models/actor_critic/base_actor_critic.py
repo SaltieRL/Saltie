@@ -318,6 +318,7 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
                 self.actor_last_row_layer, _ = self.create_layer(activation_function, inner_layer, last_layer_name,
                                                                  network_size, num_actions, network_prefix,
                                                                  variable_list=last_layer_list, dropout=False)
+
                 return self.actor_last_row_layer
 
             self.actor_last_row_layer = []
@@ -332,7 +333,7 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
                                                                        variable_list=last_layer_list[i], dropout=False)[0]
                     scaled_layer = self.action_handler.scale_layer(layer, i)
                     self.actor_last_row_layer.append(scaled_layer)
-
+            layers_list.append(self.actor_last_row_layer)
             return tf.concat(self.actor_last_row_layer, 1)
 
     def create_savers(self):
@@ -403,4 +404,5 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
         return network_variables
 
     def get_activations(self, input_array=None):
-        return self.sess.run(self.layers, feed_dict={self.get_input_placeholder(): input_array})
+        layer_activations = self.sess.run(self.layers, feed_dict={self.get_input_placeholder(): input_array})
+        return layer_activations
