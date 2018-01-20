@@ -181,12 +181,14 @@ class Visualiser:
 
         self.canvas.tag_bind(tag, "<Motion>", handler)
 
-    def create_line(self, x0, y0, x1, y1, layer0, neuron0, layer1, neuron1):
+    def create_line(self, x0, y0, x1, y1, split_index, previous_layer, previous_neuron, current_layer, current_neuron):
         if self.rotate_canvas:
             x0, y0, x1, y1 = y0, x0, y1, x1
         half = .5 * circle_dia
 
-        weight = self.model_info[layer1][0][neuron1][neuron0]
+        layer_variables = self.model_info[current_layer][split_index]
+        weight_variable = layer_variables[0]
+        weight = weight_variable[previous_layer][current_neuron]
         r, g, b = 0, 0, 0
         if weight >= 0:
             weight = weight if weight <= self.big_weight else self.big_weight
@@ -197,41 +199,44 @@ class Visualiser:
 
         hex_color = "#{:02x}{:02x}{:02x}".format(r, g, b)
 
-        tag = str(layer0) + ";" + str(neuron0) + ";" + str(layer1) + ";" + str(neuron1)
+        tag = str(previous_layer) + ";" + str(previous_neuron) + ";" + str(current_layer) + ";" + str(current_neuron)
         self.canvas.create_line(x0 + half, y0 + half, x1 + half, y1 + half, fill=hex_color, tags=tag)
 
-        def handler(event, l0=layer0, n0=neuron0, l1=layer1, n1=neuron1, w=weight):
+        def handler(event, l0=previous_layer, n0=previous_neuron, l1=current_layer, n1=current_neuron, w=weight):
             self.info_text_line.set(str(l0) + ", " + str(n0) + " -> " + str(l1) + ", " + str(n1) +
                                     "\nWeight: " + str(w))
 
         self.canvas.tag_bind(tag, "<Motion>", handler)
         self.canvas.tag_lower(tag)
 
-    def create_layer(self, layer_index, split_index):
+    def create_layer(self, layer_index, split_index, last_layer):
         activations = self.get_activations(layer_index, split_index)
         x = layer_index * x_spacing
         y = (self.biggestarraylen - len(activations)) * y_spacing * .5
         this_layer = list()
-        neuron = 0
-        for activation in activations:
+        for neuron_index, activation in enumerate(activations):
             this_layer.append([x, y])
             if layer_index != 0:
-                nn = 0
-                for n in self.last_layer:
-                    self.create_line(n[0], n[1], x, y, layer_index - 1, nn, layer_index, neuron)
-                    nn += 1
-            self.create_circle(x, y, activation, self.act_type[layer_index], layer_index, split_index, neuron)
+                for last_neuron_index, last_neuron in enumerate(last_layer):
+                    self.create_line(last_neuron[0], last_neuron[1], x, y,
+                                     split_index, layer_index - 1, last_neuron_index, layer_index, neuron_index)
+            self.create_circle(x, y, activation, self.act_type[layer_index], layer_index, split_index, neuron_index)
             y += y_spacing
-            neuron += 1
-        self.last_layer = this_layer
+        return this_layer
 
     def refresh_canvas(self):
         self.canvas.scale('all', 0, 0, 1, 1)
         self.scale = 1
         self.canvas.delete('all')
+        last_layer = [[]]
         for layer_index in range(len(self.layer_activations)):
+            current_layer = []
+            if len(self.layer_activations[layer_index]) > len(last_layer):
+                last_layer = last_layer * len(self.layer_activations[layer_index])
             for split_index in range(len(self.layer_activations[layer_index])):
-                self.create_layer(layer_index, split_index)
+                output = self.create_layer(layer_index, split_index, last_layer[split_index])
+                current_layer.append(output)
+            last_layer = current_layer
 
     def rotate_and_refresh(self):
         self.rotate_canvas = not self.rotate_canvas
