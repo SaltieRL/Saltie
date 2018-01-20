@@ -34,7 +34,7 @@ class Visualiser:
     input_relu = None  # The StringVar storing the array used for the relu adaption
     relu_number = None  # The IntVar storing the spinbox value
 
-    def __init__(self, sess, model, inp=None):
+    def __init__(self, sess, m, inp=None):
         # Initialising the window
         self.gui = Tk()
         self.gui.geometry('600x600')
@@ -44,15 +44,13 @@ class Visualiser:
         self.big_relu = 20
         self.big_weight = 20
 
-        if 'string' is True:
-            print(True)
-
-        self.model_info = model.get_variables_activations()
+        self.model = m
+        self.model_info = self.model.get_variables_activations()
         self.n_layers = len(self.model_info)
 
-        self.act_type = [self.model_info[i][2] for i in range(self.n_layers)]
+        self.act_type = [[self.model_info[i][n][2] for n in range(len(self.model_info[i]))] for i in range(self.n_layers)]
+        print(self.act_type)
         self.randomiser = random_packet_creator.TensorflowPacketGenerator(1)
-        self.model = model
         self.input_formatter = tensorflow_input_formatter.TensorflowInputFormatter(0, 0, 1, None)
         self.layer_activations = inp if inp is not None else self.model.get_activations(self.input_formatter.create_input_array(self.randomiser.get_random_array()))
 
@@ -60,6 +58,13 @@ class Visualiser:
         for item in self.layer_activations:
             if len(item) > self.biggestarraylen:
                 self.biggestarraylen = len(item)
+
+        self.biggest_split = 0
+        for item in self.model_info:
+            if len(item) > self.biggest_split:
+                self.biggest_split = len(item)
+        print(self.biggest_split)
+
 
         # Initialising the frames
         self.eFrame = Frame(self.gui)
