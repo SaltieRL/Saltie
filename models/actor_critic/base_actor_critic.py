@@ -315,9 +315,9 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
         with tf.variable_scope(self.last_layer_name):
             last_layer_name = 'final'
             if not self.action_handler.is_split_mode():
-                self.actor_last_row_layer, _ = self.create_layer(activation_function, inner_layer, last_layer_name,
+                self.actor_last_row_layer, _ = self.create_layer(activation_function, inner_layer[0], last_layer_name,
                                                                  network_size, num_actions, network_prefix,
-                                                                 variable_list=last_layer_list, dropout=False)
+                                                                 variable_list=last_layer_list[0], dropout=False)
 
                 return self.actor_last_row_layer
 
