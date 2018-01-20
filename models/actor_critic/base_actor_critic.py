@@ -247,7 +247,7 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
         with tf.variable_scope(self.first_layer_name):
             layer1, _ = self.create_layer(tf.nn.relu6, input_states, 1, self.state_feature_dim, self.network_size, actor_prefix,
                                        variable_list=variable_list, dropout=False)
-        layers_list.append(layer1)
+        layers_list.append([layer1])
 
         # layer1 = tf.Print(layer1, [layer1], summarize=self.network_size, message='')
 
@@ -308,6 +308,7 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
             for i in range(0, self.num_layers - 2):
                 inner_layer, _ = self.create_layer(activation_function, inner_layer, i + 2, network_size,
                                                    network_size, network_prefix, variable_list=variable_list)
+                layers_list.append(inner_layer)
         return inner_layer, network_size
 
     def create_last_layer(self, activation_function, inner_layer, network_size, num_actions, network_prefix,

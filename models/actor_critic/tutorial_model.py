@@ -158,32 +158,30 @@ class TutorialModel(PolicyGradient):
                 inner_layer, layer_size = self.create_gated_layer(inner_layer, input_layer, i + 2, layer_size,
                                                                   network_prefix,
                                                                   variable_list=variable_list)
+                layers_list.append(inner_layer)
             else:
                 with tf.variable_scope(self.hidden_layer_name):
                     inner_layer, layer_size = self.create_layer(tf.nn.relu6, inner_layer, i + 2, layer_size,
                                                                 self.network_size,
                                                                 network_prefix, variable_list=variable_list)
+                    layers_list.append(inner_layer)
         return inner_layer, layer_size
 
     def create_last_layer(self, activation_function, inner_layer, network_size, num_actions, network_prefix,
                           last_layer_list=None, layers_list=[]):
         with tf.variable_scope(self.split_hidden_layer_name):
-            inner_layers, layer_size = self.create_split_layers(tf.nn.relu6, inner_layer, network_size,
+            output_layers, layer_size = self.create_split_layers(tf.nn.relu6, inner_layer, network_size,
                                                                 self.num_split_layers,
                                                                 network_prefix,
-                                                                variable_list=last_layer_list)
+                                                                variable_list=last_layer_list, layers_list=layers_list)
 
-        for layer in inner_layers:
-            layers_list.append(layer)
-        output_layers = inner_layers[len(inner_layers) - 1]
         return super().create_last_layer(activation_function, output_layers, layer_size, num_actions, network_prefix,
                                          last_layer_list, layers_list=layers_list)
 
     def create_split_layers(self, activation_function, inner_layer, network_size,
-                            num_split_layers, network_prefix, variable_list=None):
+                            num_split_layers, network_prefix, variable_list=None, layers_list=[]):
 
         cut_size = self.network_size // 3
-        total_layers = []
         previous_layer = []
         last_sizes = []
         step_size = (network_size - cut_size) // num_split_layers
@@ -209,8 +207,8 @@ class TutorialModel(PolicyGradient):
                                                        variable_list=variable_list[j])
                     split_layers.append(inner_layer)
             previous_layer = split_layers
-            total_layers.append(split_layers)
-        return total_layers, last_layer_size
+            layers_list.append(split_layers)
+        return layers_list[len(layers_list) - 1], last_layer_size
 
     def get_model_name(self):
         return 'tutorial_bot' + ('_split' if self.action_handler.is_split_mode else '') + self.teacher
