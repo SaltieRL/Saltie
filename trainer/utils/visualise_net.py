@@ -49,7 +49,6 @@ class Visualiser:
         self.n_layers = len(self.model_info)
 
         self.act_type = [[self.model_info[i][n][2] for n in range(len(self.model_info[i]))] for i in range(self.n_layers)]
-        print(self.act_type)
         self.randomiser = random_packet_creator.TensorflowPacketGenerator(1)
         self.input_formatter = tensorflow_input_formatter.TensorflowInputFormatter(0, 0, 1, None)
         self.layer_activations = inp if inp is not None else self.model.get_activations(self.input_formatter.create_input_array(self.randomiser.get_random_array()))
@@ -64,6 +63,8 @@ class Visualiser:
             if len(item) > self.biggest_split:
                 self.biggest_split = len(item)
         print(self.biggest_split)
+
+        self.current_split_layer = 0
 
 
         # Initialising the frames
@@ -206,7 +207,11 @@ class Visualiser:
         self.canvas.tag_lower(tag)
 
     def create_layer(self, layer):
-        activations = self.layer_activations[layer]
+        split_layer = self.current_split_layer
+        if split_layer > len(self.layer_activations[layer]):
+            split_layer = len(self.layer_activations[layer])
+
+        activations = self.layer_activations[layer][split_layer]
         x = layer * x_spacing
         y = (self.biggestarraylen - len(activations)) * y_spacing * .5
         this_layer = list()
