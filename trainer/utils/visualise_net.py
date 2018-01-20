@@ -3,6 +3,7 @@ import ast
 from trainer.utils import random_packet_creator
 from conversions.input import tensorflow_input_formatter
 import tensorflow as tf
+import numpy as np
 from models.actor_critic import tutorial_model
 from modelHelpers.actions import action_factory
 
@@ -158,8 +159,7 @@ class Visualiser:
 
         # Generate the canvas itself
         if self.layer_activations is not None:
-            for i in range(len(self.layer_activations)):
-                self.create_layer(i)
+            self.refresh_canvas()
 
     def create_circle(self, x0, y0, activation, type, layer, neuron):
         if self.rotate_canvas:
@@ -207,24 +207,20 @@ class Visualiser:
         self.canvas.tag_bind(tag, "<Motion>", handler)
         self.canvas.tag_lower(tag)
 
-    def create_layer(self, layer):
-        split_layer = self.current_split_layer
-        if split_layer > len(self.layer_activations[layer]):
-            split_layer = len(self.layer_activations[layer])
-
-        activations = self.layer_activations[layer][split_layer]
-        x = layer * x_spacing
+    def create_layer(self, layer_index, split_index):
+        activations = np.squeeze(self.layer_activations[layer_index][split_index])
+        x = layer_index * x_spacing
         y = (self.biggestarraylen - len(activations)) * y_spacing * .5
         this_layer = list()
         neuron = 0
-        for i in activations:
+        for activation in activations:
             this_layer.append([x, y])
-            if layer != 0:
+            if layer_index != 0:
                 nn = 0
                 for n in self.last_layer:
-                    self.create_line(n[0], n[1], x, y, layer - 1, nn, layer, neuron)
+                    self.create_line(n[0], n[1], x, y, layer_index - 1, nn, layer_index, neuron)
                     nn += 1
-            self.create_circle(x, y, i, self.act_type[layer], layer, neuron)
+            self.create_circle(x, y, activation, self.act_type[layer_index], layer_index, neuron)
             y += y_spacing
             neuron += 1
         self.last_layer = this_layer
@@ -233,8 +229,9 @@ class Visualiser:
         self.canvas.scale('all', 0, 0, 1, 1)
         self.scale = 1
         self.canvas.delete('all')
-        for i in range(len(self.layer_activations)):
-            self.create_layer(i)
+        for layer_index in range(len(self.layer_activations)):
+            for split_index in range(len(self.layer_activations[layer_index])):
+                self.create_layer(layer_index, split_index)
 
     def rotate_and_refresh(self):
         self.rotate_canvas = not self.rotate_canvas
@@ -276,6 +273,8 @@ if __name__ == '__main__':
         action_handler = action_factory.get_handler(control_scheme=controls)
         action_handler.get_logit_size()
         model = tutorial_model.TutorialModel(sess, action_handler.get_logit_size(), action_handler=action_handler)
+        model.batch_size = 1
+        model.mini_batch_size = 1
         model.create_model()
         model.initialize_model()
         Visualiser(sess, model)
