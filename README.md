@@ -1,5 +1,9 @@
 # RLBot
 
+<p align="center">
+  <img width="512" height="158" src="https://github.com/drssoccer55/RLBot/blob/master/images/RLBot.png">
+</p>
+
 ### Short Description
 Saltie is a bot that uses Neural Networks and Machine Learning to learn how to play the game.
 It also has tools for training bots and collecting the replays from a lot of distributed computers
