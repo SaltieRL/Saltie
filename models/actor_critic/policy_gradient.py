@@ -5,9 +5,10 @@ import math
 from models import base_model
 from models.actor_critic.base_actor_critic import BaseActorCritic
 from modelHelpers import tensorflow_reward_manager
+from models.actor_critic.split_layers import SplitLayers
 
 
-class PolicyGradient(BaseActorCritic):
+class PolicyGradient(SplitLayers):
     max_gradient = 1.0
     total_loss_divider = 1.0
 
@@ -114,6 +115,8 @@ class PolicyGradient(BaseActorCritic):
 
         # calculates the entropy loss from getting the label wrong
         cross_entropy_loss, wrongness, reduced = self.calculate_loss_of_actor(logprobs, taken_actions, index)
+        if reduced:
+            cross_entropy_loss = tf.reduce_mean(cross_entropy_loss)
         if not reduced:
             if self.action_handler.is_classification(index):
                 tf.summary.histogram('actor_wrongness', wrongness)
@@ -206,6 +209,5 @@ class PolicyGradient(BaseActorCritic):
         :param cross_entropy_loss:
         :return: The calculated_tensor, If the result is a scalar.
         """
-        return tf.reduce_mean(
-            self.action_handler.get_action_loss_from_logits(logprobs, taken_actions, index)), 1.0, True
+        return self.action_handler.get_action_loss_from_logits(logprobs, taken_actions, index), 1.0, True
 

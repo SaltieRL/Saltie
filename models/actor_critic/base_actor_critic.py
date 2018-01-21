@@ -288,9 +288,9 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
 
     def log_output_data(self):
         """Logs the output of the last layer of the model"""
-        for i in range(self.action_handler.get_number_actions()):
-            variable_name = str(self.action_handler.action_list_names[i])
-            with tf.variable_scope(variable_name):
+        with tf.name_scope('model_output'):
+            for i in range(self.action_handler.get_number_actions()):
+                variable_name = str(self.action_handler.action_list_names[i])
                 tf.summary.histogram(variable_name + '_output', self.actor_last_row_layer[i])
 
     def get_regularization_loss(self, variables, prefix=None):
