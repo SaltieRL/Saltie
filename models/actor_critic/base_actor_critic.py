@@ -247,7 +247,7 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
         with tf.variable_scope(self.first_layer_name):
             layer1, _ = self.create_layer(tf.nn.relu6, input_states, 1, self.state_feature_dim, self.network_size, actor_prefix,
                                        variable_list=variable_list, dropout=False)
-        layers_list.append(layer1)
+        layers_list.append([layer1])
 
         # layer1 = tf.Print(layer1, [layer1], summarize=self.network_size, message='')
 
@@ -308,6 +308,7 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
             for i in range(0, self.num_layers - 2):
                 inner_layer, _ = self.create_layer(activation_function, inner_layer, i + 2, network_size,
                                                    network_size, network_prefix, variable_list=variable_list)
+                layers_list.append(inner_layer)
         return inner_layer, network_size
 
     def create_last_layer(self, activation_function, inner_layer, network_size, num_actions, network_prefix,
@@ -315,9 +316,10 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
         with tf.variable_scope(self.last_layer_name):
             last_layer_name = 'final'
             if not self.action_handler.is_split_mode():
-                self.actor_last_row_layer, _ = self.create_layer(activation_function, inner_layer, last_layer_name,
+                self.actor_last_row_layer, _ = self.create_layer(activation_function, inner_layer[0], last_layer_name,
                                                                  network_size, num_actions, network_prefix,
-                                                                 variable_list=last_layer_list, dropout=False)
+                                                                 variable_list=last_layer_list[0], dropout=False)
+
                 return self.actor_last_row_layer
 
             self.actor_last_row_layer = []
@@ -332,7 +334,7 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
                                                                        variable_list=last_layer_list[i], dropout=False)[0]
                     scaled_layer = self.action_handler.scale_layer(layer, i)
                     self.actor_last_row_layer.append(scaled_layer)
-
+            layers_list.append(self.actor_last_row_layer)
             return tf.concat(self.actor_last_row_layer, 1)
 
     def create_savers(self):
@@ -380,3 +382,28 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
                            tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope=scope_name))
         else:
             self.add_saver(saver_name, variable_list)
+
+    def get_variables_activations(self):
+        unified_layers = np.array(self.all_but_last_actor_layer).reshape((-1, 2))
+        split_layers = np.array(self.last_row_variables).reshape((-1, len(self.last_row_variables), 2))
+        unified_layers = self.sess.run(unified_layers.tolist())
+        split_layers = self.sess.run(split_layers.tolist())
+        network_variables = []
+        for element in unified_layers:
+            layer = element + ['relu']
+            network_variables.append([layer])
+        for i, layer in enumerate(split_layers):
+            split_layer = []
+            for j, element in enumerate(layer):
+                if i == len(split_layers) - 1:
+                    output_type = ['sigmoid' if self.action_handler.is_classification(j) else 'none']
+                else:
+                    output_type = ['relu']
+                layer = element + output_type
+                split_layer.append(layer)
+            network_variables.append(split_layer)
+        return network_variables
+
+    def get_activations(self, input_array=None):
+        layer_activations = self.sess.run(self.layers, feed_dict={self.get_input_placeholder(): input_array})
+        return layer_activations

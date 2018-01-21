@@ -167,7 +167,7 @@ class ActionHandler:
     def get_random_option(self):
         return [random.randrange(self.get_action_sizes())]
 
-    def run_func_on_split_tensors(self, input_tensors, split_func):
+    def run_func_on_split_tensors(self, input_tensors, split_func, return_as_list=False):
         """
         Optionally splits the tensor and runs a function on the split tensor
         If the tensor should not be split it runs the function on the entire tensor
@@ -175,12 +175,16 @@ class ActionHandler:
         :param input_tensors: needs to have shape of (?, num_actions)
         :param split_func: a function that is called with a tensor or array the same rank as input_tensor.
             It should return a tensor with the same rank as input_tensor
-        :return: a stacked tensor (see tf.stack) or the same tensor depending on if it is in split mode or not.
+        :param return_as_list If true then the result will be a list of tensors instead of a single stacked tensor
+        :return: a single tensor or a tensor wrapped in a list
         """
 
         if not isinstance(input_tensors, collections.Sequence):
             input_tensors = [input_tensors]
-        return split_func(*input_tensors)
+        if return_as_list:
+            return [split_func(*input_tensors)]
+        return [split_func(*input_tensors)]
+
 
     def optionally_split_numpy_arrays(self, numpy_array, split_func, is_already_split=False):
         """
@@ -256,3 +260,6 @@ class ActionHandler:
 
     def get_loss_type(self, index):
         return 'softmax'
+
+    def is_classification(self, index):
+        return True
