@@ -5,6 +5,10 @@ from conversions.input import tensorflow_input_formatter
 import tensorflow as tf
 from models.actor_critic import tutorial_model
 from modelHelpers.actions import action_factory
+import threading
+import numpy as np
+import time
+import logging
 
 # Some values useful for editing how the net gets shown
 x_spacing = 100
@@ -13,11 +17,15 @@ split_spacing = 220
 circle_dia = 30
 
 
+logging.basicConfig(level=logging.DEBUG,
+                    format='[%(levelname)s] (%(threadName)-10s) %(message)s',
+                    )
+
 class Visualiser:
     gui = None  # The window
     act_type = None  # Array with activation type for each layer
     big_relu = 20  # The
-    big_weight = 30
+    big_weight = 20
     layer_activations = None  # The values for the activations
     scale = 1.0  # The current scale of the canvas
     delta = 0.75  # The impact of scrolling
@@ -35,6 +43,8 @@ class Visualiser:
     input_relu = None  # The StringVar storing the array used for the relu adaption
     relu_number = None  # The IntVar storing the spinbox value
 
+    heaviest_weights = 0  # How many weights to print on the canvas
+
     def __init__(self, sess, m, inp=None):
         # Initialising the window
         self.gui = Tk()
@@ -42,8 +52,8 @@ class Visualiser:
         self.gui.title("Net visualisation")
 
         # Initialising all variables
-        self.big_relu = 1
-        self.big_weight = 1
+        self.big_relu = 20
+        self.big_weight = 2
 
         self.model = m
         self.model_info = self.model.get_variables_activations()
@@ -54,6 +64,8 @@ class Visualiser:
         self.input_formatter = tensorflow_input_formatter.TensorflowInputFormatter(0, 0, 1, None)
         first_input = self.model.sess.run(self.input_formatter.create_input_array(self.randomiser.get_random_array()))
         self.layer_activations = inp if inp is not None else self.model.get_activations(first_input)
+
+        self.heaviest_weights = 10
 
         self.last_layer = list()
         for layer in range(len(self.layer_activations)):
@@ -175,30 +187,24 @@ class Visualiser:
         tag = str(layer_index) + ";" + str(split_index) + ";" + str(neuron)
         self.canvas.create_oval(x0, y0, x0 + circle_dia, y0 + circle_dia, fill=hex_color, tags=tag)
 
-        def handler(event, la=layer_index, sp=split_index, ne=neuron):
+        def hover_handler(event, la=layer_index, sp=split_index, ne=neuron):
             self.info_text_neuron.set("Index: " + str(la) + ", " + str(ne) + "\nActivation type: " + (
                 "Relu" if self.act_type[layer_index] is 'relu' else "Sigmoid") + "\nActivation: " +
                                       str(self.get_activations(la, sp)[ne]))
 
-        self.canvas.tag_bind(tag, "<Motion>", handler)
+        def double_click_handler(event, la=layer_index, sp=split_index, ne=neuron):
+            self.show_neuron_info(la, sp, ne)
 
-    def create_line(self, x0, y0, x1, y1, split_index, previous_layer, previous_neuron, current_layer, current_neuron):
+        self.canvas.tag_bind(tag, "<Motion>", hover_handler)
+        self.canvas.tag_bind(tag, "<Double-Button-1>", double_click_handler)
+
+    def create_line(self, x0, y0, x1, y1, previous_neuron, current_layer, current_neuron, split_index, weight):
         if self.rotate_canvas:
             x0, y0, x1, y1 = y0, x0, y1, x1
         half = .5 * circle_dia
 
-        layer_variables = self.model_info[current_layer][split_index]
-        weight_variable = layer_variables[0]
-        if len(weight_variable) <= previous_neuron:
-            # print('tooo large axis 0', previous_neuron, len(weight_variable))
-            return
-        previous_weights = weight_variable[previous_neuron]
-        if len(previous_weights) <= current_neuron:
-            # print('tooo large axis 1', current_neuron, len(previous_weights))
-            return
-        weight = previous_weights[current_neuron]
         r, g, b = 0, 0, 0
-        if abs(weight) <= 0.1:
+        if abs(weight) <= .1:
             return
         if weight >= 0:
             weight = weight if weight <= self.big_weight else self.big_weight
@@ -209,48 +215,57 @@ class Visualiser:
 
         hex_color = "#{:02x}{:02x}{:02x}".format(r, g, b)
 
-        tag = str(previous_layer) + ";" + str(previous_neuron) + ";" + str(current_layer) + ";" + str(current_neuron)
+        tag = str(current_layer - 1) + ";" + str(previous_neuron) + ";" + str(current_layer) + ";" + str(current_neuron)
         self.canvas.create_line(x0 + half, y0 + half, x1 + half, y1 + half, fill=hex_color, tags=tag)
 
-        def handler(event, l0=previous_layer, n0=previous_neuron, l1=current_layer, n1=current_neuron, w=weight):
+        def handler(event, l0=current_layer - 1, n0=previous_neuron, l1=current_layer, n1=current_neuron, w=weight):
             self.info_text_line.set(str(l0) + ", " + str(n0) + " -> " + str(l1) + ", " + str(n1) +
                                     "\nWeight: " + str(w))
 
         self.canvas.tag_bind(tag, "<Motion>", handler)
         self.canvas.tag_lower(tag)
 
-    def create_layer(self, layer_index, split_index, last_layer):
+    def create_layer(self, layer_index, split_index):
         activations = self.get_activations(layer_index, split_index)
         x = layer_index * x_spacing
-        vertical_y = (self.biggestarraylen - len(activations) * split_index) / 2.0
-        y = (vertical_y * y_spacing) * .5 - split_spacing * split_index
-        this_layer = list()
+        y = (self.biggestarraylen - len(activations)) * y_spacing * .5
+
+        last_layer_split = self.current_split_layer if not self.current_split_layer > len(self.layer_activations[layer_index - 1]) else len(self.layer_activations[layer_index - 1])
+        last_layer_size = len(self.layer_activations[layer_index - 1][last_layer_split][0])
+        last_layer_y = (self.biggestarraylen - last_layer_size) * y_spacing * .5
+        last_layer_x = (layer_index - 1) * x_spacing
+
         for neuron_index, activation in enumerate(activations):
-            this_layer.append([x, y])
             if layer_index != 0:
                 pass
-                #for last_neuron_index, last_neuron in enumerate(last_layer):
-                #    self.create_line(last_neuron[0], last_neuron[1], x, y,
-                #                     split_index, layer_index - 1, last_neuron_index, layer_index, neuron_index)
-            self.create_circle(x, y, activation, self.act_type[layer_index], layer_index, split_index, neuron_index)
+                if self.heaviest_weights is 0:
+                    for i in range(last_layer_size):
+                        # weight = self.model_info[current_layer][split_index][0][current_neuron][previous_neuron]
+                        weight = 1
+                        self.create_line(last_layer_x, last_layer_y + i * y_spacing, x, y, i, layer_index, neuron_index, split_index, weight)
+                else:
+                    # weights = self.model_info[current_layer][split_index][0][current_neuron]
+                    weights = np.random.rand(last_layer_size) * 2 - 1
+                    biggest_w_indexes = np.argpartition(np.abs(weights), -self.heaviest_weights)[-self.heaviest_weights:]
+                    print(biggest_w_indexes)
+                    for i in biggest_w_indexes:
+                        self.create_line(last_layer_x, last_layer_y + i * y_spacing, x, y, i, layer_index, neuron_index, split_index, weights[i])
+
+            self.create_circle(x, y, activation, self.act_type[layer_index][split_index], layer_index, split_index, neuron_index)
             y += y_spacing
-        return this_layer
+        logging.debug(time.time() - self.start_time)
+
 
     def refresh_canvas(self):
+        self.start_time = time.time()
         self.canvas.scale('all', 0, 0, 1, 1)
         self.scale = 1
         self.canvas.delete('all')
-        last_layer = [[]]
         for layer_index in range(len(self.layer_activations)):
-            print('adding layer', layer_index)
-            current_layer = []
-            if len(self.layer_activations[layer_index]) > len(last_layer):
-                last_layer = last_layer * len(self.layer_activations[layer_index])
-            for split_index in range(len(self.layer_activations[layer_index])):
-                print('adding split', split_index)
-                output = self.create_layer(layer_index, split_index, last_layer[split_index])
-                current_layer.append(output)
-            last_layer = current_layer
+            split_layer = self.current_split_layer if not self.current_split_layer > len(self.layer_activations[layer_index]) else len(self.layer_activations[layer_index])
+            # self.create_layer(layer_index, split_layer)  # time resulted 150.62620782852173, with 10 weights: 1.052992820739746
+            t = threading.Thread(target=self.create_layer, args=(layer_index, split_layer))
+            t.start()  # time resulted 155.981516122818, with 10 weights:
 
     def rotate_and_refresh(self):
         self.rotate_canvas = not self.rotate_canvas
@@ -285,6 +300,9 @@ class Visualiser:
 
     def get_activations(self, layer, split):
         return self.layer_activations[layer][split][0]
+
+    def show_neuron_info(self, layer, split, neuron):
+        print("Test")
 
 
 if __name__ == '__main__':
