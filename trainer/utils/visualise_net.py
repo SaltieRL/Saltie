@@ -1,3 +1,4 @@
+from tkinter.ttk import *
 from tkinter import *
 import ast
 from trainer.utils import random_packet_creator
@@ -247,7 +248,6 @@ class Visualiser:
                     # weights = self.model_info[current_layer][split_index][0][current_neuron]
                     weights = np.random.rand(last_layer_size) * 2 - 1
                     biggest_w_indexes = np.argpartition(np.abs(weights), -self.heaviest_weights)[-self.heaviest_weights:]
-                    print(biggest_w_indexes)
                     for i in biggest_w_indexes:
                         self.create_line(last_layer_x, last_layer_y + i * y_spacing, x, y, i, layer_index, neuron_index, split_index, weights[i])
 
@@ -263,9 +263,10 @@ class Visualiser:
         self.canvas.delete('all')
         for layer_index in range(len(self.layer_activations)):
             split_layer = self.current_split_layer if not self.current_split_layer > len(self.layer_activations[layer_index]) else len(self.layer_activations[layer_index])
-            # self.create_layer(layer_index, split_layer)  # time resulted 150.62620782852173, with 10 weights: 1.052992820739746
-            t = threading.Thread(target=self.create_layer, args=(layer_index, split_layer))
-            t.start()  # time resulted 155.981516122818, with 10 weights:
+            self.create_layer(layer_index, split_layer)  # time resulted 150.62620782852173, with 10 weights: 1.052992820739746
+            # t = threading.Thread(target=self.create_layer, args=(layer_index, split_layer))
+            # t.start()  # time resulted 155.981516122818, with 10 weights: 1.2656633853912354
+        self.canvas.scale('all', 0, 0, 1, 1)
 
     def rotate_and_refresh(self):
         self.rotate_canvas = not self.rotate_canvas
@@ -302,7 +303,37 @@ class Visualiser:
         return self.layer_activations[layer][split][0]
 
     def show_neuron_info(self, layer, split, neuron):
-        print("Test")
+
+        def treeview_sort_column(tv, col, reverse):
+            l = [(tv.set(k, col), k) for k in tv.get_children('')]
+            # l.sort(reverse=reverse)
+
+            def int_or_double(inp):
+                try:
+                    return int(inp)
+                except ValueError:
+                    try:
+                        return float(inp)
+                    except ValueError:
+                        return inp
+
+            l = sorted(l, reverse=reverse, key=lambda s: (int_or_double(s[0]), s[1]))
+            for index, (val, k) in enumerate(l):
+                tv.move(k, '', index)
+
+            tv.heading(col, command=lambda: treeview_sort_column(tv, col, not reverse))
+
+        info_window = Toplevel()
+        info_window.title("Info for neuron " + str(neuron) + " in split " + str(split) + " of layer " + str(layer))
+        columns = ('neuron', 'value')
+        table = Treeview(info_window, columns=columns, show='headings')
+
+        for i in range(len(self.layer_activations[layer][split][0])):
+            table.insert("", "end", values=(i, np.random.rand()))
+        table.pack()
+        table.heading("neuron", text="From neuron", command=lambda: treeview_sort_column(table, "neuron", False))
+        table.heading("value", text="Weight", command=lambda: treeview_sort_column(table, "value", False))
+
 
 
 if __name__ == '__main__':
