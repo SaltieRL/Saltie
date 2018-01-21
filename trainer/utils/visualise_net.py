@@ -51,6 +51,7 @@ class Visualiser:
     input_array = None  # The StringVar storing the array used when hitting generate
     input_relu = None  # The StringVar storing the array used for the relu adaption
     relu_number = None  # The IntVar storing the spinbox value
+    split_box_selection = None
 
     heaviest_weights = 0  # How many weights to print on the canvas
 
@@ -127,6 +128,12 @@ class Visualiser:
 
         random = Button(self.eFrame, command=self.layer_activations_random, text="Random input")
         random.grid(row=2, column=1)
+
+        self.split_box_selection = IntVar()
+        split_selection = Combobox(self.eFrame, state='readonly', values=tuple(range(self.biggest_split)), textvariable=self.split_box_selection)
+        split_selection.grid(row=3, column=0)
+        input_array_button = Button(self.eFrame, command=self.change_split_layer, text="Switch split")
+        input_array_button.grid(row=3, column=1)
 
     def info_stuff(self):
         self.info_text_neuron = StringVar()
@@ -232,7 +239,7 @@ class Visualiser:
 
     def create_layer(self, layer_index, circles=True, lines=True):
         split_index = self.current_split_layer if not self.current_split_layer > len(
-            self.layer_activations[layer_index]) else len(self.layer_activations[layer_index])
+            self.layer_activations[layer_index]) else len(self.layer_activations[layer_index]) - 1
         activations = self.get_activations(layer_index, split_index)
         x_spacing = default_x_spacing * self.scale
         y_spacing = default_y_spacing * self.scale
@@ -240,7 +247,7 @@ class Visualiser:
         x = layer_index * x_spacing + zero_x
         y = (self.biggestarraylen - len(activations)) * y_spacing * .5 + zero_y
 
-        last_layer_split = self.current_split_layer if not self.current_split_layer > len(self.layer_activations[layer_index - 1]) else len(self.layer_activations[layer_index - 1])
+        last_layer_split = self.current_split_layer if not self.current_split_layer > len(self.layer_activations[layer_index - 1]) else len(self.layer_activations[layer_index - 1]) - 1
         last_layer_size = len(self.layer_activations[layer_index - 1][last_layer_split][0])
         last_layer_y = (self.biggestarraylen - last_layer_size) * y_spacing * .5 + zero_y
         last_layer_x = (layer_index - 1) * x_spacing + zero_x
@@ -297,6 +304,11 @@ class Visualiser:
             except Exception:
                 pass
 
+    def change_split_layer(self):
+        self.current_split_layer = self.split_box_selection.get()
+        self.refresh_canvas()
+        print("Refreshed!")
+
     def layer_activations_random(self):
         random_array = self.model.sess.run(self.input_formatter.create_input_array(self.randomiser.get_random_array()))
         self.layer_activations = self.model.get_activations(random_array)
@@ -313,6 +325,7 @@ class Visualiser:
         self.gui.grid_columnconfigure(0, minsize=100)
 
     def get_activations(self, layer, split):
+        split = split if split < len(self.layer_activations[layer]) else len(self.layer_activations[layer]) - 1
         return self.layer_activations[layer][split][0]
 
     def show_neuron_info(self, layer, split, neuron):
