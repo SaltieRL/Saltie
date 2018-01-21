@@ -1,6 +1,6 @@
 import ctypes
-from datetime import datetime
 import gzip
+from datetime import datetime, timedelta
 import importlib
 import mmap
 import os
@@ -12,6 +12,9 @@ import numpy as np
 import bot_input_struct as bi
 import game_data_struct as gd
 import rate_limiter
+import sys
+import imp
+import traceback
 
 
 from conversions import binary_converter as compressor
@@ -19,7 +22,8 @@ from conversions.input import input_formatter
 
 OUTPUT_SHARED_MEMORY_TAG = 'Local\\RLBotOutput'
 INPUT_SHARED_MEMORY_TAG = 'Local\\RLBotInput'
-RATE_LIMITED_ACTIONS_PER_SECOND = 60
+GAME_TICK_PACKET_REFRESHES_PER_SECOND = 120  # 2*60. https://en.wikipedia.org/wiki/Nyquist_rate
+MAX_AGENT_CALL_PERIOD = timedelta(seconds=1.0/30)  # Minimum call rate when paused.
 REFRESH_IN_PROGRESS = 1
 REFRESH_NOT_IN_PROGRESS = 0
 MAX_CARS = 10
@@ -50,6 +54,14 @@ class BotManager:
         self.batch_size = 1000
         self.upload_size = 20
 
+    def load_agent(self, agent_module):
+        try:
+            agent = agent_module.Agent(self.name, self.team, self.index, config_file=self.config_file)
+        except TypeError as e:
+            print(e)
+            agent = agent_module.Agent(self.name, self.team, self.index)
+        return agent
+
     def run(self):
         # Set up shared memory map (offset makes it so bot only writes to its own input!) and map to buffer
         filename = ""
@@ -64,11 +76,11 @@ class BotManager:
         lock = ctypes.c_long(0)
         game_tick_packet = gd.GameTickPacket()  # We want to do a deep copy for game inputs so people don't mess with em
 
-        # Get bot module
-        agent_module = importlib.import_module(self.module_name)
 
         # Create Ratelimiter
-        r = rate_limiter.RateLimiter(RATE_LIMITED_ACTIONS_PER_SECOND)
+        r = rate_limiter.RateLimiter(GAME_TICK_PACKET_REFRESHES_PER_SECOND)
+        last_tick_game_time = None  # What the tick time of the last observed tick was
+        last_call_real_time = datetime.now()  # When we last called the Agent
 
         # Find car with same name and assign index
         for i in range(MAX_CARS):
@@ -76,17 +88,15 @@ class BotManager:
                 self.index = i
                 continue
 
+        # Get bot module
+        agent_module = importlib.import_module(self.module_name)
         # Create bot from module
-        try:
-            agent = agent_module.Agent(self.name, self.team, self.index, config_file=self.config_file)
-        except TypeError as e:
-            print(e)
-            agent = agent_module.Agent(self.name, self.team, self.index)
+        agent = self.load_agent(agent_module)
 
         if hasattr(agent, 'create_model_hash'):
             self.model_hash = agent.create_model_hash()
         else:
-            self.model_hash = 0 #int(hashlib.sha256(self.name.encode('utf-8')).hexdigest(), 16) % 2 ** 64
+            self.model_hash = 0
 
         self.server_manager.set_model_hash(self.model_hash)
 
@@ -100,6 +110,8 @@ class BotManager:
             self.create_new_file(filename)
         old_time = 0
         counter = 0
+
+        last_module_modification_time = os.stat(agent_module.__file__).st_mtime
 
         # Run until main process tells to stop
         while not self.terminateEvent.is_set():
@@ -120,18 +132,44 @@ class BotManager:
                 print('\n\n\n\n Match has ended so ending bot loop\n\n\n\n\n')
                 break
 
-            # Call agent
-            controller_input = agent.get_output_vector(game_tick_packet)
+            # Run the Agent only if the gameInfo has updated.
+            tick_game_time = game_tick_packet.gameInfo.TimeSeconds
+            should_call_while_paused = datetime.now() - last_call_real_time >= MAX_AGENT_CALL_PERIOD
+            if tick_game_time != last_tick_game_time or should_call_while_paused:
+                last_tick_game_time = tick_game_time
+                last_call_real_time = datetime.now()
 
-            # Write all player inputs
-            player_input.fThrottle = controller_input[0]
-            player_input.fSteer = controller_input[1]
-            player_input.fPitch = controller_input[2]
-            player_input.fYaw = controller_input[3]
-            player_input.fRoll = controller_input[4]
-            player_input.bJump = controller_input[5]
-            player_input.bBoost = controller_input[6]
-            player_input.bHandbrake = controller_input[7]
+                try:
+                    # Reload the Agent if it has been modified.
+                    new_module_modification_time = os.stat(agent_module.__file__).st_mtime
+                    if new_module_modification_time != last_module_modification_time:
+                        last_module_modification_time = new_module_modification_time
+                        print('Reloading Agent: ' + agent_module.__file__)
+                        imp.reload(agent_module)
+                        agent = self.load_agent(agent_module)
+
+                    # Call agent
+                    controller_input = agent.get_output_vector(game_tick_packet)
+
+                    if not controller_input:
+                        raise Exception('Agent "{}" did not return a player_input tuple.'.format(agent_module.__file__))
+
+                    # Write all player inputs
+                    player_input.fThrottle = controller_input[0]
+                    player_input.fSteer = controller_input[1]
+                    player_input.fPitch = controller_input[2]
+                    player_input.fYaw = controller_input[3]
+                    player_input.fRoll = controller_input[4]
+                    player_input.bJump = controller_input[5]
+                    player_input.bBoost = controller_input[6]
+                    player_input.bHandbrake = controller_input[7]
+
+                except Exception as e:
+                    traceback.print_exc()
+
+                # Workaround for windows streams behaving weirdly when not in command prompt
+                sys.stdout.flush()
+                sys.stderr.flush()
 
             current_time = game_tick_packet.gameInfo.TimeSeconds
 
@@ -161,6 +199,7 @@ class BotManager:
 
             # Ratelimit here
             after = datetime.now()
+
             after2 = time.time()
             # cant ever drop below 30 frames
             if after2 - before2 > 0.02:
