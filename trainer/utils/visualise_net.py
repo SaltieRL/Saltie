@@ -130,7 +130,7 @@ class Visualiser:
         random.grid(row=2, column=1)
 
         self.split_box_selection = IntVar()
-        split_selection = Combobox(self.eFrame, state='readonly', values=tuple(range(self.biggest_split)), textvariable=self.split_box_selection)
+        split_selection = Spinbox(self.eFrame, from_=1, to=self.biggest_split, width=5, textvariable=self.split_box_selection)
         split_selection.grid(row=3, column=0)
         input_array_button = Button(self.eFrame, command=self.change_split_layer, text="Switch split")
         input_array_button.grid(row=3, column=1)
@@ -238,7 +238,7 @@ class Visualiser:
         self.canvas.tag_lower(tag)
 
     def create_layer(self, layer_index, circles=True, lines=True):
-        split_index = self.current_split_layer if not self.current_split_layer > len(
+        split_index = self.current_split_layer if self.current_split_layer < len(
             self.layer_activations[layer_index]) else len(self.layer_activations[layer_index]) - 1
         activations = self.get_activations(layer_index, split_index)
         x_spacing = default_x_spacing * self.scale
@@ -247,7 +247,7 @@ class Visualiser:
         x = layer_index * x_spacing + zero_x
         y = (self.biggestarraylen - len(activations)) * y_spacing * .5 + zero_y
 
-        last_layer_split = self.current_split_layer if not self.current_split_layer > len(self.layer_activations[layer_index - 1]) else len(self.layer_activations[layer_index - 1]) - 1
+        last_layer_split = self.current_split_layer if self.current_split_layer < len(self.layer_activations[layer_index - 1]) else len(self.layer_activations[layer_index - 1]) - 1
         last_layer_size = len(self.layer_activations[layer_index - 1][last_layer_split][0])
         last_layer_y = (self.biggestarraylen - last_layer_size) * y_spacing * .5 + zero_y
         last_layer_x = (layer_index - 1) * x_spacing + zero_x
@@ -307,7 +307,6 @@ class Visualiser:
     def change_split_layer(self):
         self.current_split_layer = self.split_box_selection.get()
         self.refresh_canvas()
-        print("Refreshed!")
 
     def layer_activations_random(self):
         random_array = self.model.sess.run(self.input_formatter.create_input_array(self.randomiser.get_random_array()))
@@ -364,13 +363,11 @@ class Visualiser:
         table.heading("value", text="Weight", command=lambda: treeview_sort_column(table, "value", False))
         info_window.grid_rowconfigure(0, weight=1)
         info_window.grid_columnconfigure(0, weight=1)
-
+        info_window.grab_set()
 
 
 if __name__ == '__main__':
     with tf.Session() as sess:
-        inp = [[0, 1, 3, 4, 5, 6, 7, 8, 9, 10], [4, 5, 6, 7, 8, 9, 10, 1, 2, 3, 4, 0], [5, 2, 43, 34, 234, 3, 4],
-               [5, 7, 2, 5, 7, 19], [1, 0, 0.5, 0.1, 0.6]]
         controls = action_factory.default_scheme
         action_handler = action_factory.get_handler(control_scheme=controls)
         action_handler.get_logit_size()
