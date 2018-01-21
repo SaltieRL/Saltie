@@ -3,13 +3,13 @@ import ast
 from trainer.utils import random_packet_creator
 from conversions.input import tensorflow_input_formatter
 import tensorflow as tf
-import numpy as np
 from models.actor_critic import tutorial_model
 from modelHelpers.actions import action_factory
 
 # Some values useful for editing how the net gets shown
 x_spacing = 100
 y_spacing = 50
+split_spacing = 220
 circle_dia = 30
 
 
@@ -42,8 +42,8 @@ class Visualiser:
         self.gui.title("Net visualisation")
 
         # Initialising all variables
-        self.big_relu = 20
-        self.big_weight = 20
+        self.big_relu = 1
+        self.big_weight = 1
 
         self.model = m
         self.model_info = self.model.get_variables_activations()
@@ -58,8 +58,9 @@ class Visualiser:
         self.last_layer = list()
         for layer in range(len(self.layer_activations)):
             for split in range(len(self.layer_activations[layer])):
-                if len(self.get_activations(layer, split)) > self.biggestarraylen:
-                    self.biggestarraylen = len(self.get_activations(layer, split))
+                new_array_size = len(self.get_activations(layer, split)) * len(self.layer_activations[layer])
+                if new_array_size > self.biggestarraylen:
+                    self.biggestarraylen = new_array_size
 
         self.biggest_split = 0
         for item in self.model_info:
@@ -166,7 +167,7 @@ class Visualiser:
             x0, y0 = y0, x0
         if type == 'relu':
             activation = activation if activation <= self.big_relu else self.big_relu
-            rgb = int(-1 * (activation - self.big_relu) * 255 / self.big_relu)
+            rgb = int(-1 * (activation - self.big_relu) * 255.0 / self.big_relu)
         else:
             activation = activation if activation <= 1 else 1
             rgb = int(-1 * (activation - 1) * 255)
@@ -188,11 +189,20 @@ class Visualiser:
 
         layer_variables = self.model_info[current_layer][split_index]
         weight_variable = layer_variables[0]
-        weight = weight_variable[previous_layer][current_neuron]
+        if len(weight_variable) <= previous_neuron:
+            # print('tooo large axis 0', previous_neuron, len(weight_variable))
+            return
+        previous_weights = weight_variable[previous_neuron]
+        if len(previous_weights) <= current_neuron:
+            # print('tooo large axis 1', current_neuron, len(previous_weights))
+            return
+        weight = previous_weights[current_neuron]
         r, g, b = 0, 0, 0
+        if abs(weight) <= 0.1:
+            return
         if weight >= 0:
             weight = weight if weight <= self.big_weight else self.big_weight
-            r = int(weight * 255 / self.big_weight)
+            r = int(weight * 255.0 / self.big_weight)
         else:
             weight = weight if weight >= (-self.big_weight) else (-self.big_weight)
             b = int(-1 * weight * 255 / self.big_weight)
@@ -212,14 +222,16 @@ class Visualiser:
     def create_layer(self, layer_index, split_index, last_layer):
         activations = self.get_activations(layer_index, split_index)
         x = layer_index * x_spacing
-        y = (self.biggestarraylen - len(activations)) * y_spacing * .5
+        vertical_y = (self.biggestarraylen - len(activations) * split_index) / 2.0
+        y = (vertical_y * y_spacing) * .5 - split_spacing * split_index
         this_layer = list()
         for neuron_index, activation in enumerate(activations):
             this_layer.append([x, y])
             if layer_index != 0:
-                for last_neuron_index, last_neuron in enumerate(last_layer):
-                    self.create_line(last_neuron[0], last_neuron[1], x, y,
-                                     split_index, layer_index - 1, last_neuron_index, layer_index, neuron_index)
+                pass
+                #for last_neuron_index, last_neuron in enumerate(last_layer):
+                #    self.create_line(last_neuron[0], last_neuron[1], x, y,
+                #                     split_index, layer_index - 1, last_neuron_index, layer_index, neuron_index)
             self.create_circle(x, y, activation, self.act_type[layer_index], layer_index, split_index, neuron_index)
             y += y_spacing
         return this_layer
@@ -230,10 +242,12 @@ class Visualiser:
         self.canvas.delete('all')
         last_layer = [[]]
         for layer_index in range(len(self.layer_activations)):
+            print('adding layer', layer_index)
             current_layer = []
             if len(self.layer_activations[layer_index]) > len(last_layer):
                 last_layer = last_layer * len(self.layer_activations[layer_index])
             for split_index in range(len(self.layer_activations[layer_index])):
+                print('adding split', split_index)
                 output = self.create_layer(layer_index, split_index, last_layer[split_index])
                 current_layer.append(output)
             last_layer = current_layer
