@@ -16,7 +16,6 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
     forced_frame_action = 500
     is_graphing = False
     keep_prob = 0.5
-    reg_param = 0.001
 
     first_layer_name = 'first_layer'
     hidden_layer_name = 'hidden_layer'
@@ -57,7 +56,6 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
         print('network size', self.network_size)
         print('number of layers', self.num_layers)
         print('keep probability', self.keep_prob)
-        print('regulation parameter', self.reg_param)
 
     def get_activation(self):
         return tf.nn.elu  # tf.nn.relu6
@@ -303,7 +301,10 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
 
         reg_loss = tf.reduce_sum(normalized_variables, name=(prefix + '_reg_loss'))
         tf.summary.scalar(prefix + '_reg_loss', reg_loss)
-        return tf.constant(0.0)  # reg_loss
+        if self.should_regulate:
+            return reg_loss
+        else:
+            return tf.constant(0.0)
 
     def create_hidden_layers(self, activation_function, input_layer, network_size, network_prefix, variable_list=None,
                              layers_list=[]):
