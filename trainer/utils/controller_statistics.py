@@ -48,15 +48,15 @@ class OutputChecks:
         else:
             output = self.sess.run(self.controls, feed_dict={self.model_input: input_array})
 
-        accuracy = np.sum(np.isclose(output, bot_output, 0.01), 1) / np.size(output[1])
+        accuracy = np.sum(np.isclose(output, bot_output, 0.1), 1) / np.size(output[1])
         self.accuracy_over_time.append(accuracy)
         self.bot_data_over_time.append((output, bot_output))
 
-        analog_buckets = [-1.0001, -0.50001, -0.0001, 0.0001, 0.50001, 1.0001]
+        analog_buckets = [-1.0001, -0.50001, -0.1000, 0.1000, 0.50001, 1.0001]
         boolean_buckets = [-0.001, 0.50001, 1.0001]
         np.set_printoptions(formatter={'int': '{0:5}'.format})
         names = ["Throttle", "Steer", "Pitch", "Yaw", "Roll", "Jump", "Boost", "Handbrake"]
-        print("Splitting up everything in ranges: [-1, -0.5>, [-0.5, -0>, [0], <0+, 0.5], <0.5, 1]")
+        print("Splitting up everything in ranges: [-1, -0.5>, [-0.5, -0.1>, [0], <0.1+, 0.5], <0.5, 1]")
         print("Real is model output, Expt is tutorialbot output and Acc. is accuracy")
         for i in range(8):
             print("From here the ranges are [0.0, 0.5>, [0.5, 1.0]") if i is 5 else None
