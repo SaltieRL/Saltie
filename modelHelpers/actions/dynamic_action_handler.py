@@ -294,7 +294,7 @@ class DynamicActionHandler(SplitActionHandler):
     def get_last_layer_activation_function(self, func, index):
         if self.is_classification(index):
             return func
-        return None
+        return tf.nn.tanh
 
     def scale_layer(self, layer, index):
         """
