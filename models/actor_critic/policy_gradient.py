@@ -135,7 +135,7 @@ class PolicyGradient(SplitLayers):
 
             actor_reg_loss = self.get_regularization_loss(actor_network_variables, prefix="actor")
 
-            actor_loss = actor_loss + actor_reg_loss * self.reg_param
+            actor_loss = actor_loss + actor_reg_loss
 
             # compute actor gradients
             actor_gradients = self.optimizer.compute_gradients(actor_loss,
@@ -153,15 +153,11 @@ class PolicyGradient(SplitLayers):
             return [actor_gradients, actor_loss]
 
     def create_critic_gadients(self):
-        critic_reg_loss = tf.reduce_sum([tf.reduce_sum(tf.square(x)) for x in self.critic_network_variables],
-                                        name='critic_reg_loss')
-
-        tf.summary.scalar("critic_reg_loss", critic_reg_loss)
-
+        critic_reg_loss = self.get_regularization_loss(self.critic_network_variables, prefix='critic')
         # compute critic gradients
         mean_square_loss = tf.reduce_mean(tf.square(self.discounted_rewards - self.estimated_values), name='mean_square_loss')
 
-        critic_loss = mean_square_loss + self.reg_param * critic_reg_loss
+        critic_loss = mean_square_loss + critic_reg_loss
         tf.summary.scalar("critic_loss", critic_loss)
         critic_gradients = self.optimizer.compute_gradients(critic_loss, self.critic_network_variables)
         return (critic_gradients, critic_loss, critic_reg_loss)
