@@ -18,7 +18,7 @@ only_steer_split_scheme = [[('steer', (-1, 1.5, .5))],
                             ('pitch', (-1, 2, 1)), ('roll', (-1, 2, 1))],
                            []]
 
-regression_controls = [[('throttle', (-1, 1.5, .5), LOSS_SQUARE_MEAN), ('steer', (-1, 1.5, .5), LOSS_ABSOLUTE_DIFFERENCE),
+regression_controls = [[('throttle', (-1, 1.5, .5), LOSS_SQUARE_MEAN), ('steer', (-1, 1.5, .5), LOSS_SQUARE_MEAN),
                         ('yaw', (-1, 1.5, .5), LOSS_SQUARE_MEAN), ('pitch', (-1, 1.5, .5), LOSS_SQUARE_MEAN),
                         ('roll', (-1, 1.5, .5), LOSS_SQUARE_MEAN)],
                        [('jump', (0, 2, 1)), ('boost', (0, 2, 1)), ('handbrake', (0, 2, 1))],
