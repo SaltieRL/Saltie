@@ -59,6 +59,9 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
         print('keep probability', self.keep_prob)
         print('regulation parameter', self.reg_param)
 
+    def get_activation(self):
+        return tf.nn.elu  # tf.nn.relu6
+
     def load_config_file(self):
         super().load_config_file()
         try:
@@ -243,15 +246,16 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
             last_layer_list = [[] for _ in range(len(self.action_handler.get_action_sizes()))]
         # define policy neural network
         actor_prefix = 'actor'
+        activation = self.get_activation()
         # input_states = tf.Print(input_states, [input_states], summarize=self.network_size, message='')
         with tf.variable_scope(self.first_layer_name):
-            layer1, _ = self.create_layer(tf.nn.relu6, input_states, 1, self.state_feature_dim, self.network_size, actor_prefix,
+            layer1, _ = self.create_layer(activation, input_states, 1, self.state_feature_dim, self.network_size, actor_prefix,
                                        variable_list=variable_list, dropout=False)
         layers_list.append([layer1])
 
         # layer1 = tf.Print(layer1, [layer1], summarize=self.network_size, message='')
 
-        inner_layer, output_size = self.create_hidden_layers(tf.nn.relu6, layer1, self.network_size, actor_prefix,
+        inner_layer, output_size = self.create_hidden_layers(activation, layer1, self.network_size, actor_prefix,
                                                 variable_list=variable_list, layers_list=layers_list)
 
         output_layer = self.create_last_layer(tf.nn.sigmoid, inner_layer, output_size,
@@ -299,7 +303,7 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
 
         reg_loss = tf.reduce_sum(normalized_variables, name=(prefix + '_reg_loss'))
         tf.summary.scalar(prefix + '_reg_loss', reg_loss)
-        return reg_loss
+        return tf.constant(0.0)  # reg_loss
 
     def create_hidden_layers(self, activation_function, input_layer, network_size, network_prefix, variable_list=None,
                              layers_list=[]):
