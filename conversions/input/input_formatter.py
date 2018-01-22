@@ -118,11 +118,17 @@ class InputFormatter:
         player_team = game_tick_packet.gamecars[index].Team
         player_boost = game_tick_packet.gamecars[index].Boost
         last_touched_ball = self.get_last_touched_ball(game_tick_packet.gamecars[index], game_tick_packet.gameball.LatestTouch)
-        car_array = [player_x, player_y, player_z, player_pitch, player_yaw, player_roll,
-                player_speed_x, player_speed_y, player_speed_z, player_angular_speed_x,
-                player_angular_speed_y, player_angular_speed_z,
-                player_on_ground, player_supersonic, player_demolished, player_jumped,
-                player_double_jumped, player_team, player_boost, last_touched_ball]
+        car_array = [player_x, player_y, player_z,
+                     player_pitch, player_yaw, player_roll,
+                     player_speed_x, player_speed_y, player_speed_z,
+                     player_angular_speed_x, player_angular_speed_y, player_angular_speed_z,
+                     player_on_ground,
+                     player_supersonic,
+                     player_demolished,
+                     player_jumped, player_double_jumped,
+                     player_team,
+                     player_boost,
+                     last_touched_ball]
         return car_array
 
     def get_last_touched_ball(self, car, latest_touch):

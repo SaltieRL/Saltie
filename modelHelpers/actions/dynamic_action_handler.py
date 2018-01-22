@@ -270,8 +270,9 @@ class DynamicActionHandler(SplitActionHandler):
                 elif indexes[action_index] is None:
                     indexes[action_index] = tf.squeeze(real_control, axis=1)
 
-        combo_action = self._create_combo_index_graph(combo_list, real_action)
-        indexes[self.action_name_index_map[COMBO]] = tf.squeeze(combo_action, axis=1)
+        if len(self.combo_list) > 0:
+            combo_action = self._create_combo_index_graph(combo_list, real_action)
+            indexes[self.action_name_index_map[COMBO]] = tf.squeeze(combo_action, axis=1)
 
         result = tf.stack(indexes, axis=1)
         return result
