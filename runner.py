@@ -26,6 +26,7 @@ RLBOT_CONFIG_FILE = 'rlbot.cfg'
 RLBOT_CONFIGURATION_HEADER = 'RLBot Configuration'
 INPUT_SHARED_MEMORY_TAG = 'Local\\RLBotInput'
 BOT_CONFIG_LOADOUT_HEADER = 'Participant Loadout'
+BOT_CONFIG_LOADOUT_ORANGE_HEADER = 'Participant Loadout Orange'
 BOT_CONFIG_MODULE_HEADER = 'Bot Location'
 USER_CONFIGURATION_HEADER = 'User Info'
 
@@ -34,9 +35,13 @@ try:
     import config
     server_manager = ServerConverter(config.UPLOAD_SERVER, True, True, True, username='Sciguymjm')
 except ImportError:
-    server_manager = ServerConverter(config.UPLOAD_SERVER, False, False, False)
+    server_manager = ServerConverter('', False, False, False)
     print('config.py not present, cannot upload replays to collective server')
     print('Check Discord server for information')
+
+
+if server_manager.error:
+    server_manager.warn_server('unable to connect to server')
 
 
 def get_bot_config_file_list(botCount, config):
@@ -65,7 +70,7 @@ def run_agent(terminate_event, callback_event, config_file, name, team, index, m
     bm.run()
 
 
-if __name__ == '__main__':
+def main():
     # Set up RLBot.cfg
     framework_config = configparser.RawConfigParser()
     framework_config.read(RLBOT_CONFIG_FILE)
@@ -96,7 +101,7 @@ if __name__ == '__main__':
     name_dict = dict()
 
     save_data = True
-    save_path = os.getcwd() + '\\training'
+    save_path = os.getcwd() + '/training/replays'
     game_name = str(int(round(time.time() * 1000))) + '-' + str(random.randint(0, 1000))
     if save_data:
         print(save_path)
@@ -123,6 +128,16 @@ if __name__ == '__main__':
         else:
             bot_config.read(participant_configs[i])
 
+        team_num = framework_config.getint(PARTICPANT_CONFIGURATION_HEADER,
+                                PARTICPANT_TEAM_PREFIX + str(i))
+
+        loadout_header = BOT_CONFIG_LOADOUT_HEADER
+        if (team_num == 1 and bot_config.has_section(BOT_CONFIG_LOADOUT_ORANGE_HEADER)):
+            loadout_header = BOT_CONFIG_LOADOUT_ORANGE_HEADER
+
+        if gameInputPacket.sPlayerConfiguration[i].ucTeam == 0:
+            num_team_0 += 1
+
         gameInputPacket.sPlayerConfiguration[i].bBot = framework_config.getboolean(PARTICPANT_CONFIGURATION_HEADER,
                                                                                    PARTICPANT_BOT_KEY_PREFIX + str(i))
         gameInputPacket.sPlayerConfiguration[i].bRLBotControlled = framework_config.getboolean(
@@ -132,34 +147,32 @@ if __name__ == '__main__':
                                                                                       PARTICPANT_BOT_SKILL_KEY_PREFIX
                                                                                       + str(i))
         gameInputPacket.sPlayerConfiguration[i].iPlayerIndex = i
-        gameInputPacket.sPlayerConfiguration[i].wName = get_sanitized_bot_name(name_dict,
-                                                                               bot_config.get(BOT_CONFIG_LOADOUT_HEADER,
-                                                                                              'name'))
-        gameInputPacket.sPlayerConfiguration[i].ucTeam = framework_config.getint(PARTICPANT_CONFIGURATION_HEADER,
-                                                                                 PARTICPANT_TEAM_PREFIX + str(i))
-        if gameInputPacket.sPlayerConfiguration[i].ucTeam == 0:
-            num_team_0 += 1
-        gameInputPacket.sPlayerConfiguration[i].ucTeamColorID = bot_config.getint(BOT_CONFIG_LOADOUT_HEADER,
+
+        gameInputPacket.sPlayerConfiguration[i].wName = get_sanitized_bot_name(name_dict, bot_config.get(loadout_header,
+                                                                       'name'))
+        gameInputPacket.sPlayerConfiguration[i].ucTeam = team_num
+        gameInputPacket.sPlayerConfiguration[i].ucTeamColorID = bot_config.getint(loadout_header,
                                                                                   'team_color_id')
-        gameInputPacket.sPlayerConfiguration[i].ucCustomColorID = bot_config.getint(BOT_CONFIG_LOADOUT_HEADER,
+        gameInputPacket.sPlayerConfiguration[i].ucCustomColorID = bot_config.getint(loadout_header,
                                                                                     'custom_color_id')
-        gameInputPacket.sPlayerConfiguration[i].iCarID = bot_config.getint(BOT_CONFIG_LOADOUT_HEADER, 'car_id')
-        gameInputPacket.sPlayerConfiguration[i].iDecalID = bot_config.getint(BOT_CONFIG_LOADOUT_HEADER, 'decal_id')
-        gameInputPacket.sPlayerConfiguration[i].iWheelsID = bot_config.getint(BOT_CONFIG_LOADOUT_HEADER, 'wheels_id')
-        gameInputPacket.sPlayerConfiguration[i].iBoostID = bot_config.getint(BOT_CONFIG_LOADOUT_HEADER, 'boost_id')
-        gameInputPacket.sPlayerConfiguration[i].iAntennaID = bot_config.getint(BOT_CONFIG_LOADOUT_HEADER, 'antenna_id')
-        gameInputPacket.sPlayerConfiguration[i].iHatID = bot_config.getint(BOT_CONFIG_LOADOUT_HEADER, 'hat_id')
-        gameInputPacket.sPlayerConfiguration[i].iPaintFinish1ID = bot_config.getint(BOT_CONFIG_LOADOUT_HEADER,
+        gameInputPacket.sPlayerConfiguration[i].iCarID = bot_config.getint(loadout_header, 'car_id')
+        gameInputPacket.sPlayerConfiguration[i].iDecalID = bot_config.getint(loadout_header, 'decal_id')
+        gameInputPacket.sPlayerConfiguration[i].iWheelsID = bot_config.getint(loadout_header, 'wheels_id')
+        gameInputPacket.sPlayerConfiguration[i].iBoostID = bot_config.getint(loadout_header, 'boost_id')
+        gameInputPacket.sPlayerConfiguration[i].iAntennaID = bot_config.getint(loadout_header, 'antenna_id')
+        gameInputPacket.sPlayerConfiguration[i].iHatID = bot_config.getint(loadout_header, 'hat_id')
+        gameInputPacket.sPlayerConfiguration[i].iPaintFinish1ID = bot_config.getint(loadout_header,
                                                                                     'paint_finish_1_id')
-        gameInputPacket.sPlayerConfiguration[i].iPaintFinish2ID = bot_config.getint(BOT_CONFIG_LOADOUT_HEADER,
+        gameInputPacket.sPlayerConfiguration[i].iPaintFinish2ID = bot_config.getint(loadout_header,
                                                                                     'paint_finish_2_id')
-        gameInputPacket.sPlayerConfiguration[i].iEngineAudioID = bot_config.getint(BOT_CONFIG_LOADOUT_HEADER,
+        gameInputPacket.sPlayerConfiguration[i].iEngineAudioID = bot_config.getint(loadout_header,
                                                                                    'engine_audio_id')
-        gameInputPacket.sPlayerConfiguration[i].iTrailsID = bot_config.getint(BOT_CONFIG_LOADOUT_HEADER, 'trails_id')
-        gameInputPacket.sPlayerConfiguration[i].iGoalExplosionID = bot_config.getint(BOT_CONFIG_LOADOUT_HEADER,
+        gameInputPacket.sPlayerConfiguration[i].iTrailsID = bot_config.getint(loadout_header, 'trails_id')
+        gameInputPacket.sPlayerConfiguration[i].iGoalExplosionID = bot_config.getint(loadout_header,
                                                                                      'goal_explosion_id')
         config_files.append(bot_config)
-        bot_names.append(bot_config.get(BOT_CONFIG_LOADOUT_HEADER, 'name'))
+
+        bot_names.append(bot_config.get(loadout_header, 'name'))
         bot_teams.append(framework_config.getint(PARTICPANT_CONFIGURATION_HEADER, PARTICPANT_TEAM_PREFIX + str(i)))
         if gameInputPacket.sPlayerConfiguration[i].bRLBotControlled:
             bot_modules.append(bot_config.get(BOT_CONFIG_MODULE_HEADER, 'agent_module'))
@@ -212,3 +225,7 @@ if __name__ == '__main__':
         for callback in callbacks:
             if not callback.is_set():
                 terminated = False
+
+
+if __name__ == '__main__':
+    main()

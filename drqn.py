@@ -1,7 +1,7 @@
 import os
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"   # see issue #152
 os.environ["CUDA_VISIBLE_DEVICES"] = "" # required since Rocket League uses GPU
-from conversions import input_formatter
+from conversions.input import input_formatter
 import itertools
 import random
 

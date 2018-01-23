@@ -124,3 +124,7 @@ ENV/
 /.gradle
 RLBot_Injector.exe
 /config.py
+
+TutorialBot/trained_variables
+
+*.py___jb_tmp___

@@ -1,18 +1,14 @@
-from conversions import output_formatter
-from conversions.input_formatter import get_state_dim_with_features
-from modelHelpers import action_handler
-from modelHelpers import feature_creator
-from models.atbas import rnn_atba
-from models.actor_critic import base_actor_critic
-from models.atbas import nnatba
-
 import numpy as np
-import tensorflow as tf
+
+from trainer.base_classes.default_model_trainer import DefaultModelTrainer
+from trainer.base_classes.download_trainer import DownloadTrainer
+from trainer.utils import controller_statistics
+from trainer.utils.trainer_runner import run_trainer
 
 
-class CopyTrainer:
-    learning_rate = 0.3
+class CopyTrainer(DownloadTrainer, DefaultModelTrainer):
 
+    should_shuffle = False
     file_number = 0
 
     epoch = 0
@@ -22,52 +18,72 @@ class CopyTrainer:
     input_game_tick = []
     input_batch = []
     label_batch = []
+    eval_file = False
+    eval_number = 30
+    controller_stats = None
+    action_length = None
 
-    def __init__(self):
-        #config = tf.ConfigProto(
-        #    device_count={'GPU': 1}
-        #)
-        #self.sess = tf.Session(config=config)
-        self.sess = tf.Session()
-        # writer = tf.summary.FileWriter('tmp/{}-experiment'.format(random.randint(0, 1000000)))
+    def load_config(self):
+        super().load_config()
+        config = super().create_config()
+        try:
+            self.should_shuffle = config.getboolean(self.DOWNLOAD_TRAINER_CONFIGURATION_HEADER,
+                                                   'download_files')
+        except Exception as e:
+            self.should_shuffle = True
 
-        self.action_handler = action_handler.ActionHandler(split_mode=True)
+    def get_config_name(self):
+        return 'copy_trainer.cfg'
 
-        self.state_dim = get_state_dim_with_features()
-        print('state size ' + str(self.state_dim))
-        self.num_actions = self.action_handler.get_action_size()
-        self.agent = self.get_model()(self.sess, self.state_dim, self.num_actions, self.action_handler, is_training=True, optimizer=tf.train.AdamOptimizer())
+    def get_event_filename(self):
+        return 'copy_replays'
 
-        self.loss, self.input, self.label = self.agent.create_copy_training_model(batch_size=self.batch_size)
+    def instantiate_model(self, model_class):
+        return model_class(self.sess,
+                           self.action_handler.get_logit_size(), action_handler=self.action_handler, is_training=True,
+                           optimizer=self.optimizer,
+                           config_file=self.create_config(),
+                           teacher='replay_files')
 
-        if self.agent.train_op is None:
-            self.agent.train_op = tf.train.GradientDescentOptimizer(self.learning_rate).minimize(self.loss)
-        self.agent.initialize_model()
-
-    def get_model(self):
-        #return rnn_atba.RNNAtba
-        #return nnatba.NNAtba
-        return base_actor_critic.BaseActorCritic
+    def setup_model(self):
+        super().setup_model()
+        self.model.create_model()
+        self.model.create_copy_training_model()
+        self.model.create_savers()
+        self.model.initialize_model()
+        self.controller_stats = controller_statistics.OutputChecks(self.sess, self.action_handler,
+                                                                   self.batch_size, self.model.smart_max,
+                                                                   model_placeholder=self.model.input_placeholder)
+        self.controller_stats.create_model()
 
     def start_new_file(self):
-        self.file_number += 1
+
         self.input_batch = []
         self.label_batch = []
         self.input_game_tick = []
+        if self.file_number % self.eval_number == 0:
+            self.eval_file = True
+            self.action_length = self.action_handler.control_size
+        else:
+            self.eval_file = False
+            self.action_length = self.action_handler.get_number_actions()
+        self.file_number += 1
 
     def add_pair(self, input_array, output_array):
-        if len(input_array) == 193:
-            input_array = np.append(input_array, [0])
-            input_array = np.append(input_array, [0])
+        self.input_batch.append(input_array)
 
-        extra_features = feature_creator.get_extra_features_from_array(input_array)
-
-        input = np.append(input_array, extra_features)
-        self.input_batch.append(input)
-
-        label = self.action_handler.create_action_label(output_array)
-        #print(label)
+        if self.eval_file:
+            label = output_array
+        else:
+            label = self.action_handler.create_action_index(output_array)
+        # print(output_array)
+        # print(label)
         self.label_batch.append(label)
+
+    def unison_shuffled_copies(self, a, b):
+        assert len(a) == len(b)
+        p = np.random.permutation(len(a))
+        return a[p], b[p]
 
     def process_pair(self, input_array, output_array, pair_number, file_version):
         self.add_pair(input_array, output_array)
@@ -79,31 +95,39 @@ class CopyTrainer:
             # do stuff
 
     def batch_process(self):
-        if len(self.input_batch) == 0 or len(self.label_batch) == 0:
-            print('batch was empty quitting')
+        if len(self.input_batch) <= 1 or len(self.label_batch) <= 1:
             return
 
-        self.input_batch = np.array(self.input_batch)
-        self.input_batch = self.input_batch.reshape(len(self.input_batch), self.state_dim)
+        input_batch = np.array(self.input_batch)
+        input_batch = self.model.input_formatter.format_array(input_batch)
 
-        self.label_batch = np.array(self.label_batch)
-        self.label_batch = self.label_batch.reshape(len(self.label_batch), self.num_actions)
+        output = np.argwhere(np.isnan(input_batch))
+        if len(output) > 0:
+            print('nan indexes', output)
+            for index in output:
+                input_batch[index[0]][index[1]] = 0
 
-        _, c = self.sess.run([self.agent.train_op, self.loss], feed_dict={self.input: self.input_batch, self.label: self.label_batch})
-        # Display logs per step
-        if self.epoch % self.display_step == 0:
-            print("File:", '%04d' % self.file_number, "Epoch:", '%04d' % (self.epoch+1),
-                  "cost= " + str(c))
+        self.label_batch = np.array(self.label_batch, dtype=np.float32)
+
+        if self.should_shuffle:
+            input_batch, self.label_batch = self.unison_shuffled_copies(input_batch, self.label_batch)
+
+        if self.eval_file:
+            self.controller_stats.get_amounts(input_array=self.input_batch, bot_output=np.transpose(self.label_batch))
+        else:
+            feed_dict = self.model.create_feed_dict(input_batch, self.label_batch)
+            self.model.run_train_step(True, feed_dict=feed_dict)
+
         self.epoch += 1
 
     def end_file(self):
         self.batch_process()
-        if self.file_number % 3 == 0:
-            saver = tf.train.Saver()
-            file_path = self.agent.get_model_path(self.agent.get_default_file_name() + str(self.file_number) + ".ckpt")
-            saver.save(self.sess, file_path)
+        if self.file_number % 100 == 0:
+            self.model.save_model(model_path=None, global_step=self.file_number, quick_save=True)
 
     def end_everything(self):
-        saver = tf.train.Saver()
-        file_path = self.agent.get_model_path(self.agent.get_default_file_name() + ".ckpt")
-        saver.save(self.sess, file_path)
+        self.model.save_model()
+
+
+if __name__ == '__main__':
+    run_trainer(trainer=CopyTrainer())

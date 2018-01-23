@@ -21,22 +21,16 @@ class RNNAtba(nnatba.NNAtba):
     This will be the example model framework with the needed functions but none of the code inside them
     You can copy this to implement your own model
     """
-    def __init__(self, session,
-                 state_dim,
-                 num_actions,
-                 player_index=-1,
-                 action_handler=None,
-                 is_training=False,
-                 optimizer=None,
-                 summary_writer=None,
-                 summary_every=100):
+    def __init__(self, session, state_dim, num_actions, player_index=-1, action_handler=None, is_training=False,
+                 optimizer=tf.train.GradientDescentOptimizer(learning_rate=0.1), summary_writer=None, summary_every=100,
+                 config_file=None):
 
-        super().__init__(session, state_dim, num_actions, player_index, action_handler, is_training,
-                         optimizer, summary_writer, summary_every)
+        super().__init__(session, state_dim, num_actions, player_index, action_handler, is_training, optimizer,
+                         summary_writer, summary_every,config_file)
 
-    def create_model(self, input):
+    def _create_model(self, model_input):
         self.create_weights()
-        hidden_layers = self.input_encoder(input)
+        hidden_layers = self.input_encoder(model_input)
         hidden_layers = tf.expand_dims(hidden_layers, 0)
         output, last_state = self._build_rnn_graph(inputs=hidden_layers, config=None, is_training=self.is_training)
         with tf.variable_scope('RNN'):
@@ -51,7 +45,7 @@ class RNNAtba(nnatba.NNAtba):
 
     def create_weights(self):
         self.weights = {
-            'inputW': tf.Variable(tf.random_normal([self.state_dim, self.hidden_size]), name='inputW'),
+            'inputW': tf.Variable(tf.random_normal([self.state_feature_dim, self.hidden_size]), name='inputW'),
             'rnn_outputW': tf.Variable(tf.random_normal([self.hidden_size, self.num_hidden_1]), name='rnn_outputW'),
             'out': tf.Variable(tf.random_normal([self.num_hidden_1, self.num_actions]), name='outputW'),
         }

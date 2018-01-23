@@ -1,5 +1,3 @@
-from conversions import output_formatter
-from conversions.input_formatter import get_state_dim_with_features
 from modelHelpers import reward_manager
 import tensorflow as tf
 
@@ -8,6 +6,9 @@ class TensorflowRewardManager(reward_manager.RewardManager):
     discount_factor = tf.reshape(tf.constant([0.988, 0.3]), [2,])
     last_state = None
     zero_reward = tf.reshape(tf.constant([0.0, 0.0]), [2,])
+
+    def __init__(self, state_dim):
+        self.state_dim = state_dim
 
     def clip_reward(self, reward, lower_bound, upper_bound):
         return tf.minimum(tf.maximum(reward, lower_bound), upper_bound)
@@ -33,7 +34,7 @@ class TensorflowRewardManager(reward_manager.RewardManager):
             resulant_shape = tf.stack([tf.shape(game_input)[0], tf.constant(1)])
             discounted_rewards = tf.fill(resulant_shape, 0.0)
             self.no_previous_state = tf.Variable(tf.constant(False), trainable=False)
-            self.last_state = tf.Variable(tf.zeros([get_state_dim_with_features(),]), dtype=tf.float32, trainable=False)
+            self.last_state = tf.Variable(tf.zeros([self.state_dim, ]), dtype=tf.float32, trainable=False)
 
             discounted_reward = self.zero_reward
             length = tf.shape(game_input)[0]

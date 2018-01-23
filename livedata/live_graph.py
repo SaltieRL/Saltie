@@ -7,6 +7,16 @@ from pyqtgraph.Qt import QtGui, QtCore
 import numpy as np
 import pyqtgraph as pg
 
+
+def create_plot(name):
+    p6 = win.addPlot(title=name)
+    p6.setYRange(-1.5, 1.5)
+    blue_curve = p6.plot(pen='g')
+    orng_curve = p6.plot(pen='r')
+    #green_curve = p6.plot(pen='g')
+    #red_curve = p6.plot(pen='r')
+    return p6, blue_curve, orng_curve
+
 #QtGui.QApplication.setGraphicsSystem('raster')
 app = QtGui.QApplication([])
 #mw = QtGui.QMainWindow()
@@ -25,18 +35,15 @@ expected_reward_orange_0 = live_data_util.RotatingBuffer(1)
 real_reward_blue_0 = live_data_util.RotatingBuffer(10)
 real_reward_orange_0 = live_data_util.RotatingBuffer(11)
 
-p6 = win.addPlot(title="RLBot Expected Rewards")
-p6.setYRange(-1.5, 1.5)
-blue_curve = p6.plot(pen='b')
-orng_curve = p6.plot(pen='y')
-green_curve = p6.plot(pen='g')
-red_curve = p6.plot(pen='r')
+realPlot, real_blue, real_orange = create_plot("RLBot Real Rewards")
+expectedPlot, expected_blue, expected_orange = create_plot("RLBot Expected Rewards")
 def update():
-    global blue_curve, orng_curve, green_curve, red_curve, p6
-  #  blue_curve.setData(expected_reward_blue_0.get_current_buffer())
-    orng_curve.setData(expected_reward_orange_0.get_current_buffer())
-  #  green_curve.setData(real_reward_blue_0.get_current_buffer())
-    red_curve.setData(real_reward_orange_0.get_current_buffer())
+    global realPlot, real_blue, real_orange, expectedPlot, expected_blue, expected_orange
+    expected_blue.setData(expected_reward_blue_0.get_current_buffer())
+    expected_orange.setData(expected_reward_orange_0.get_current_buffer())
+    real_blue.setData(real_reward_blue_0.get_current_buffer())
+    real_orange.setData(real_reward_orange_0.get_current_buffer())
+
 timer = QtCore.QTimer()
 timer.timeout.connect(update)
 timer.start(50)
