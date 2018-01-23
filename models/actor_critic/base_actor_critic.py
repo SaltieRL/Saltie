@@ -213,7 +213,7 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
             else:
                 action_scores = self.sess.run([self.smart_max],
                                               {self.input_placeholder: input_state})
-                print(action_scores)
+                # print(action_scores)
 
             action_scores = np.array(action_scores).flatten()
             return action_scores
@@ -294,17 +294,6 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
             for i in range(self.action_handler.get_number_actions()):
                 variable_name = str(self.action_handler.action_list_names[i])
                 tf.summary.histogram(variable_name + '_output', self.actor_last_row_layer[i])
-
-    def get_regularization_loss(self, variables, prefix=None):
-        normalized_variables = [tf.reduce_sum(tf.nn.l2_loss(x) * self.reg_param)
-                                for x in variables]
-
-        reg_loss = tf.reduce_sum(normalized_variables, name=(prefix + '_reg_loss'))
-        tf.summary.scalar(prefix + '_reg_loss', reg_loss)
-        if self.should_regulate:
-            return reg_loss
-        else:
-            return tf.constant(0.0)
 
     def create_hidden_layers(self, activation_function, input_layer, network_size, network_prefix, variable_list=None,
                              layers_list=[]):

@@ -576,4 +576,7 @@ class BaseModel:
 
         reg_loss = tf.reduce_sum(normalized_variables, name=(prefix + '_reg_loss'))
         tf.summary.scalar(prefix + '_reg_loss', reg_loss)
-        return tf.constant(0.0)  # reg_loss
+        if self.should_regulate:
+            return reg_loss * (self.reg_param * 10.0)
+        else:
+            return tf.constant(0.0)

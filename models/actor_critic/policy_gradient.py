@@ -91,7 +91,7 @@ class PolicyGradient(SplitLayers):
 
         total_loss = total_loss / self.total_loss_divider
 
-        # total_loss += actor_reg_loss
+        total_loss += actor_reg_loss
 
         # total_loss = tf.Print(total_loss, [total_loss], 'total_loss')
 
