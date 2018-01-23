@@ -28,4 +28,5 @@ You can also start a pull request and we will review the changes.
 
 ## DEMO
 
-[![Demo Doccou alpha](https://j.gifs.com/BLOy2o.gif)](https://www.youtube.com/watch?v=U39e9Azrz8g)
+![Example Gif](https://j.gifs.com/BLOy2o.gif)
+[video](https://www.youtube.com/watch?v=U39e9Azrz8g)
