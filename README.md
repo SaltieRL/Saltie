@@ -28,5 +28,5 @@ You can also start a pull request and we will review the changes.
 
 ## DEMO
 
-![Example Gif](https://j.gifs.com/BLOy2o.gif)
+![Example Gif](https://j.gifs.com/OyLRRE.gif)
 [video](https://www.youtube.com/watch?v=U39e9Azrz8g)
