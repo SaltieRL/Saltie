@@ -30,6 +30,14 @@ mixed_controls = [[('throttle', (-1, 1.5, .5), LOSS_SPARSE_CROSS), ('steer', (-1
                        [('jump', (0, 2, 1)), ('boost', (0, 2, 1)), ('handbrake', (0, 2, 1))],
                        []]
 
+regression_everything = [[('throttle', (-1, 1.5, .5), LOSS_SQUARE_MEAN), ('steer', (-1, 1.5, .5), LOSS_SQUARE_MEAN),
+                        ('yaw', (-1, 1.5, .5), LOSS_SQUARE_MEAN), ('pitch', (-1, 1.5, .5), LOSS_SQUARE_MEAN),
+                        ('roll', (-1, 1.5, .5), LOSS_SQUARE_MEAN), ('jump', (0, 2, 1), LOSS_SQUARE_MEAN),
+                          ('boost', (0, 2, 1), LOSS_SQUARE_MEAN),
+                          ('handbrake', (0, 2, 1), LOSS_SQUARE_MEAN)],
+                       [],
+                       []]
+
 def get_handler(split_mode=True, control_scheme=default_scheme):
     """
     Creates a handler based on the options given.

@@ -5,28 +5,34 @@ import math
 from models import base_model
 from models.actor_critic.base_actor_critic import BaseActorCritic
 from modelHelpers import tensorflow_reward_manager
+from models.actor_critic.split_layers import SplitLayers
 
 
-class PolicyGradient(BaseActorCritic):
+class PolicyGradient(SplitLayers):
     max_gradient = 1.0
     total_loss_divider = 1.0
 
     def __init__(self, session,
-                 state_dim,
                  num_actions,
+                 input_formatter_info=[0, 0],
                  player_index=-1,
                  action_handler=None,
                  is_training=False,
-                 optimizer=tf.train.GradientDescentOptimizer(learning_rate=0.01),
+                 optimizer=tf.train.GradientDescentOptimizer(learning_rate=0.1),
                  summary_writer=None,
                  summary_every=100,
-                 config_file=None,
-                 discount_factor=0.99,  # discount future rewards
+                 config_file=None
                  ):
-        self.reward_manager = tensorflow_reward_manager.TensorflowRewardManager(state_dim)
-
-        super().__init__(session, state_dim, num_actions, player_index, action_handler, is_training, optimizer,
-                         summary_writer, summary_every, config_file, discount_factor)
+        super().__init__(session, num_actions,
+                         input_formatter_info=input_formatter_info,
+                         player_index=player_index,
+                         action_handler=action_handler,
+                         is_training=is_training,
+                         optimizer=optimizer,
+                         summary_writer=summary_writer,
+                         summary_every=summary_every,
+                         config_file=config_file)
+        self.reward_manager = tensorflow_reward_manager.TensorflowRewardManager(self.state_dim)
 
     def printParameters(self):
         super().printParameters()
@@ -46,12 +52,6 @@ class PolicyGradient(BaseActorCritic):
                                                         'total_loss_divider')
         except:
             print('unable to load total_loss_divider')
-
-    def get_input(self, model_input=None):
-        if model_input is None:
-            return super().get_input(self.input)
-        else:
-            return super().get_input(model_input)
 
     def create_training_op(self, logprobs, taken_actions):
         critic_gradients, critic_loss, critic_reg_loss = self.create_critic_gadients()
@@ -91,7 +91,7 @@ class PolicyGradient(BaseActorCritic):
 
         total_loss = total_loss / self.total_loss_divider
 
-        # total_loss += actor_reg_loss
+        total_loss += actor_reg_loss
 
         # total_loss = tf.Print(total_loss, [total_loss], 'total_loss')
 
@@ -115,6 +115,8 @@ class PolicyGradient(BaseActorCritic):
 
         # calculates the entropy loss from getting the label wrong
         cross_entropy_loss, wrongness, reduced = self.calculate_loss_of_actor(logprobs, taken_actions, index)
+        if reduced:
+            cross_entropy_loss = tf.reduce_mean(cross_entropy_loss)
         if not reduced:
             if self.action_handler.is_classification(index):
                 tf.summary.histogram('actor_wrongness', wrongness)
@@ -133,7 +135,7 @@ class PolicyGradient(BaseActorCritic):
 
             actor_reg_loss = self.get_regularization_loss(actor_network_variables, prefix="actor")
 
-            actor_loss = actor_loss + actor_reg_loss * self.reg_param
+            actor_loss = actor_loss + actor_reg_loss
 
             # compute actor gradients
             actor_gradients = self.optimizer.compute_gradients(actor_loss,
@@ -151,15 +153,11 @@ class PolicyGradient(BaseActorCritic):
             return [actor_gradients, actor_loss]
 
     def create_critic_gadients(self):
-        critic_reg_loss = tf.reduce_sum([tf.reduce_sum(tf.square(x)) for x in self.critic_network_variables],
-                                        name='critic_reg_loss')
-
-        tf.summary.scalar("critic_reg_loss", critic_reg_loss)
-
+        critic_reg_loss = self.get_regularization_loss(self.critic_network_variables, prefix='critic')
         # compute critic gradients
         mean_square_loss = tf.reduce_mean(tf.square(self.discounted_rewards - self.estimated_values), name='mean_square_loss')
 
-        critic_loss = mean_square_loss + self.reg_param * critic_reg_loss
+        critic_loss = mean_square_loss + critic_reg_loss
         tf.summary.scalar("critic_loss", critic_loss)
         critic_gradients = self.optimizer.compute_gradients(critic_loss, self.critic_network_variables)
         return (critic_gradients, critic_loss, critic_reg_loss)
@@ -197,50 +195,6 @@ class PolicyGradient(BaseActorCritic):
 
     def discount_rewards(self, input_rewards, input):
         return self.reward_manager.create_reward_graph(input)
-
-    #def parse_actions(self, taken_actions):
-    #    return tf.cast(self.action_handler.create_indexes_graph(taken_actions), tf.int32)
-
-    def run_train_step(self, calculate_summaries, input_states, actions, rewards=None):
-        # perform one update of training
-        if self.batch_size > self.mini_batch_size:
-            self.sess.run([self.input, self.taken_actions, self.iterator.initializer],
-                          feed_dict={self.input_placeholder: input_states, self.taken_actions_placeholder: actions})
-            num_batches = math.ceil(float(self.batch_size) / float(self.mini_batch_size))
-            # print('num batches', num_batches)
-            counter = 0
-            while counter < num_batches:
-                try:
-                    result, summary_str = self.sess.run([
-                        self.train_op,
-                        self.summarize if calculate_summaries else self.no_op
-                    ])
-                    # emit summaries
-                    if calculate_summaries:
-                        self.summary_writer.add_summary(summary_str, self.train_iteration)
-                        self.train_iteration += 1
-                    counter += 1
-                except tf.errors.OutOfRangeError:
-                    #print("End of training dataset.")
-                    break
-            print('batch amount:', counter)
-        else:
-            result, summary_str = self.sess.run([
-                    self.train_op,
-                    self.summarize if calculate_summaries else self.no_op
-                ],
-                feed_dict={
-                    self.input_placeholder: input_states,
-                    self.taken_actions_placeholder: actions
-                })
-            # emit summaries
-            if calculate_summaries:
-                self.summary_writer.add_summary(summary_str, self.train_iteration,
-                    )
-                self.train_iteration += 1
-
-        return None, None
-
 
     def get_model_name(self):
         return 'a_c_policy_gradient' + ('_split' if self.action_handler.is_split_mode else '') + str(self.num_layers) + '-layers'

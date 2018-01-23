@@ -1,10 +1,10 @@
-from conversions import output_formatter
 from models import base_reinforcement
 from models import base_model
 import numpy as np
 import tensorflow as tf
 import random
 import livedata.live_data_util as live_data_util
+import collections
 
 
 class BaseActorCritic(base_reinforcement.BaseReinforcement):
@@ -16,7 +16,6 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
     forced_frame_action = 500
     is_graphing = False
     keep_prob = 0.5
-    reg_param = 0.001
 
     first_layer_name = 'first_layer'
     hidden_layer_name = 'hidden_layer'
@@ -26,23 +25,28 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
     # tensorflow objects
     discounted_rewards = None
     estimated_values = None
-    iterator = None
     logprobs = None
 
     def __init__(self, session,
-                 state_dim,
                  num_actions,
+                 input_formatter_info=[0, 0],
                  player_index=-1,
                  action_handler=None,
                  is_training=False,
                  optimizer=tf.train.GradientDescentOptimizer(learning_rate=0.1),
                  summary_writer=None,
                  summary_every=100,
-                 config_file=None,
-                 discount_factor=0.99,  # discount future rewards
+                 config_file=None
                  ):
-        super().__init__(session, state_dim, num_actions, player_index, action_handler, is_training, optimizer,
-                         summary_writer, summary_every, config_file, discount_factor)
+        super().__init__(session, num_actions,
+                         input_formatter_info=input_formatter_info,
+                         player_index=player_index,
+                         action_handler=action_handler,
+                         is_training=is_training,
+                         optimizer=optimizer,
+                         summary_writer=summary_writer,
+                         summary_every=summary_every,
+                         config_file=config_file)
         if player_index >= 0:
             self.rotating_expected_reward_buffer = live_data_util.RotatingBuffer(player_index)
 
@@ -52,7 +56,9 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
         print('network size', self.network_size)
         print('number of layers', self.num_layers)
         print('keep probability', self.keep_prob)
-        print('regulation parameter', self.reg_param)
+
+    def get_activation(self):
+        return tf.nn.elu  # tf.nn.relu6
 
     def load_config_file(self):
         super().load_config_file()
@@ -86,7 +92,7 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
             # input_tensor = tf.Print(input_tensor, [input_tensor], str(index))
             return tf.squeeze(input_tensor, axis=1)
         argmax_index = tf.cast(tf.argmax(input_tensor, axis=1), tf.int32)
-        indexer = tf.range(0, self.mini_batch_size)
+        indexer = tf.range(0, self.batch_size)
         slicer_data = tf.stack([indexer, argmax_index], axis=1)
         sliced_tensor = tf.gather_nd(input_tensor, slicer_data)
         condition = tf.greater(sliced_tensor, self.action_threshold)
@@ -143,16 +149,12 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
         converted_input = self.get_input(model_input)
 
         if taken_actions is None:
-            actions_input = self.taken_actions_placeholder
+            actions_input = self.get_labels_placeholder()
         else:
             actions_input = taken_actions
-        if self.batch_size > self.mini_batch_size:
-            ds = tf.data.Dataset.from_tensor_slices((converted_input, actions_input)).batch(self.mini_batch_size)
-            self.iterator = ds.make_initializable_iterator()
-            batched_input, batched_taken_actions = self.iterator.get_next()
-        else:
-            batched_input = converted_input
-            batched_taken_actions = actions_input
+
+        batched_input, batched_taken_actions = self.create_batched_inputs([converted_input, actions_input])
+
         with tf.name_scope("training_network"):
             self.discounted_rewards = tf.constant(0.0)
             with tf.variable_scope("actor_network", reuse=True):
@@ -163,10 +165,9 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
 
             taken_actions = self.parse_actions(batched_taken_actions)
 
+        self.log_output_data()
+
         self.train_op = self.create_training_op(self.logprobs, taken_actions)
-        if model_input is None:
-            return self.input_placeholder, self.taken_actions_placeholder
-        return model_input, self.taken_actions_placeholder
 
     def create_reinforcement_training_model(self, model_input=None):
         converted_input = self.get_input(model_input)
@@ -212,6 +213,7 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
             else:
                 action_scores = self.sess.run([self.smart_max],
                                               {self.input_placeholder: input_state})
+                # print(action_scores)
 
             action_scores = np.array(action_scores).flatten()
             return action_scores
@@ -242,15 +244,16 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
             last_layer_list = [[] for _ in range(len(self.action_handler.get_action_sizes()))]
         # define policy neural network
         actor_prefix = 'actor'
+        activation = self.get_activation()
         # input_states = tf.Print(input_states, [input_states], summarize=self.network_size, message='')
         with tf.variable_scope(self.first_layer_name):
-            layer1, _ = self.create_layer(tf.nn.relu6, input_states, 1, self.state_feature_dim, self.network_size, actor_prefix,
+            layer1, _ = self.create_layer(activation, input_states, 1, self.state_feature_dim, self.network_size, actor_prefix,
                                        variable_list=variable_list, dropout=False)
-        layers_list.append(layer1)
+        layers_list.append([layer1])
 
         # layer1 = tf.Print(layer1, [layer1], summarize=self.network_size, message='')
 
-        inner_layer, output_size = self.create_hidden_layers(tf.nn.relu6, layer1, self.network_size, actor_prefix,
+        inner_layer, output_size = self.create_hidden_layers(activation, layer1, self.network_size, actor_prefix,
                                                 variable_list=variable_list, layers_list=layers_list)
 
         output_layer = self.create_last_layer(tf.nn.sigmoid, inner_layer, output_size,
@@ -285,13 +288,12 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
     def parse_actions(self, taken_actions):
         return taken_actions
 
-    def get_regularization_loss(self, variables, prefix=None):
-        normalized_variables = [tf.reduce_sum(tf.nn.l2_loss(x) * self.reg_param)
-                                for x in variables]
-
-        reg_loss = tf.reduce_sum(normalized_variables, name=(prefix + '_reg_loss'))
-        tf.summary.scalar(prefix + '_reg_loss', reg_loss)
-        return reg_loss
+    def log_output_data(self):
+        """Logs the output of the last layer of the model"""
+        with tf.name_scope('model_output'):
+            for i in range(self.action_handler.get_number_actions()):
+                variable_name = str(self.action_handler.action_list_names[i])
+                tf.summary.histogram(variable_name + '_output', self.actor_last_row_layer[i])
 
     def create_hidden_layers(self, activation_function, input_layer, network_size, network_prefix, variable_list=None,
                              layers_list=[]):
@@ -300,6 +302,7 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
             for i in range(0, self.num_layers - 2):
                 inner_layer, _ = self.create_layer(activation_function, inner_layer, i + 2, network_size,
                                                    network_size, network_prefix, variable_list=variable_list)
+                layers_list.append(inner_layer)
         return inner_layer, network_size
 
     def create_last_layer(self, activation_function, inner_layer, network_size, num_actions, network_prefix,
@@ -307,12 +310,15 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
         with tf.variable_scope(self.last_layer_name):
             last_layer_name = 'final'
             if not self.action_handler.is_split_mode():
-                self.actor_last_row_layer, _ = self.create_layer(activation_function, inner_layer, last_layer_name,
+                self.actor_last_row_layer, _ = self.create_layer(activation_function, inner_layer[0], last_layer_name,
                                                                  network_size, num_actions, network_prefix,
-                                                                 variable_list=last_layer_list, dropout=False)
+                                                                 variable_list=last_layer_list[0], dropout=False)
+
                 return self.actor_last_row_layer
 
             self.actor_last_row_layer = []
+            if not isinstance(inner_layer, collections.Sequence):
+                inner_layer = [inner_layer] * self.action_handler.get_number_actions()
             for i, item in enumerate(self.action_handler.get_action_sizes()):
                 variable_name = str(self.action_handler.action_list_names[i])
                 with tf.variable_scope(variable_name):
@@ -322,8 +328,7 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
                                                                        variable_list=last_layer_list[i], dropout=False)[0]
                     scaled_layer = self.action_handler.scale_layer(layer, i)
                     self.actor_last_row_layer.append(scaled_layer)
-                    # tf.summary.histogram(variable_name + '_output', scaled_layer)
-
+            layers_list.append(self.actor_last_row_layer)
             return tf.concat(self.actor_last_row_layer, 1)
 
     def create_savers(self):
@@ -371,3 +376,28 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
                            tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope=scope_name))
         else:
             self.add_saver(saver_name, variable_list)
+
+    def get_variables_activations(self):
+        unified_layers = np.array(self.all_but_last_actor_layer).reshape((-1, 2))
+        split_layers = np.array(self.last_row_variables).reshape((-1, len(self.last_row_variables), 2))
+        unified_layers = self.sess.run(unified_layers.tolist())
+        split_layers = self.sess.run(split_layers.tolist())
+        network_variables = []
+        for element in unified_layers:
+            layer = element + ['relu']
+            network_variables.append([layer])
+        for i, layer in enumerate(split_layers):
+            split_layer = []
+            for j, element in enumerate(layer):
+                if i == len(split_layers) - 1:
+                    output_type = ['sigmoid' if self.action_handler.is_classification(j) else 'none']
+                else:
+                    output_type = ['relu']
+                layer = element + output_type
+                split_layer.append(layer)
+            network_variables.append(split_layer)
+        return network_variables
+
+    def get_activations(self, input_array=None):
+        layer_activations = self.sess.run(self.layers, feed_dict={self.get_input_placeholder(): input_array})
+        return layer_activations

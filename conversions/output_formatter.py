@@ -85,14 +85,14 @@ def get_car_info(array, index):
     car_info.Rotation = create_3D_rotation(array, index + 3)
     car_info.Velocity = create_3D_point(array, index + 6)
     car_info.AngularVelocity = create_3D_point(array, index + 9)
-    car_info.bOnGround = array[12]
-    car_info.bSuperSonic = array[13]
-    car_info.bDemolished = array[14]
-    car_info.bJumped = array[15]
-    car_info.bDoubleJumped = array[16]
-    car_info.Team = array[17]
-    car_info.Boost = array[18]
-    car_info.bLastTouchedBall = array[19]
+    car_info.bOnGround = array[index + 12]
+    car_info.bSuperSonic = array[index + 13]
+    car_info.bDemolished = array[index + 14]
+    car_info.bJumped = array[index + 15]
+    car_info.bDoubleJumped = array[index + 16]
+    car_info.Team = array[index + 17]
+    car_info.Boost = array[index + 18]
+    car_info.bLastTouchedBall = array[index + 19]
     return car_info
 
 

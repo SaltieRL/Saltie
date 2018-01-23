@@ -5,7 +5,7 @@ from modelHelpers import tensorflow_feature_creator
 class TutorialBotOutput:
     # Constants
     distance_from_ball_to_go_fast = tf.constant(600.0)
-    distance_from_ball_to_boost = tf.constant(1500.0)  # Minimum distance to ball for using boost
+    distance_from_ball_to_boost = tf.constant(2000.0)  # Minimum distance to ball for using boost
     unreal_to_degrees = tf.constant(
         1.0 / 65536.0 * 360.0)  # The numbers used to convert unreal rotation units to degrees
     true = tf.constant(1.0)
@@ -23,7 +23,7 @@ class TutorialBotOutput:
     def aim(self, bot_position, bot_rotation, target_x, target_y, target_z, distance_to_ball, is_on_ground):
         full_turn_angle = 70.0
         half_turn_angle = 30.0
-        powerslide_angle_constant = 710.0 # The angle (from the front of the bot to the ball) to start to powerslide.
+        powerslide_angle_constant = 80.0 # The angle (from the front of the bot to the ball) to start to powerslide.
 
         angle_front_to_target = self.feature_creator.generate_angle_to_target(bot_position.X, bot_position.Y,
                                                                               bot_rotation,
@@ -46,14 +46,15 @@ class TutorialBotOutput:
 
         jump = tf.cast(should_jump, tf.float32)
 
-        powerslide_angle = full_turn_angle * tf.cast(tf.less(1000.0, distance_to_ball), tf.float32)
-        powerslide_angle = powerslide_angle_constant + powerslide_angle
-
-        ps = tf.greater(tf.abs(angle_front_to_target), powerslide_angle)
+        ps = tf.logical_and(tf.greater_equal(tf.abs(angle_front_to_target), full_turn_angle),
+                            tf.less_equal(distance_to_ball, 2000.0))
+        # ps = tf.greater_equal(tf.abs(angle_front_to_target), full_turn_angle)
         power_slide = tf.cast(ps, tf.float32)
 
+        should_not_dodge = tf.cast(tf.greater_equal(distance_to_ball, 500), tf.float32)
+
         # if jump is 1 then we should not execute a turn
-        safe_steer = steer * (1.0 - jump)
+        safe_steer = steer * (1.0 - jump * should_not_dodge)
         return (safe_steer, power_slide, jump)
 
     def get_output_vector(self, values):
@@ -79,8 +80,8 @@ class TutorialBotOutput:
         xy_distance = self.distance(bot_pos.X, bot_pos.Y, ball_pos.X, ball_pos.Y)
 
         # Boost when ball is far enough away
-        boost = tf.logical_and(tf.greater(xy_distance, self.distance_from_ball_to_boost),
-                               tf.greater(car_boost, 34))
+        boost = tf.logical_and(tf.greater_equal(xy_distance, self.distance_from_ball_to_boost / car_boost),
+                               tf.greater_equal(car_boost, 10))
         full_throttle = 0.5 * tf.cast(tf.greater(xy_distance, self.distance_from_ball_to_go_fast), tf.float32)
         throttle = full_throttle + tf.constant(0.5)
 

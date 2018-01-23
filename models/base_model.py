@@ -1,8 +1,9 @@
-import hashlib
+import math
 import os
 import tensorflow as tf
 import numpy as np
 
+from conversions.input.input_formatter import InputFormatter
 from modelHelpers import tensorflow_feature_creator
 from modelHelpers.data_normalizer import DataNormalizer
 
@@ -20,23 +21,32 @@ class BaseModel:
     is_online_training = False
     no_op = tf.no_op()
     train_op = no_op
-    model = None
     logits = None
     is_normalizing = True
     normalizer = None
     feature_creator = None
     load_from_checkpoints = None
     QUICK_SAVE_KEY = 'quick_save'
+    network_size = 128
+    controller_predictions = None
+    input_formatter = None
+    summarize = no_op
+    iterator = None
+    reg_param = 0.001
+    should_regulate = None
 
     """"
     This is a base class for all models It has a couple helper methods but is mainly used to provide a standard
     interface for running and training a model
     """
-    def __init__(self, session, state_dim, num_actions, player_index=-1, action_handler=None, is_training=False,
+    def __init__(self, session, num_actions,
+                 input_formatter_info=[0, 0],
+                 player_index=-1, action_handler=None, is_training=False,
                  optimizer=tf.train.GradientDescentOptimizer(learning_rate=0.1), summary_writer=None, summary_every=100,
                  config_file=None):
 
         # tensorflow machinery
+        self.train_iteration = 0
         self.optimizer = optimizer
         self.sess = session
         self.summary_writer = summary_writer
@@ -52,10 +62,10 @@ class BaseModel:
 
         # output space
         self.num_actions = num_actions
-
+        self.add_input_formatter(input_formatter_info[0], input_formatter_info[1])
         # input space
-        self.state_dim = state_dim
-        self.state_feature_dim = state_dim
+        self.state_dim = self.input_formatter.get_state_dim()
+        self.state_feature_dim = self.state_dim
 
         self.is_training = is_training
 
@@ -67,15 +77,19 @@ class BaseModel:
         self.stored_variables = self._create_variables()
 
     def printParameters(self):
+        """Visually displays all the model parameters"""
         print('model parameters:')
         print('batch size:', self.batch_size)
         print('mini batch size:', self.mini_batch_size)
         print('using features', (self.feature_creator is not None))
+        print('regulation parameter', self.reg_param)
+        print('is regulating parameter', self.should_regulate)
 
     def _create_variables(self):
+        """Creates any variables needed by this model.
+        Variables keep their value across multiple runs"""
         with tf.name_scope("model_inputs"):
             self.input_placeholder = tf.placeholder(tf.float32, shape=(None, self.state_dim), name="state_input")
-            self.input = self.input_placeholder
         return {}
 
     def store_rollout(self, input_state, last_action, reward):
@@ -99,6 +113,14 @@ class BaseModel:
         """
         print(' i do nothing!')
 
+    def add_input_formatter(self, team, index):
+        """Creates and adds an input formatter"""
+        self.input_formatter = InputFormatter(team, index)
+
+    def create_input_array(self, game_tick_packet, frame_time):
+        """Creates the input array from the game_tick_packet"""
+        return self.input_formatter.create_input_array(game_tick_packet, frame_time)
+
     def sample_action(self, input_state):
         """
         Runs the model to get a single action that can be returned.
@@ -107,7 +129,7 @@ class BaseModel:
         A sample action that can then be used to get controller output.
         """
         #always return an integer
-        return 10
+        return self.sess.run(self.controller_predictions, feed_dict={self.get_input_placeholder(): input_state})
 
     def create_copy_training_model(self, model_input=None, taken_actions=None):
         """
@@ -128,6 +150,72 @@ class BaseModel:
         labels = None
         return loss, input, labels
 
+    def create_batched_inputs(self, inputs):
+        """
+        Takes in the inputs and creates a batch variation of them.
+        :param inputs: This is an array or tuple of inputs that will be converted to their batch form.
+        :return: The outputs converted to their batch form.
+        """
+        outputs = tuple(inputs)
+        if self.batch_size > self.mini_batch_size:
+            ds = tf.data.Dataset.from_tensor_slices(tuple(inputs)).batch(self.mini_batch_size)
+            self.iterator = ds.make_initializable_iterator()
+            outputs = self.iterator.get_next()
+        return outputs
+
+    def create_feed_dict(self, input_array, label_array):
+        return {self.get_input_placeholder(): input_array, self.get_labels_placeholder(): label_array}
+
+    def run_train_step(self, should_calculate_summaries, feed_dict=None, epoch=-1):
+        """
+        Runs a single train step of the model.
+        If batching is enable this will internally handle batching as well
+        :param should_calculate_summaries: True if summaries/logs from this train step should be saved. False otherwise
+        :param feed_dict: The inputs we feed into the model.
+        :param epoch: What number iteration we should be on
+        :return: The epoch number of the internal model state
+        """
+
+        if epoch != -1:
+            self.train_iteration = epoch
+
+        should_summarize = should_calculate_summaries and self.summarize is not None and self.summary_writer is not None
+
+        # perform one update of training
+        if self.batch_size > self.mini_batch_size:
+            _, = self.sess.run([self.iterator.initializer],
+                          feed_dict=feed_dict)
+            num_batches = math.ceil(float(self.batch_size) / float(self.mini_batch_size))
+            # print('num batches', num_batches)
+            counter = 0
+            while counter < num_batches:
+                try:
+                    result, summary_str = self.sess.run([
+                        self.train_op,
+                        self.summarize if should_summarize else self.no_op
+                    ])
+                    # emit summaries
+                    if should_summarize:
+                        self.summary_writer.add_summary(summary_str, self.train_iteration)
+                        self.train_iteration += 1
+                    counter += 1
+                except tf.errors.OutOfRangeError:
+                    break
+                except Exception as e:
+                    print(e)
+            print('batch amount:', counter)
+        else:
+            result, summary_str = self.sess.run([
+                self.train_op,
+                self.summarize if should_summarize else self.no_op
+            ],
+                feed_dict=feed_dict)
+            # emit summaries
+            if should_summarize:
+                self.summary_writer.add_summary(summary_str, self.train_iteration)
+                self.train_iteration += 1
+        return self.train_iteration
+
     def apply_feature_creation(self, feature_creator):
         self.state_feature_dim = self.state_dim + tensorflow_feature_creator.get_feature_dim()
         self.feature_creator = feature_creator
@@ -136,6 +224,7 @@ class BaseModel:
         """
         Gets the input for the model.
         Also applies normalization
+        And feature creation
         :param model_input: input to be used if another input is not None
         :return:
         """
@@ -171,32 +260,32 @@ class BaseModel:
         """
         input = self.get_input(model_input)
 
-        self.model, self.logits = self._create_model(input)
-        return self.model, self.logits
+        self.controller_predictions = self._create_model(input)
 
     def _create_model(self, model_input):
         """
-        Called to create the model, this is called in the constructor
+        Called to create the model, this is not called in the constructor.
         :param model_input:
             A placeholder for the input data into the model.
         :return:
             A tensorflow object representing the output of the model
-            This output should be able to be run and create an action
-            And a tensorflow object representing the logits of the model
-            This output should be able to be used in training
+            This output should be able to be run and create an action that is parsed by the action handler
         """
-        return None, None
+        return None
 
-    def _set_variables(self):
+    def _initialize_variables(self):
+        """
+        Initializes all variables attempts to run them with placeholders if those are required
+        """
         try:
             init = tf.global_variables_initializer()
-            self.sess.run(init, feed_dict={self.input_placeholder: np.zeros((self.batch_size, self.state_dim))})
+            self.sess.run(init)
         except Exception as e:
             print('failed to initialize')
             print(e)
             try:
                 init = tf.global_variables_initializer()
-                self.sess.run(init)
+                self.sess.run(init, feed_dict={self.input_placeholder: np.zeros((self.batch_size, self.state_dim))})
             except Exception as e2:
                 print('failed to initialize again')
                 print(e2)
@@ -210,7 +299,7 @@ class BaseModel:
         This is used to initialize the model variables
         This will also try to load an existing model if it exists
         """
-        self._set_variables()
+        self._initialize_variables()
 
         #file does not exist too lazy to add check
         if self.model_file is None:
@@ -225,25 +314,16 @@ class BaseModel:
                 file = os.path.abspath(model_file)
                 self.load_model(os.path.dirname(file), os.path.basename(file))
             except Exception as e:
-                self._set_variables()
+                self._initialize_variables()
                 print("Unexpected error loading model:", e)
                 print('unable to load model')
         else:
-            self._set_variables()
             print('unable to find model to load')
 
-        self._add_summary_writer()
+        if self.summary_writer is not None:
+            self.summary_writer.add_graph(self.sess.graph)
+            self.summarize = tf.summary.merge_all()
         self.is_initialized = True
-
-    def run_train_step(self, calculate_summaries, input_states, actions):
-        """
-        Runs a single train step of the model
-        :param calculate_summaries: If the model should calculate summaries
-        :param input_states: A batch of input states which should equal batch size
-        :param actions: A batch of actions which should equal batch size
-        :return:
-        """
-        pass
 
     def get_model_name(self):
         """
@@ -271,9 +351,9 @@ class BaseModel:
         :return: The path of the file
         """
         dir_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-        base_path = "/training/data/events/"
+        base_path = "/training/training_events/"
         if is_replay:
-            base_path = "/training/replay_events/"
+            base_path = "/training/in_game_events/"
         complete_path = dir_path + base_path + self.get_model_name() + "/" + filename
         modified_path = complete_path
         counter = 0
@@ -282,15 +362,18 @@ class BaseModel:
             modified_path = complete_path + str(counter)
         return modified_path
 
-    def _add_summary_writer(self):
-        if self.summary_writer is not None:
-            self.summarize = tf.summary.merge_all()
-            # graph was not available when journalist was created
-            self.summary_writer.add_graph(self.sess.graph)
-        else:
-            self.summarize = self.no_op
+    def add_summary_writer(self, event_name, is_replay=False):
+        """
+        Called to add a way to summarize the model info.
+        This could be called before the graph is finalized
+        :param event_name: The file name of the summary
+        :param is_replay: True if the events should be saved for replay analysis
+        :return:
+        """
+        self.summary_writer = tf.summary.FileWriter(self.get_event_path(event_name, is_replay))
 
     def load_config_file(self):
+        """Loads a config file.  The config file is stored in self.config_file"""
         try:
             self.model_file = self.config_file.get(MODEL_CONFIGURATION_HEADER, 'model_directory')
         except Exception as e:
@@ -317,8 +400,27 @@ class BaseModel:
                                                               'is_normalizing')
         except Exception as e:
             print('unable to load if it should be normalizing defaulting to true')
+        try:
+            self.should_regulate = self.config_file.getboolean(MODEL_CONFIGURATION_HEADER,
+                                                              'should_regulate')
+        except Exception as e:
+            self.should_regulate = True
+            print('unable to load if it should be regulating defaulting to true')
+        try:
+            self.reg_param = self.config_file.getfloat(MODEL_CONFIGURATION_HEADER,
+                                                               'regulate_param')
+        except Exception as e:
+            self.reg_param = 0.001
+            print('unable to load if it should be regulating defaulting to true')
 
     def add_saver(self, name, variable_list):
+        """
+        Adds a saver to the saver map.
+        All subclasses should still use severs_map even if they do not store a tensorflow saver
+        :param name: The key of the saver
+        :param variable_list: The list of variables to save
+        :return: None
+        """
         if len(variable_list) == 0:
             print('no variables for saver ', name)
             return
@@ -329,6 +431,9 @@ class BaseModel:
             raise e
 
     def create_savers(self):
+        """Called to create the savers for the model. Or any other way to store the model
+        This is called after the model has been created but before it has been initialized.
+        This should make calls to add_saver"""
         self.add_saver(self.QUICK_SAVE_KEY, tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES))
 
     def _create_model_directory(self, file_path):
@@ -337,11 +442,23 @@ class BaseModel:
             os.makedirs(dirname)
 
     def _save_keyed_model(self, model_path, key, global_step):
+        """
+        :param model_path: The directory for which the model should live
+        :param key: The key for the savers_map variables
+        :param global_step: Which number step in training it is
+        """
         keyed_path = self._create_saved_model_path(os.path.dirname(model_path), os.path.basename(model_path), key)
         self._create_model_directory(keyed_path)
         self._save_model(self.sess, self.savers_map[key], keyed_path, global_step)
 
     def _save_model(self, session, saver, file_path, global_step):
+        """
+        Saves the model with the specific path, saver, and tensorflow session.
+        :param session: The tensorflow session
+        :param saver: The object that is actually saving the model
+        :param file_path: The place where the model is stored
+        :param global_step: What number it is in the training
+        """
         try:
             saver.save(session, file_path, global_step=global_step)
         except Exception as e:
@@ -379,6 +496,12 @@ class BaseModel:
             self._load_keyed_model(model_path, file_name, key)
 
     def _load_keyed_model(self, model_path, file_name, key):
+        """
+        Loads a model based on a key and a model path
+        :param model_path: The base directory of where the model lives
+        :param file_name: The name of this specific model piece
+        :param key: The key used for the savers_map
+        """
         try:
             self._load_model(self.sess, self.savers_map[key], self._create_saved_model_path(model_path, file_name, key))
         except Exception as e:
@@ -386,6 +509,13 @@ class BaseModel:
             print(e)
 
     def _load_model(self, session, saver, path):
+        """
+        Loads a model only loads it if the directory exists
+        :param session: Tensorflow session
+        :param saver: The object that saves and loads the model
+        :param path:
+        :return:
+        """
         if os.path.exists(os.path.dirname(path)):
             checkpoint_path = path
             if self.load_from_checkpoints:
@@ -395,6 +525,7 @@ class BaseModel:
             print('model for saver not found:', path)
 
     def create_model_hash(self):
+        """Creates the hash of the model used for the server keeping track of what is being used"""
         all_saved_variables = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)
         print(len(all_saved_variables))
         for i in all_saved_variables:
@@ -402,3 +533,50 @@ class BaseModel:
         saved_variables = self.sess.run(all_saved_variables)
         saved_variables = np.array(saved_variables)
         return int(hex(hash(str(saved_variables.data))), 16) % 2 ** 64
+
+    def get_input_placeholder(self):
+        """Returns the placeholder for getting inputs"""
+        return self.input_placeholder
+
+    def get_labels_placeholder(self):
+        """Returns the placeholder for getting what actions have been taken"""
+        return self.no_op
+
+    def get_variables_activations(self):
+        """
+        Returns the weights, biases and activation type for each layer
+        :return: Return using [layer1, layer2, etc.] layer: [weights, biases, activation]
+        weights: [neuron0, neuron1, neuron2, etc.] which each include (from prev. layer): [neuron0, neuron1, etc.]
+        biases: [neuron0, neuron1, etc.] Each holding the bias value.
+        ex. layer: [[[[1, 2, 3], [2, 5, 1], [2, 5, 1]], [1, 4, 2, 1, 4], 'relu'], next layer]
+        """
+        r = list()
+        weights = list()
+        biases = list()
+        for i in range(7):
+            biases.append(np.random.randint(-10, 10))
+        r.append([[], biases, 'relu'])
+        biases.clear()
+        for i in range(5):
+            temp = list()
+            for n in range(7):
+                temp.append(np.random.randint(-20, 20))
+            weights.append(temp)
+            biases.append(np.random.rand())
+        r.append([weights, biases, 'sigmoid'])
+        return r
+
+    def get_activations(self, input_array=None):
+        return [[np.random.randint(0, 30) for i in range(7)], [np.random.rand() for i in range(5)]]
+
+    def get_regularization_loss(self, variables, prefix=None):
+        """Gets the regularization loss from the varaibles.  Used if the weights are getting to big"""
+        normalized_variables = [tf.reduce_sum(tf.nn.l2_loss(x) * self.reg_param)
+                                for x in variables]
+
+        reg_loss = tf.reduce_sum(normalized_variables, name=(prefix + '_reg_loss'))
+        tf.summary.scalar(prefix + '_reg_loss', reg_loss)
+        if self.should_regulate:
+            return reg_loss * (self.reg_param * 10.0)
+        else:
+            return tf.constant(0.0)
