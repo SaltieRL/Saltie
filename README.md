@@ -26,6 +26,6 @@ We are currently looking for contributors! If you would like to contribute, [joi
 You can also start a pull request and we will review the changes.
 
 
-[Sample video]
+## DEMO
 
-<iframe width="560" height="315" src="https://www.youtube.com/embed/U39e9Azrz8g" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+[![Demo Doccou alpha](https://j.gifs.com/BLOy2o.gif)](https://www.youtube.com/watch?v=U39e9Azrz8g)
