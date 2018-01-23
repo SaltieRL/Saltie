@@ -48,7 +48,7 @@ class OutputChecks:
         else:
             output = self.sess.run(self.controls, feed_dict={self.model_input: input_array})
 
-        accuracy = np.sum(np.isclose(output, bot_output, 0.1), 1) / np.size(output[1])
+        accuracy = np.sum(np.isclose(output, bot_output, 0.2), 1) / np.size(output[1])
         self.accuracy_over_time.append(accuracy)
         self.bot_data_over_time.append((output, bot_output))
 
