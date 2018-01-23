@@ -20,6 +20,10 @@ class RandomPacketTrainer(DefaultModelTrainer):
     controller_stats = None
     start_time = None
     model_save_time = None
+    frame_per_file = 20000
+
+    def __init__(self):
+        super().__init__()
 
     def get_random_data(self, packet_generator, input_formatter):
         game_tick_packet = packet_generator.get_random_array()
@@ -85,8 +89,9 @@ class RandomPacketTrainer(DefaultModelTrainer):
         model = self.model
 
         # Percentage to print statistics (and also save the model)
-        print_every_x_batches = (total_batches * batch_size) / save_step
-        print('Prints at this percentage:', 100.0 / print_every_x_batches)
+        save_step = (total_batches * batch_size) / save_step
+        print('training on the equivalent of', self.total_batches * self.batch_size / self.frame_per_file, 'games')
+        print('Prints at this percentage:', 100.0 / self.save_step)
         model_counter = 0
         self.model_save_time = 0
 
@@ -106,6 +111,7 @@ class RandomPacketTrainer(DefaultModelTrainer):
                 model_counter += 1
 
     def finish_trainer(self):
+        print('trained on the equivalent of', self.total_batches * self.batch_size / self.frame_per_file, 'games')
         start_saving = time.time()
         self.model.save_model()
         print('saved model in', time.time() - start_saving, 'seconds')

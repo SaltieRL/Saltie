@@ -8,11 +8,20 @@ from models.base_model import BaseModel
 class FakeModel(BaseModel):
     teacher_package = None
 
-    def __init__(self, session, state_dim, num_actions, player_index=-1, action_handler=None, is_training=False,
+    def __init__(self, session, num_actions,
+                 input_formatter_info=[0, 0],
+                 player_index=-1, action_handler=None, is_training=False,
                  optimizer=tf.train.GradientDescentOptimizer(learning_rate=0.1), summary_writer=None, summary_every=100,
                  config_file=None):
-        super().__init__(session, state_dim, num_actions, player_index, action_handler, is_training, optimizer,
-                         summary_writer, summary_every, config_file)
+        super().__init__(session, num_actions,
+                         input_formatter_info=input_formatter_info,
+                         player_index=player_index,
+                         action_handler=action_handler,
+                         is_training=is_training,
+                         optimizer=optimizer,
+                         summary_writer=summary_writer,
+                         summary_every=summary_every,
+                         config_file=config_file)
 
     def get_class(self, class_package, class_name):
         class_package = importlib.import_module(class_package)

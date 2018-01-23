@@ -132,6 +132,7 @@ class BotManager:
                 print('\n\n\n\n Match has ended so ending bot loop\n\n\n\n\n')
                 break
 
+            controller_input = None
             # Run the Agent only if the gameInfo has updated.
             tick_game_time = game_tick_packet.gameInfo.TimeSeconds
             should_call_while_paused = datetime.now() - last_call_real_time >= MAX_AGENT_CALL_PERIOD

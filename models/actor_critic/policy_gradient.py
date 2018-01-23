@@ -5,9 +5,10 @@ import math
 from models import base_model
 from models.actor_critic.base_actor_critic import BaseActorCritic
 from modelHelpers import tensorflow_reward_manager
+from models.actor_critic.split_layers import SplitLayers
 
 
-class PolicyGradient(BaseActorCritic):
+class PolicyGradient(SplitLayers):
     max_gradient = 1.0
     total_loss_divider = 1.0
 
@@ -90,7 +91,7 @@ class PolicyGradient(BaseActorCritic):
 
         total_loss = total_loss / self.total_loss_divider
 
-        # total_loss += actor_reg_loss
+        total_loss += actor_reg_loss
 
         # total_loss = tf.Print(total_loss, [total_loss], 'total_loss')
 
@@ -114,6 +115,8 @@ class PolicyGradient(BaseActorCritic):
 
         # calculates the entropy loss from getting the label wrong
         cross_entropy_loss, wrongness, reduced = self.calculate_loss_of_actor(logprobs, taken_actions, index)
+        if reduced:
+            cross_entropy_loss = tf.reduce_mean(cross_entropy_loss)
         if not reduced:
             if self.action_handler.is_classification(index):
                 tf.summary.histogram('actor_wrongness', wrongness)
@@ -132,7 +135,7 @@ class PolicyGradient(BaseActorCritic):
 
             actor_reg_loss = self.get_regularization_loss(actor_network_variables, prefix="actor")
 
-            actor_loss = actor_loss + actor_reg_loss * self.reg_param
+            actor_loss = actor_loss + actor_reg_loss
 
             # compute actor gradients
             actor_gradients = self.optimizer.compute_gradients(actor_loss,
@@ -150,15 +153,11 @@ class PolicyGradient(BaseActorCritic):
             return [actor_gradients, actor_loss]
 
     def create_critic_gadients(self):
-        critic_reg_loss = tf.reduce_sum([tf.reduce_sum(tf.square(x)) for x in self.critic_network_variables],
-                                        name='critic_reg_loss')
-
-        tf.summary.scalar("critic_reg_loss", critic_reg_loss)
-
+        critic_reg_loss = self.get_regularization_loss(self.critic_network_variables, prefix='critic')
         # compute critic gradients
         mean_square_loss = tf.reduce_mean(tf.square(self.discounted_rewards - self.estimated_values), name='mean_square_loss')
 
-        critic_loss = mean_square_loss + self.reg_param * critic_reg_loss
+        critic_loss = mean_square_loss + critic_reg_loss
         tf.summary.scalar("critic_loss", critic_loss)
         critic_gradients = self.optimizer.compute_gradients(critic_loss, self.critic_network_variables)
         return (critic_gradients, critic_loss, critic_reg_loss)
@@ -206,6 +205,5 @@ class PolicyGradient(BaseActorCritic):
         :param cross_entropy_loss:
         :return: The calculated_tensor, If the result is a scalar.
         """
-        return tf.reduce_mean(
-            self.action_handler.get_action_loss_from_logits(logprobs, taken_actions, index)), 1.0, True
+        return self.action_handler.get_action_loss_from_logits(logprobs, taken_actions, index), 1.0, True
 

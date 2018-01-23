@@ -16,7 +16,6 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
     forced_frame_action = 500
     is_graphing = False
     keep_prob = 0.5
-    reg_param = 0.001
 
     first_layer_name = 'first_layer'
     hidden_layer_name = 'hidden_layer'
@@ -57,7 +56,9 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
         print('network size', self.network_size)
         print('number of layers', self.num_layers)
         print('keep probability', self.keep_prob)
-        print('regulation parameter', self.reg_param)
+
+    def get_activation(self):
+        return tf.nn.elu  # tf.nn.relu6
 
     def load_config_file(self):
         super().load_config_file()
@@ -212,7 +213,7 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
             else:
                 action_scores = self.sess.run([self.smart_max],
                                               {self.input_placeholder: input_state})
-                print(action_scores)
+                # print(action_scores)
 
             action_scores = np.array(action_scores).flatten()
             return action_scores
@@ -243,15 +244,16 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
             last_layer_list = [[] for _ in range(len(self.action_handler.get_action_sizes()))]
         # define policy neural network
         actor_prefix = 'actor'
+        activation = self.get_activation()
         # input_states = tf.Print(input_states, [input_states], summarize=self.network_size, message='')
         with tf.variable_scope(self.first_layer_name):
-            layer1, _ = self.create_layer(tf.nn.relu6, input_states, 1, self.state_feature_dim, self.network_size, actor_prefix,
+            layer1, _ = self.create_layer(activation, input_states, 1, self.state_feature_dim, self.network_size, actor_prefix,
                                        variable_list=variable_list, dropout=False)
         layers_list.append([layer1])
 
         # layer1 = tf.Print(layer1, [layer1], summarize=self.network_size, message='')
 
-        inner_layer, output_size = self.create_hidden_layers(tf.nn.relu6, layer1, self.network_size, actor_prefix,
+        inner_layer, output_size = self.create_hidden_layers(activation, layer1, self.network_size, actor_prefix,
                                                 variable_list=variable_list, layers_list=layers_list)
 
         output_layer = self.create_last_layer(tf.nn.sigmoid, inner_layer, output_size,
@@ -288,18 +290,10 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
 
     def log_output_data(self):
         """Logs the output of the last layer of the model"""
-        for i in range(self.action_handler.get_number_actions()):
-            variable_name = str(self.action_handler.action_list_names[i])
-            with tf.variable_scope(variable_name):
+        with tf.name_scope('model_output'):
+            for i in range(self.action_handler.get_number_actions()):
+                variable_name = str(self.action_handler.action_list_names[i])
                 tf.summary.histogram(variable_name + '_output', self.actor_last_row_layer[i])
-
-    def get_regularization_loss(self, variables, prefix=None):
-        normalized_variables = [tf.reduce_sum(tf.nn.l2_loss(x) * self.reg_param)
-                                for x in variables]
-
-        reg_loss = tf.reduce_sum(normalized_variables, name=(prefix + '_reg_loss'))
-        tf.summary.scalar(prefix + '_reg_loss', reg_loss)
-        return reg_loss
 
     def create_hidden_layers(self, activation_function, input_layer, network_size, network_prefix, variable_list=None,
                              layers_list=[]):

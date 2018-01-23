@@ -170,7 +170,9 @@ class DataNormalizer:
         # error_prevention = tf.cast(tf.equal(diff, 0.0), tf.float32)
         # diff = diff + error_prevention
 
-        result = (input_array - min) / diff
+
+        #result = (input_array - min) / diff
+        result = input_array / diff
         #result = tf.Print(result, [min], 'min', summarize=16)
         #result = tf.Print(result, [max], 'max', summarize=16)
         #result = tf.Print(result, [input_array[0]], 'inp', summarize=30)

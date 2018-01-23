@@ -23,7 +23,7 @@ class DefaultModelTrainer(BaseTrainer):
         super().load_config()
         config = super().create_config()
         try:
-            self.max_files = config.getfloat(self.OPTIMIZER_CONFIG_HEADER, 'learning_rate')
+            self.learning_rate = config.getfloat(self.OPTIMIZER_CONFIG_HEADER, 'learning_rate')
         except Exception as e:
             self.learning_rate = 0.001
         try:
