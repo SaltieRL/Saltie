@@ -6,7 +6,6 @@ from conversions.input import tensorflow_input_formatter
 import tensorflow as tf
 from models.actor_critic import tutorial_model
 from modelHelpers.actions import action_factory
-import threading
 import numpy as np
 import logging
 
@@ -67,6 +66,8 @@ class Visualiser:
         self.big_relu = 20
         self.big_weight = 2
 
+        self.sess = sess
+
         self.model = m
         self.model_info = self.model.get_variables_activations()
         self.n_layers = len(self.model_info)
@@ -92,7 +93,6 @@ class Visualiser:
                 self.biggest_split = len(item)
 
         self.current_split_layer = 0
-
 
         # Initialising the frames
         self.eFrame = Frame(self.gui)
@@ -126,16 +126,16 @@ class Visualiser:
         relu_button.grid(row=1, column=1)
 
         rotate = Button(self.eFrame, command=self.rotate_and_refresh, text="Rotate")
-        rotate.grid(row=2, column=0)
+        rotate.grid(row=3, column=0)
 
         random = Button(self.eFrame, command=self.layer_activations_random, text="Random input")
-        random.grid(row=2, column=1)
+        random.grid(row=3, column=1)
 
         self.split_box_selection = IntVar()
-        split_selection = Spinbox(self.eFrame, from_=1, to=self.biggest_split, width=5, textvariable=self.split_box_selection)
-        split_selection.grid(row=3, column=0)
+        split_selection = Spinbox(self.eFrame, from_=0, to=self.biggest_split - 1, width=5, textvariable=self.split_box_selection)
+        split_selection.grid(row=2, column=0)
         input_array_button = Button(self.eFrame, command=self.change_split_layer, text="Switch split")
-        input_array_button.grid(row=3, column=1)
+        input_array_button.grid(row=2, column=1)
 
     def info_stuff(self):
         self.info_text_neuron = StringVar()
@@ -144,7 +144,7 @@ class Visualiser:
         activation_label.grid(row=0, column=0, sticky='w')
 
         self.info_text_line = StringVar()
-        self.info_text_line.set("?, ? -> ?, ?")
+        self.info_text_line.set("?, ? -> ?, ?\nWeight: ?")
         activation_label = Label(self.iFrame, textvariable=self.info_text_line, justify=LEFT)
         activation_label.grid(row=1, column=0, sticky='w')
 
@@ -187,7 +187,9 @@ class Visualiser:
         if self.layer_activations is not None:
             self.refresh_canvas()
 
-    def create_circle(self, x0, y0, activation, type, layer_index, split_index, neuron):
+    def create_circle(self, x0, y0, activation, type, layer_index, split_index, neuron, canvas=None):
+        if canvas is None:
+            canvas = self.canvas
         if self.rotate_canvas:
             x0, y0 = y0, x0
         if type == 'relu':
@@ -199,7 +201,7 @@ class Visualiser:
         hex_color = "#{:02x}{:02x}{:02x}".format(rgb, rgb, rgb)
         tag = str(layer_index) + ";" + str(split_index) + ";" + str(neuron)
         circle_dia = default_circle_dia * self.scale
-        self.canvas.create_oval(x0, y0, x0 + circle_dia, y0 + circle_dia, fill=hex_color, tags=(tag, 'neuron'))
+        canvas.create_oval(x0, y0, x0 + circle_dia, y0 + circle_dia, fill=hex_color, tags=(tag, 'neuron'))
 
         def hover_handler(event, la=layer_index, sp=split_index, ne=neuron):
             self.info_text_neuron.set("Index: " + str(la) + ", " + str(ne) + "\nActivation type: " + (
@@ -209,10 +211,12 @@ class Visualiser:
         def double_click_handler(event, la=layer_index, sp=split_index, ne=neuron):
             self.show_neuron_info(la, sp, ne)
 
-        self.canvas.tag_bind(tag, "<Motion>", hover_handler)
-        self.canvas.tag_bind(tag, "<Double-Button-1>", double_click_handler)
+        canvas.tag_bind(tag, "<Motion>", hover_handler)
+        canvas.tag_bind(tag, "<Double-Button-1>", double_click_handler)
 
-    def create_line(self, x0, y0, x1, y1, previous_neuron, current_layer, current_neuron, split_index, weight):
+    def create_line(self, x0, y0, x1, y1, previous_neuron, current_layer, current_neuron, split_index, weight, canvas=None):
+        if canvas is None:
+            canvas = self.canvas
         if self.rotate_canvas:
             x0, y0, x1, y1 = y0, x0, y1, x1
         half = .5 * default_circle_dia * self.scale
@@ -230,14 +234,14 @@ class Visualiser:
         hex_color = "#{:02x}{:02x}{:02x}".format(r, g, b)
 
         tag = str(current_layer - 1) + ";" + str(previous_neuron) + ";" + str(current_layer) + ";" + str(current_neuron)
-        self.canvas.create_line(x0 + half, y0 + half, x1 + half, y1 + half, fill=hex_color, tags=(tag, 'line'))
+        canvas.create_line(x0 + half, y0 + half, x1 + half, y1 + half, fill=hex_color, tags=(tag, 'line'))
 
         def handler(event, l0=current_layer - 1, n0=previous_neuron, l1=current_layer, n1=current_neuron, w=weight):
             self.info_text_line.set(str(l0) + ", " + str(n0) + " -> " + str(l1) + ", " + str(n1) +
                                     "\nWeight: " + str(w))
 
-        self.canvas.tag_bind(tag, "<Motion>", handler)
-        self.canvas.tag_lower(tag)
+        canvas.tag_bind(tag, "<Motion>", handler)
+        canvas.tag_lower(tag)
 
     def create_layer(self, layer_index, circles=True, lines=True):
         split_index = self.current_split_layer if self.current_split_layer < len(
@@ -311,7 +315,7 @@ class Visualiser:
         self.refresh_canvas()
 
     def layer_activations_random(self):
-        random_array = self.model.sess.run(self.input_formatter.create_input_array(self.randomiser.get_random_array()))
+        random_array = self.model.sess.run(self.input_formatter.create_input_array(self.sess.run(self.randomiser.get_random_array())))
         self.layer_activations = self.model.get_activations(random_array)
         self.refresh_neurons()
 
@@ -350,22 +354,89 @@ class Visualiser:
 
             tv.heading(col, command=lambda: treeview_sort_column(tv, col, not reverse))
 
+        # Window setup
         info_window = Toplevel()
         info_window.title("Info for neuron " + str(neuron) + " in split " + str(split) + " of layer " + str(layer))
-        columns = ('neuron', 'value')
-        vbar = AutoScrollbar(info_window, orient='vertical')
-        vbar.grid(row=0, column=1, sticky='ns')
-        table = Treeview(info_window, columns=columns, show='headings', yscrollcommand=vbar.set)
-        vbar.configure(command=table.yview)
 
+        # Treeview (table) setup with scrollbars
+        tableframe = Frame(info_window)
+        tableframe.grid(row=0, column=0, sticky='nsew', rowspan=6)
+        columns = ('neuron', 'value')
+        vbar = AutoScrollbar(tableframe, orient='vertical')
+        vbar.grid(row=0, column=1, sticky='ns')
+        table = Treeview(tableframe, columns=columns, show='headings', yscrollcommand=vbar.set)
+        vbar.configure(command=table.yview)
         for i in range(len(self.layer_activations[layer][split][0])):
             table.insert("", "end", values=(i, np.random.rand()))
         table.grid(row=0, column=0, sticky='nsew')
         table.heading("neuron", text="From neuron", command=lambda: treeview_sort_column(table, "neuron", False))
         table.heading("value", text="Weight", command=lambda: treeview_sort_column(table, "value", False))
+
+        # Projecting the neuron
+        neuron_canvas = Canvas(info_window, width=default_circle_dia, height=default_circle_dia)
+        neuron_canvas.grid(row=0, column=1, sticky='nsew')
+        activation_number = self.get_activations(layer, split)[neuron]
+        activation_type = self.act_type[layer][split]
+        self.create_circle(0, 0, activation_number, activation_type, layer, split, neuron, neuron_canvas)
+        neuron_canvas.old_width = neuron_canvas.winfo_reqwidth()
+        neuron_canvas.old_height = neuron_canvas.winfo_reqheight()
+        neuron_canvas.should_scale_width = 1
+        neuron_canvas.should_scale_height = 1
+
+        def resize(event):
+            w_scale = float(event.width)/neuron_canvas.old_width * neuron_canvas.should_scale_width
+            h_scale = float(event.height)/neuron_canvas.old_height * neuron_canvas.should_scale_height
+            neuron_canvas.should_scale_width = 1
+            neuron_canvas.should_scale_height = 1
+
+            neuron_canvas.old_width = event.width
+            neuron_canvas.old_height = event.height
+            if w_scale > h_scale:
+                neuron_canvas.should_scale_width = w_scale/h_scale
+                w_scale = h_scale
+            if h_scale > w_scale:
+                neuron_canvas.should_scale_height = h_scale/w_scale
+                h_scale = w_scale
+            neuron_canvas.scale('neuron', 0, 0, w_scale, h_scale)
+            neuron_coords = neuron_canvas.coords('neuron')
+            move_x = float(event.width) * .5 - .5 * (neuron_coords[2] - neuron_coords[0]) - neuron_coords[0]
+            move_y = float(event.height) * .5 - .5 * (neuron_coords[3] - neuron_coords[1]) - neuron_coords[1]
+            neuron_canvas.move('all', move_x, move_y)
+        neuron_canvas.bind("<Configure>", resize)
+
+        # With the info
+        activation_number_label = Label(info_window, text="Activation: " + str(activation_number))
+        activation_type_label = Label(info_window, text="Activation type: " + str(activation_type))
+        bias_number_label = Label(info_window, text="Bias: " + str(np.random.rand()))  # TODO put the real bias in here
+
+        if layer is not self.n_layers - 1:
+            importance_next_layer = StringVar()
+            importance_next_layer_number = IntVar(value=0)
+            neuron_weights = np.random.randint(-21, 21, len(self.get_activations(layer + 1, split)))
+
+            def update_importance(event):
+                amount = np.sum(np.greater(np.abs(neuron_weights), importance_next_layer_number.get()))
+                importance_next_layer.set("Absolute weights bigger than " + str(importance_next_layer_number.get()) + " in next layer: " + str(amount))
+
+            update_importance(None)
+            importance_next_layer_slider = Scale(info_window, from_=0, to=20, orient=HORIZONTAL, tickinterval=5, command=update_importance, variable=importance_next_layer_number, showvalue=0)
+            importance_next_layer_text = Label(info_window, textvariable=importance_next_layer, width=50)
+
+            importance_next_layer_text.grid(row=4, column=1)
+            importance_next_layer_slider.grid(row=5, column=1)
+
+        # Putting all info into the grid
+        activation_number_label.grid(row=1, column=1)
+        activation_type_label.grid(row=2, column=1)
+        bias_number_label.grid(row=3, column=1)
+
+        # Aligning rightly and grabbing focus
+        tableframe.grid_rowconfigure(0, weight=1)
+        tableframe.grid_columnconfigure(0, weight=1)
         info_window.grid_rowconfigure(0, weight=1)
-        info_window.grid_columnconfigure(0, weight=1)
-        info_window.grab_set()
+        info_window.grid_columnconfigure(0, weight=4)
+        info_window.grid_columnconfigure(1, weight=1)
+        info_window.focus_force()
 
 
 if __name__ == '__main__':

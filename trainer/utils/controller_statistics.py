@@ -9,7 +9,7 @@ class OutputChecks:
     accuracy_over_time = None
     bot_data_over_time = None
     requires_input = False
-    requires_output = False
+    requires_bot_output = False
     controls = None
 
     def __init__(self, tf_session, action_handler, batch_size, model_output,
@@ -25,7 +25,7 @@ class OutputChecks:
         self.actionHandler = action_handler
 
         if self.tutorial_bot is None:
-            self.requires_output = True
+            self.requires_bot_output = True
 
         if self.model_input is not None:
             self.requires_input = True
@@ -40,8 +40,12 @@ class OutputChecks:
 
     def get_amounts(self, input_array=None, bot_output=None):
 
-        if not self.requires_output:
+        if not self.requires_bot_output:
             bot_output = self.sess.run(self.tutorial_bot.get_output_vector(self.game_tick_packet))
+        else:
+            if bot_output is None:
+                print("Missing correct output")
+                return
 
         if not self.requires_input:
             output = self.sess.run(self.controls)
