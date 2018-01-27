@@ -32,6 +32,8 @@ class BaseModel:
     input_formatter = None
     summarize = no_op
     iterator = None
+    reg_param = 0.001
+    should_regulate = None
 
     """"
     This is a base class for all models It has a couple helper methods but is mainly used to provide a standard
@@ -80,6 +82,8 @@ class BaseModel:
         print('batch size:', self.batch_size)
         print('mini batch size:', self.mini_batch_size)
         print('using features', (self.feature_creator is not None))
+        print('regulation parameter', self.reg_param)
+        print('is regulating parameter', self.should_regulate)
 
     def _create_variables(self):
         """Creates any variables needed by this model.
@@ -347,9 +351,9 @@ class BaseModel:
         :return: The path of the file
         """
         dir_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-        base_path = "/training/data/events/"
+        base_path = "/training/training_events/"
         if is_replay:
-            base_path = "/training/replay_events/"
+            base_path = "/training/in_game_events/"
         complete_path = dir_path + base_path + self.get_model_name() + "/" + filename
         modified_path = complete_path
         counter = 0
@@ -396,6 +400,18 @@ class BaseModel:
                                                               'is_normalizing')
         except Exception as e:
             print('unable to load if it should be normalizing defaulting to true')
+        try:
+            self.should_regulate = self.config_file.getboolean(MODEL_CONFIGURATION_HEADER,
+                                                              'should_regulate')
+        except Exception as e:
+            self.should_regulate = True
+            print('unable to load if it should be regulating defaulting to true')
+        try:
+            self.reg_param = self.config_file.getfloat(MODEL_CONFIGURATION_HEADER,
+                                                               'regulate_param')
+        except Exception as e:
+            self.reg_param = 0.001
+            print('unable to load if it should be regulating defaulting to true')
 
     def add_saver(self, name, variable_list):
         """
@@ -550,6 +566,17 @@ class BaseModel:
         r.append([weights, biases, 'sigmoid'])
         return r
 
-
     def get_activations(self, input_array=None):
         return [[np.random.randint(0, 30) for i in range(7)], [np.random.rand() for i in range(5)]]
+
+    def get_regularization_loss(self, variables, prefix=None):
+        """Gets the regularization loss from the varaibles.  Used if the weights are getting to big"""
+        normalized_variables = [tf.reduce_sum(tf.nn.l2_loss(x) * self.reg_param)
+                                for x in variables]
+
+        reg_loss = tf.reduce_sum(normalized_variables, name=(prefix + '_reg_loss'))
+        tf.summary.scalar(prefix + '_reg_loss', reg_loss)
+        if self.should_regulate:
+            return reg_loss * (self.reg_param * 10.0)
+        else:
+            return tf.constant(0.0)
