@@ -64,26 +64,20 @@ class TutorialModel(PolicyGradient):
 
     def fancy_calculate_number_of_ones(self, number):
         """Only use this once it is supported"""
-        bitwise1 = tf.bitwise.bitwise_and(tf.bitwise.right_shift(number, 1), tf.constant(0o33333333333))
-        bitwise2 = tf.bitwise.bitwise_and(tf.bitwise.right_shift(number, 2), tf.constant(0o11111111111))
+        # https://blogs.msdn.microsoft.com/jeuge/2005/06/08/bit-fiddling-3/
+        # uCount = u - ((u >> 1) & 033333333333) - ((u >> 2) & 011111111111);
+        # return ((uCount + (uCount >> 3)) & 030707070707) % 63;
+
+        threes_64 = tf.constant(0o033333333333, dtype=tf.int64)
+        full_ones = tf.constant(0o011111111111, dtype=tf.int64)
+        sevens = tf.constant(0o030707070707, dtype=tf.int64)
+
+        bitwise1 = tf.bitwise.bitwise_and(number // 2, threes_64)
+        bitwise2 = tf.bitwise.bitwise_and(number // 4, full_ones)
         uCount = number - bitwise1 - bitwise2
 
-        bitwise3 = tf.bitwise.bitwise_and(uCount + tf.bitwise.right_shift(uCount, 3), 0o30707070707)
+        bitwise3 = tf.bitwise.bitwise_and(uCount + (uCount // 8), sevens)
         return tf.mod(bitwise3, 63)
-
-    def normal_calculate_number_of_ones(self, number):
-        n = tf.cast(number, tf.int32)
-
-        def body(n, counter):
-            counter+= 1
-            n = tf.bitwise.bitwise_and(n, n-1)
-            return n, counter
-
-        counter = tf.constant(0)
-        n, counter = tf.while_loop(lambda n, counter:
-                                   tf.not_equal(n, tf.constant(0)),
-                                   body, [n, counter], back_prop=False)
-        return counter
 
     def calculate_loss_of_actor(self, logprobs, taken_actions, index):
         cross_entropy_loss, initial_wrongness, __ = super().calculate_loss_of_actor(logprobs, taken_actions, index)
@@ -98,8 +92,8 @@ class TutorialModel(PolicyGradient):
             # use temporarily
             # wrongness += tf.log(1.0 + tf.cast(tf.abs(tf.cast(argmax, tf.float32) - taken_actions), tf.float32))
 
-            number = tf.bitwise.bitwise_xor(tf.cast(self.argmax[index], tf.int32), taken_actions)
-            wrongness += self.fancy_calculate_number_of_ones(number)
+            number = tf.bitwise.bitwise_xor(tf.cast(self.argmax[index], tf.int64), tf.cast(taken_actions, tf.int64))
+            wrongness += tf.cast(self.fancy_calculate_number_of_ones(number), tf.float32)
 
         return cross_entropy_loss, wrongness, False
 
