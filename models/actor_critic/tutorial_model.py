@@ -96,12 +96,10 @@ class TutorialModel(PolicyGradient):
                 wrongness += tf.abs(taken_actions - tf.round(logprobs * 2.0) / 2.0)
         else:
             # use temporarily
-            wrongness += tf.log(1.0 + tf.cast(tf.abs(tf.cast(argmax, tf.float32) - taken_actions), tf.float32))
-            #argmax = self.argmax[index]
+            # wrongness += tf.log(1.0 + tf.cast(tf.abs(tf.cast(argmax, tf.float32) - taken_actions), tf.float32))
 
-            #wrongness += tf.log(1.0 + tf.cast(tf.bitwise.bitwise_xor(
-            #    tf.cast(self.argmax[index], tf.int32), taken_actions), tf.float32))
-            # result = self.fancy_calculate_number_of_ones(number) # can't use until version 1.5
+            number = tf.bitwise.bitwise_xor(tf.cast(self.argmax[index], tf.int32), taken_actions)
+            wrongness += self.fancy_calculate_number_of_ones(number)
 
         return cross_entropy_loss, wrongness, False
 
@@ -111,6 +109,7 @@ class TutorialModel(PolicyGradient):
     def add_histograms(self, gradients):
         # summarize gradients
         for grad, var in gradients:
-            tf.summary.histogram(var.name, var)
+            # we do not need to see variables
+            # tf.summary.histogram(var.name, var)
             if grad is not None:
                 tf.summary.histogram(var.name + '/gradients', grad)
