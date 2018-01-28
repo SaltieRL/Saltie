@@ -1,5 +1,12 @@
-# RLBot
+# Saltie
 
+Saltie is a deep reinforcement learning bot and framework. It learns how to play Rocket League by receiving rewards for certain actions.
+
+Its backend framework for communicating with the game is [RLBot](https://github.com/drssoccer55/RLBot).
+RLBot is a framework to create bots to play Rocket League that reads values from the game and outputs button presses. RLBot works for up to 10 bots.
+
+### Requirements
+Windows (7+), Rocket League, Python 3, Tensorflow.
 <p align="center">
   <img width="512" height="158" src="https://github.com/drssoccer55/RLBot/blob/master/images/RLBot.png">
 </p>
@@ -8,44 +15,17 @@
 Saltie is a bot that uses Neural Networks and Machine Learning to learn how to play the game.
 It also has tools for training bots and collecting the replays from a lot of distributed computers
 
-### Requirements
-Windows, Rocket League, Python 3, Tensorflow.
+### Setup
+
+For setup instructions, [check out the wiki.](https://github.com/RLBots/Saltie/wiki/Setup-instructions)
+
+### Contributing
+
+We are currently looking for contributors! If you would like to contribute, [join the Discord server](https://discord.gg/aCHWD3E) and let one of the Team Leads know.
+
+You can also start a pull request and we will review the changes.
 
 
+## DEMO
 
-setup for our project
-Must have Windows** and an NvIDIA GPU*
-https://www.tensorflow.org/install/install_windows
-(when asked for nvidia specifics look at the other pin if you have version < 1.5)
-And the setup for the general rocket league bot is on the general discord
-https://github.com/drssoccer55/RLBot/wiki/Setup-Instructions-%28current%29
-
-*Note: if you only want to collect data or run the bot you can run it on CPU version instead.
-
-After installing tensorflow (which we recommend via pip3)
-You must install a library called requests
-
-`pip3 install requests`
-
-We use a library called tqdm for printing out timing info
-
-`pip3 install tqdm`
-
-
-If you only want to help train and can not generate data you must have an Nvidia GPU and Ubuntu/linux
-
-To upload data to our server you must grab a config file from the discord
-
-For streamers of the bot to get the fancy graphs you must install pyqtgraph
-
-`pip3 install pyqtgraph`
-
-`pip3 install PyQt5`
-
-An alternative option is to install quicktracer
-
-`pip3 install quicktracer`
-
-To install the needed libraries to run the human_bot
-
-`pip install inputs`
+[![Simple Machine Learning Bot](https://j.gifs.com/OyLRRE.gif)](https://www.youtube.com/watch?v=U39e9Azrz8g)
