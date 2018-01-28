@@ -46,6 +46,11 @@ class ServerConverter:
         self.is_eval = is_eval
 
     def load_config(self):
+        """
+        Makes a request to download the config from the server.
+        Times out after 10 seconds.
+        :return: None
+        """
         if self.download_config:
             print('downloading config')
             try:
@@ -56,9 +61,16 @@ class ServerConverter:
                 self.download_config = False
 
     def load_model(self):
+        """
+        Makes a request to download the config from the server.
+        Times out after 10 seconds.
+        Unzips the downloaded zip file
+        and saves the files in a folder called training/saltie
+        :return: None
+        """
         if self.download_model:
             print('downloading model')
-            folder = 'training\\saltie\\'
+            folder = 'training/saltie/'
             try:
                 b = requests.get(self.server_ip + '/model/get', timeout=10)
                 print('model downloaded')
@@ -115,10 +127,19 @@ class ServerConverter:
             print('Upload:', r.json()['status'])
 
     def add_to_local_files(self, fn):
+        """
+        Adds this file to a list of files to upload at a later time.
+        :param fn: the file that failed to upload
+        :return: None
+        """
         if fn not in self.file_status:
             self.file_status[fn] = False
 
     def retry_files(self):
+        """
+        Try reuploading any files that did not upload the first time.
+        :return: None
+        """
         for key in self.file_status:
             if not self.file_status[key]:
                 print('retrying file:', key)
