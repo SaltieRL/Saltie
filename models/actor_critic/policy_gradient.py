@@ -180,11 +180,18 @@ class PolicyGradient(SplitLayers):
         for i, (grad, var) in enumerate(gradients):
             # clip gradients by norm
             if grad is not None:
-                post_clipping = tf.clip_by_norm(grad, self.max_gradient)
-                post_nanning = tf.where(tf.is_nan(post_clipping), tf.zeros_like(post_clipping), post_clipping)
+                post_nanning = tf.where(tf.is_nan(grad), tf.zeros_like(grad), grad)
                 gradients[i] = (post_nanning, var)
 
+        # graph before we clip gradients
         self.add_histograms(gradients)
+
+        for i, (grad, var) in enumerate(gradients):
+            # clip gradients by norm
+            if grad is not None:
+                post_clipping = tf.clip_by_norm(grad, self.max_gradient)
+                gradients[i] = (post_clipping, var)
+
         # training update
         with tf.name_scope("train_actor_critic"):
             # apply gradients to update actor network

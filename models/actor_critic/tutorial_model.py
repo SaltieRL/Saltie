@@ -72,11 +72,11 @@ class TutorialModel(PolicyGradient):
         full_ones = tf.constant(0o011111111111, dtype=tf.int64)
         sevens = tf.constant(0o030707070707, dtype=tf.int64)
 
-        bitwise1 = tf.bitwise.bitwise_and(number // 2, threes_64)
-        bitwise2 = tf.bitwise.bitwise_and(number // 4, full_ones)
+        bitwise1 = tf.bitwise.bitwise_and(tf.bitwise.right_shift(number, 1), threes_64)
+        bitwise2 = tf.bitwise.bitwise_and(tf.bitwise.right_shift(number, 2), full_ones)
         uCount = number - bitwise1 - bitwise2
 
-        bitwise3 = tf.bitwise.bitwise_and(uCount + (uCount // 8), sevens)
+        bitwise3 = tf.bitwise.bitwise_and(uCount + tf.bitwise.right_shift(uCount, 3), sevens)
         return tf.mod(bitwise3, 63)
 
     def calculate_loss_of_actor(self, logprobs, taken_actions, index):
