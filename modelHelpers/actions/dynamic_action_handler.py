@@ -156,12 +156,13 @@ class DynamicActionHandler(SplitActionHandler):
         # handle combo buttons
         if batch_size > 1:
             multiplier = tf.constant([1, int(batch_size), 1])
-            combo_actions = tf.tile(tf.expand_dims(combo_actions, 1), multiplier)
             indexer = tf.constant(np.arange(0, batch_size, 1), dtype=tf.int32)
+            if len(self.combo_list) > 0:
+                combo_actions = tf.tile(tf.expand_dims(combo_actions, 1), multiplier)
         else:
             indexer = tf.constant(1, dtype=tf.int32)
 
-        combo_index = self.action_name_index_map[COMBO]
+        combo_index = self.action_name_index_map[COMBO] if len(self.combo_list) > 0 else -1
         # actually decoding the controls now the startup is done
 
         controls = self.control_names
