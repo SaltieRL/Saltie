@@ -55,7 +55,7 @@ class TutorialBotOutput:
         pitch = regress(-i-iv/15.0)
         roll = regress(-r+rv/22.0)
 
-        jump = tf.cast( tfand(150<tz, tfand(tz<400 , tfand( tz%300>150, tfand(d<1800, 
+        jump = tf.cast( tfand(150<z, tfand(z<400 , tfand( z%300>150, tfand(d<1800, 
                         tf.abs(a-pva)<.03) ) ) ), tf.float32)   
 
         boost = tf.cast( tfand( tf.abs(a)<.15, tfand( throttle>.5, tf.abs(i)<.25 )), tf.float32)
