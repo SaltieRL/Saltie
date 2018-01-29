@@ -244,6 +244,14 @@ class DynamicActionHandler(SplitActionHandler):
                 binary_combo_index += powed * tf.cast(action_taken, tf.float32)
         return binary_combo_index
 
+    def _find_closet_real_number_graph(self, number, index=0):
+        pure_number = tf.round(number * 2.0) / 2.0
+        comparison = tf.Variable(np.array(self.actions[index]), dtype=tf.float32)
+        pure_number = tf.cast(pure_number, tf.float32)
+        equal = tf.equal(comparison, pure_number)
+        index = tf.argmax(tf.cast(equal, tf.float32), axis=1)
+        return tf.cast(index, tf.float32)
+
     def create_action_indexes_graph(self, real_action, batch_size=None):
         indexes = []
         combo_list = []
@@ -267,7 +275,7 @@ class DynamicActionHandler(SplitActionHandler):
                 combo_list[real_index] = bucketed_control
             else:
                 if indexes[action_index] is None and self.is_classification(action_index):
-                    indexes[action_index] = self._find_closet_real_number_graph(real_control)
+                    indexes[action_index] = self._find_closet_real_number_graph(real_control, i)
                 elif indexes[action_index] is None:
                     indexes[action_index] = tf.squeeze(real_control, axis=1)
 
@@ -286,12 +294,16 @@ class DynamicActionHandler(SplitActionHandler):
         :return: The loss for this particular action
         """
         if self.action_loss_type_map[index] == LOSS_SPARSE_CROSS:
-            return tf.nn.sparse_softmax_cross_entropy_with_logits(
+            loss = tf.nn.sparse_softmax_cross_entropy_with_logits(
                 labels=tf.cast(labels, tf.int32), logits=logits, name=LOSS_SPARSE_CROSS)
-        if self.action_loss_type_map[index] == LOSS_SQUARE_MEAN:
-            return tf.losses.mean_squared_error(labels, tf.squeeze(logits), reduction=Reduction.NONE)
-        if self.action_loss_type_map[index] == LOSS_ABSOLUTE_DIFFERENCE:
-            return tf.losses.absolute_difference(labels, tf.squeeze(logits), reduction=Reduction.NONE)
+        elif self.action_loss_type_map[index] == LOSS_SQUARE_MEAN:
+            loss = tf.losses.mean_squared_error(labels, tf.squeeze(logits), reduction=Reduction.NONE)
+        elif self.action_loss_type_map[index] == LOSS_ABSOLUTE_DIFFERENCE:
+            loss = tf.losses.absolute_difference(labels, tf.squeeze(logits), reduction=Reduction.NONE)
+        else:
+            loss = tf.constant(0.0)
+        # loss = tf.check_numerics(loss, self.action_list_names[index])
+        return loss
 
     def get_last_layer_activation_function(self, func, index):
         if self.is_classification(index):

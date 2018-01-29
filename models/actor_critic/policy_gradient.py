@@ -85,8 +85,6 @@ class PolicyGradient(SplitLayers):
             merged_gradient_list += item[0]
             total_loss += item[1]
 
-        total_loss = tf.check_numerics(total_loss, 'actor loss')
-
         tf.summary.scalar("total_actor_loss", tf.reduce_mean(total_loss))
 
         total_loss = total_loss / self.total_loss_divider
@@ -99,7 +97,6 @@ class PolicyGradient(SplitLayers):
 
         all_but_last_row = self.all_but_last_actor_layer
 
-        total_loss = tf.check_numerics(total_loss, 'nan loss is being created')
         # total_loss = tf.Print(total_loss, [total_loss], 'total_loss')
 
         actor_gradients = self.optimizer.compute_gradients(total_loss,
@@ -125,7 +122,7 @@ class PolicyGradient(SplitLayers):
         with tf.name_scope("compute_pg_gradients"):
             actor_loss = cross_entropy_loss * (wrongness * wrongness)
 
-            actor_loss = tf.check_numerics(actor_loss, 'nan pg_loss')
+            # actor_loss = tf.check_numerics(actor_loss, 'nan pg_loss')
 
             if reduced:
                 actor_loss = tf.reduce_mean(actor_loss, name='pg_loss')

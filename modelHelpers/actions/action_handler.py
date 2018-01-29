@@ -198,7 +198,7 @@ class ActionHandler:
         """
         return split_func(numpy_array)
 
-    def _find_closet_real_number_graph(self, number):
+    def _find_closet_real_number_graph(self, number, index=0):
         pure_number = tf.round(number * 2.0) / 2.0
         comparison = tf.Variable(np.array([-1.0, -0.5, 0.0, 0.5, 1.0]), dtype=tf.float32)
         pure_number = tf.cast(pure_number, tf.float32)
