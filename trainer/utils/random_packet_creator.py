@@ -45,13 +45,6 @@ class TensorflowPacketGenerator:
 
         return point
 
-    def remove_number(self, input, not_on_ground):
-        scale_amount = tf.constant(1000.0, dtype=tf.float32)
-        input_scaled = tf.cast(input * scale_amount, tf.int32)
-        post_bitwise = tf.bitwise.bitwise_and(input_scaled, not_on_ground)
-        output = tf.cast(post_bitwise, tf.float32) / scale_amount
-        return output
-
     def create_3D_rotation(self, pitch, yaw, roll, convert_name=True):
         rotator = self.create_object()
         if convert_name:
@@ -64,14 +57,6 @@ class TensorflowPacketGenerator:
             rotator.Roll = roll
 
         return rotator
-
-    def create_mask(self, value):
-        value = tf.cast(tf.equal(value, False), tf.int32)
-        added_value = tf.constant(0)
-        two = tf.constant(2, dtype=tf.int32)
-        for i in range(32):
-            added_value += value * tf.pow(two, tf.constant(i, dtype=tf.int32))
-        return added_value
 
     def createRotVelAng(self, is_on_ground):
         batch_size = self.batch_size
@@ -93,13 +78,9 @@ class TensorflowPacketGenerator:
                                            ang_rand[1],  # Y
                                            ang_rand[2])  # Z
 
-        #reverse ground data
-        mask = self.create_mask(is_on_ground)
-
-        rotation.Pitch = self.remove_number(rotation.Pitch, mask)
-        rotation.Roll = self.remove_number(rotation.Roll, mask)
-        velocity.Z = self.remove_number(velocity.Z, mask)
-        angular.Z = self.remove_number(angular.Z, mask)
+        close_to_zero = tf.random_uniform(shape=[batch_size, ], minval=-200, maxval=200, dtype=tf.float32)
+        velocity.Z = self.tif(is_on_ground, close_to_zero, velocity.Z)
+        angular.Z = self.tif(is_on_ground, self.zero, angular.Z)
 
         return (rotation, velocity, angular)
 
@@ -145,19 +126,17 @@ class TensorflowPacketGenerator:
 
         rotation, velocity, angularVelocity = self.createRotVelAng(is_on_ground)
 
-        return self.decompose(location, rotation, velocity, angularVelocity)
+        return location, rotation, velocity, angularVelocity
 
     def get_car_info(self, batch_size, is_on_ground, team, index, is_kickoff):
         car = self.create_object()
 
-        get_normal_car_values = self.get_normal_car_values
-
-        car.Location, car.Rotation, car.Velocity, car.AngularVelocity = get_normal_car_values(is_on_ground)
+        car.Location, car.Rotation, car.Velocity, car.AngularVelocity = self.get_normal_car_values(is_on_ground)
         loc, rot, vel, angvel = self.get_kickoff_data()
         self.mergeLoc(car.Location, loc, is_kickoff)
         self.mergeRot(car.Rotation, rot, is_kickoff)
         self.mergeLoc(car.Velocity, vel, is_kickoff)
-        self.mergeRot(car.AngularVelocity, angvel, is_kickoff)
+        self.mergeLoc(car.AngularVelocity, angvel, is_kickoff)
 
         car.bDemolished = self.false  # Demolished
 
@@ -225,11 +204,6 @@ class TensorflowPacketGenerator:
             tf.random_uniform(shape=[batch_size, ], minval=-11800, maxval=11800, dtype=tf.float32),  # Y
             tf.random_uniform(shape=[batch_size, ], minval=0, maxval=2000, dtype=tf.float32))  # Z
 
-        kick_off_mask = self.create_mask(is_kickoff)
-        on_ground_mask = self.create_mask(is_on_ground)
-
-        merged_mask = tf.bitwise.bitwise_and(kick_off_mask, on_ground_mask)
-
         ball.Rotation, ball.Velocity, ball.AngularVelocity = self.createRotVelAng(is_on_ground)
 
         with tf.name_scope("BallAccerlation"):
@@ -255,14 +229,16 @@ class TensorflowPacketGenerator:
                 tf.random_uniform(shape=[batch_size, ], minval=-6000, maxval=6000, dtype=tf.float32),  # Y
                 tf.random_uniform(shape=[batch_size, ], minval=-6000, maxval=6000, dtype=tf.float32))  # Z
 
-        ball.Location.Z = self.remove_number(ball.Velocity.Z, on_ground_mask)
+        close_to_ground = tf.random_uniform(shape=[batch_size, ], minval=0, maxval=200, dtype=tf.float32)
+        close_to_zero = tf.random_uniform(shape=[batch_size, ], minval=-200, maxval=200, dtype=tf.float32)
+        ball.Location.Z = self.tif(is_on_ground, close_to_ground, ball.Location.Z)
 
-        ball.Location.X = self.remove_number(ball.Location.X, kick_off_mask)
-        ball.Location.Y = self.remove_number(ball.Location.Y, kick_off_mask)
-        ball.Velocity.X = self.remove_number(ball.Velocity.X, kick_off_mask)
-        ball.Velocity.Y = self.remove_number(ball.Velocity.Y, kick_off_mask)
-
-        ball.Velocity.Z = self.remove_number(ball.Velocity.Z, merged_mask)
+        ball.Location.X = self.tif(is_kickoff, self.zero, ball.Location.X)
+        ball.Location.Y = self.tif(is_kickoff, self.zero, ball.Location.Y)
+        ball.Velocity.X = self.tif(is_kickoff, self.zero, ball.Velocity.X)
+        ball.Velocity.Y = self.tif(is_kickoff, self.zero, ball.Velocity.Y)
+        ball.Velocity.Z = self.tif(is_on_ground, close_to_zero, ball.Velocity.Z)
+        ball.Velocity.Z = self.tif(is_kickoff, self.zero, ball.Velocity.Z)
         return ball
 
     def get_boost_info(self, batch_size):
@@ -395,7 +371,7 @@ class TensorflowPacketGenerator:
 
         _, velocity, angular = self.createEmptyRotVelAng()
 
-        return self.decompose(location, rotation, velocity, angular)
+        return location, rotation, velocity, angular
 
     def slice_kickoff_locations(self, random_index, location_list, yaw_list):
         def get_kickoff_location(random_index):
@@ -414,34 +390,6 @@ class TensorflowPacketGenerator:
 
         return (location, yaw)
 
-    def decompose(self, *args):
-        array = []
-        for object in args:
-            for item in object.__dir__():
-                if not item.startswith('__'):
-                    array.append(getattr(object, item))
-        return array
-
-    def convert_to_objects(self, array):
-        return (
-            self.create_3D_point(array[0],
-                                 array[1],
-                                 array[2],
-                                 True),
-            self.create_3D_rotation(array[3],
-                                    array[4],
-                                    array[5],
-                                    True),
-            self.create_3D_point(array[6],
-                                 array[7],
-                                 array[8],
-                                 True),
-            self.create_3D_point(array[9],
-                                 array[10],
-                                 array[11],
-                                 True),
-        )
-
     def squeeze(self, min, max, value):
         return tf.minimum(max, tf.maximum(min, value))
 
@@ -449,18 +397,18 @@ class TensorflowPacketGenerator:
         not_close = 1.0 - tf.cast(is_close, tf.float32)
         is_close = tf.cast(is_close, tf.float32)
 
-        far_location.X = self.squeeze(-8100, 8100,
+        far_location.X = self.squeeze(-8100.0, 8100.0,
                                       far_location.X * not_close + is_close *
                                       (close_location.X + tf.random_uniform(shape=[batch_size, ],
                                                                           minval=-2000,
                                                                           maxval=2000, dtype=tf.float32)))
 
-        far_location.Y = self.squeeze(-11800, 11800,
+        far_location.Y = self.squeeze(-11800.0, 11800.0,
                                       far_location.Y * not_close + is_close *
                                       (close_location.Y + tf.random_uniform(shape=[batch_size, ],
                                                                           minval=-2000,
                                                                           maxval=2000, dtype=tf.float32)))
-        far_location.Y = self.squeeze(0, 200,
+        far_location.Y = self.squeeze(0.0, 200.0,
                                       far_location.Y * not_close + is_close *
                                       (close_location.Y + tf.random_uniform(shape=[batch_size, ],
                                                                             minval=-500,
@@ -479,3 +427,8 @@ class TensorflowPacketGenerator:
         rotation.Pitch = rotation.Pitch * should_use_rotation + rot.Pitch * should_use_rot
         rotation.Roll = rotation.Roll * should_use_rotation + rot.Roll * should_use_rot
         rotation.Yaw = rotation.Yaw * should_use_rotation + rot.Yaw * should_use_rot
+
+    def tif(self, cond, iftrue, iffalse):
+        not_cond = 1.0 - tf.cast(cond, tf.float32)
+        cond = tf.cast(cond, tf.float32)
+        return cond * iftrue + not_cond * iffalse
