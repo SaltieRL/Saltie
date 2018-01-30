@@ -86,9 +86,9 @@ class RandomPacketTrainer(DefaultModelTrainer):
         model = self.model
 
         # Percentage to print statistics (and also save the model)
-        save_step = (total_batches * batch_size) / save_step
+        save_step = int((total_batches * batch_size) / save_step)
         print('training on the equivalent of', self.total_batches * self.batch_size / self.frame_per_file, 'games')
-        print('Prints at this percentage:', (total_batches * batch_size) / save_step)
+        print('Prints at this percentage:', 100.0 / ((total_batches * batch_size) / save_step))
         model_counter = 0
         self.model_save_time = 0
 
