@@ -1,9 +1,7 @@
 import numpy as np
 import tensorflow as tf
-import math
 
 from models import base_model
-from models.actor_critic.base_actor_critic import BaseActorCritic
 from modelHelpers import tensorflow_reward_manager
 from models.actor_critic.split_layers import SplitLayers
 
