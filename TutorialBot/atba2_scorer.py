@@ -38,7 +38,7 @@ class TutorialBotOutput:
         d,a,i = spherical(x,y,z)
 
         # aim
-        c = -(player.Team-0.5)*2
+        c = zero + 1
         goal = a3([zero,5250*c,zero])
         gx,gy,gz = local(goal,pL,pR)
         gd,ga,gi = spherical(gx,gy,gz)
@@ -55,8 +55,8 @@ class TutorialBotOutput:
         pitch = regress(-i-iv/15.0)
         roll = regress(-r+rv/22.0)
 
-        jump = tf.cast( tfand(150<z, tfand(z<400 , tfand( z%300>150, tfand(d<1800, 
-                        tf.abs(a-pva)<.03) ) ) ), tf.float32)   
+        jump = tf.cast( tfand(150<z, tfand(z<400 , tfand( z%300>150, tfand(d<1800,
+                        tf.abs(a-pva)<.03) ) ) ), tf.float32)
 
         boost = tf.cast( tfand( tf.abs(a)<.15, tfand( throttle>.5, tf.abs(i)<.25 )), tf.float32)
 
