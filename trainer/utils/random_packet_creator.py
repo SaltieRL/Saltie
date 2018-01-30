@@ -294,27 +294,35 @@ class TensorflowPacketGenerator:
 
     def get_random_array(self):
         batch_size = self.batch_size
-        is_car_on_ground = tf.greater_equal(tf.random_uniform(shape=[batch_size, ], minval=0, maxval=2, dtype=tf.int32), 1)
-        is_ball_on_ground = tf.greater_equal(tf.random_uniform(shape=[batch_size, ], minval=0, maxval=2, dtype=tf.int32), 1)
-        is_kickoff = tf.greater_equal(tf.random_uniform(shape=[batch_size, ], minval=0, maxval=10, dtype=tf.int32), 8)
+        is_car_on_ground = tf.greater_equal(tf.random_uniform(shape=[batch_size, ], minval=0, maxval=3,
+                                                              dtype=tf.int32), 1)
+        is_ball_on_ground = tf.greater_equal(tf.random_uniform(shape=[batch_size, ], minval=0, maxval=3,
+                                                               dtype=tf.int32), 1)
+        is_kickoff = tf.greater_equal(tf.random_uniform(shape=[batch_size, ], minval=0, maxval=11, dtype=tf.int32), 8)
+        is_close = tf.logical_and(tf.logical_not(is_kickoff),
+                                  tf.greater_equal(tf.random_uniform(shape=[batch_size, ], minval=0, maxval=10,
+                                                                     dtype=tf.int32), 4))
 
         game_tick_packet = self.create_object()
         # Game info
         with tf.name_scope("Game_Info"):
             game_tick_packet.gameInfo = self.get_game_info(is_kickoff)
         # Score info
-
-        # Player car info
-        game_tick_packet.gamecars = []
-        with tf.name_scope("Player_Car"):
-            game_tick_packet.gamecars.append(self.get_car_info(batch_size, is_car_on_ground, self.zero, self.zero,
-                                                               is_kickoff))
-
-        game_tick_packet.numCars = len(game_tick_packet.gamecars)
+        # Not used
 
         # Ball info
         with tf.name_scope("Ball_Info"):
             game_tick_packet.gameball = self.get_ball_info(batch_size, is_ball_on_ground, is_kickoff)
+
+        # Player car info
+        game_tick_packet.gamecars = []
+        with tf.name_scope("Player_Car"):
+            player_car = self.get_car_info(batch_size, is_car_on_ground, self.zero, self.zero,
+                                           is_kickoff)
+            self.create_close_location(is_close, player_car.Location, game_tick_packet.gameball.Location)
+            game_tick_packet.gamecars.append(player_car)
+
+        game_tick_packet.numCars = len(game_tick_packet.gamecars)
 
         # Teammates info, 1v1 so empty
         with tf.name_scope("Team_0"):
@@ -425,3 +433,27 @@ class TensorflowPacketGenerator:
                                  array[11],
                                  True),
         )
+
+    def squeeze(self, min, max, value):
+        return tf.minimum(max, tf.maximum(min, value))
+
+    def create_close_location(self, batch_size, is_close, far_location, close_location):
+        not_close = 1.0 - tf.cast(is_close, tf.float32)
+        is_close = tf.cast(is_close, tf.float32)
+
+        far_location.X = self.squeeze(-8100, 8100,
+                                      far_location.X * not_close + is_close *
+                                      (close_location.X + tf.random_uniform(shape=[batch_size, ],
+                                                                          minval=-2000,
+                                                                          maxval=2000, dtype=tf.float32)))
+
+        far_location.Y = self.squeeze(-11800, 11800,
+                                      far_location.Y * not_close + is_close *
+                                      (close_location.Y + tf.random_uniform(shape=[batch_size, ],
+                                                                          minval=-2000,
+                                                                          maxval=2000, dtype=tf.float32)))
+        far_location.Y = self.squeeze(0, 200,
+                                      far_location.Y * not_close + is_close *
+                                      (close_location.Y + tf.random_uniform(shape=[batch_size, ],
+                                                                            minval=-500,
+                                                                            maxval=500, dtype=tf.float32)))
