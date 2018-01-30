@@ -152,21 +152,22 @@ class TensorflowPacketGenerator:
 
         get_normal_car_values = self.get_normal_car_values
 
-        car.Location, car.Rotation, car.Velocity, car.AngularVelocity = self.convert_to_objects(tf.cond(
-            tf.logical_and(team == 0, is_kickoff[0]),
-            self.get_kickoff_data,
-            lambda: get_normal_car_values(is_on_ground)))
-
+        car.Location, car.Rotation, car.Velocity, car.AngularVelocity = get_normal_car_values(is_on_ground)
+        loc, rot, vel, angvel = self.get_kickoff_data()
+        self.mergeLoc(car.Location, loc, is_kickoff)
+        self.mergeRot(car.Rotation, rot, is_kickoff)
+        self.mergeLoc(car.Velocity, vel, is_kickoff)
+        self.mergeRot(car.AngularVelocity, angvel, is_kickoff)
 
         car.bDemolished = self.false  # Demolished
 
         car.bOnGround = is_on_ground
 
         car.bJumped = tf.round(tf.random_uniform(shape=[batch_size, ], maxval=0.6, dtype=tf.float32))  # Jumped
-        car.bSuperSonic = self.false # Jumped
+        car.bSuperSonic = self.false  # Jumped
 
-        car.bDoubleJumped = tf.round(
-            tf.random_uniform(shape=[batch_size, ], maxval=0.55, dtype=tf.float32))  # Double jumped
+        car.bDoubleJumped = car.bJumped * tf.round(
+            tf.random_uniform(shape=[batch_size, ], maxval=0.6, dtype=tf.float32))  # Double jumped
 
         car.Team = team  # Team
 
@@ -294,14 +295,17 @@ class TensorflowPacketGenerator:
 
     def get_random_array(self):
         batch_size = self.batch_size
-        is_car_on_ground = tf.greater_equal(tf.random_uniform(shape=[batch_size, ], minval=0, maxval=3,
+        is_player_car_on_ground = tf.greater_equal(tf.random_uniform(shape=[batch_size, ], minval=0, maxval=3,
                                                               dtype=tf.int32), 1)
+        is_enemy_car_on_ground = tf.greater_equal(tf.random_uniform(shape=[batch_size, ], minval=0, maxval=3,
+                                                                     dtype=tf.int32), 1)
         is_ball_on_ground = tf.greater_equal(tf.random_uniform(shape=[batch_size, ], minval=0, maxval=3,
                                                                dtype=tf.int32), 1)
         is_kickoff = tf.greater_equal(tf.random_uniform(shape=[batch_size, ], minval=0, maxval=11, dtype=tf.int32), 8)
-        is_close = tf.logical_and(tf.logical_not(is_kickoff),
-                                  tf.greater_equal(tf.random_uniform(shape=[batch_size, ], minval=0, maxval=10,
-                                                                     dtype=tf.int32), 4))
+        is_player_car_close = tf.greater_equal(tf.random_uniform(shape=[batch_size, ], minval=0, maxval=10,
+                                                                     dtype=tf.int32), 4)
+        is_enemy_car_close = tf.greater_equal(tf.random_uniform(shape=[batch_size, ], minval=0, maxval=10,
+                                                                 dtype=tf.int32), 4)
 
         game_tick_packet = self.create_object()
         # Game info
@@ -317,25 +321,29 @@ class TensorflowPacketGenerator:
         # Player car info
         game_tick_packet.gamecars = []
         with tf.name_scope("Player_Car"):
-            player_car = self.get_car_info(batch_size, is_car_on_ground, self.zero, self.zero,
+            player_car = self.get_car_info(batch_size, is_player_car_on_ground, self.zero, self.zero,
                                            is_kickoff)
-            self.create_close_location(is_close, player_car.Location, game_tick_packet.gameball.Location)
+            self.create_close_location(batch_size, is_player_car_close, player_car.Location,
+                                       game_tick_packet.gameball.Location)
             game_tick_packet.gamecars.append(player_car)
 
         game_tick_packet.numCars = len(game_tick_packet.gamecars)
 
         # Teammates info, 1v1 so empty
         with tf.name_scope("Team_0"):
-            self.get_empty_car_info(is_car_on_ground, self.zero, self.two)
-            self.get_empty_car_info(is_car_on_ground, self.zero, self.four)
+            self.get_empty_car_info(is_player_car_on_ground, self.zero, self.two)
+            self.get_empty_car_info(is_player_car_on_ground, self.zero, self.four)
 
         # Enemy info, 1 enemy
         with tf.name_scope("Enemy"):
-            game_tick_packet.gamecars.append(self.get_car_info(batch_size, is_car_on_ground, self.one, self.one,
-                                                               is_kickoff))
+            enemy_car = self.get_car_info(batch_size, is_enemy_car_on_ground, self.one, self.one,
+                                                               is_kickoff)
+            self.create_close_location(batch_size, is_enemy_car_close, enemy_car.Location,
+                                       game_tick_packet.gameball.Location)
+            game_tick_packet.gamecars.append(enemy_car)
         with tf.name_scope("Enemy1"):
-            self.get_empty_car_info(is_car_on_ground, self.one, self.three)
-            self.get_empty_car_info(is_car_on_ground, self.one, self.five)
+            self.get_empty_car_info(is_player_car_on_ground, self.one, self.three)
+            self.get_empty_car_info(is_player_car_on_ground, self.one, self.five)
 
         with tf.name_scope("Boost"):
             game_tick_packet.gameBoosts = self.get_boost_info(batch_size)
@@ -457,3 +465,17 @@ class TensorflowPacketGenerator:
                                       (close_location.Y + tf.random_uniform(shape=[batch_size, ],
                                                                             minval=-500,
                                                                             maxval=500, dtype=tf.float32)))
+
+    def mergeLoc(self, location, loc, should_use_loc):
+        should_use_location = 1.0 - tf.cast(should_use_loc, tf.float32)
+        should_use_loc = tf.cast(should_use_loc, tf.float32)
+        location.X = location.X * should_use_location + loc.X * should_use_loc
+        location.Y = location.Y * should_use_location + loc.Y * should_use_loc
+        location.Z = location.Z * should_use_location + loc.Z * should_use_loc
+
+    def mergeRot(self, rotation, rot, should_use_rot):
+        should_use_rotation = 1.0 - tf.cast(should_use_rot, tf.float32)
+        should_use_rot = tf.cast(should_use_rot, tf.float32)
+        rotation.Pitch = rotation.Pitch * should_use_rotation + rot.Pitch * should_use_rot
+        rotation.Roll = rotation.Roll * should_use_rotation + rot.Roll * should_use_rot
+        rotation.Yaw = rotation.Yaw * should_use_rotation + rot.Yaw * should_use_rot
