@@ -38,6 +38,7 @@ class BotManager:
     def __init__(self, terminateEvent, callbackEvent, config_file, name, team, index, modulename, gamename, savedata, server_manager):
         self.terminateEvent = terminateEvent
         self.callbackEvent = callbackEvent
+        self.config_file = config_file
         self.name = name
         self.team = team
         self.index = index
@@ -47,7 +48,6 @@ class BotManager:
         self.input_converter = input_formatter.InputFormatter(team, index)
         self.frames = 0
         self.file_number = 1
-        self.config_file = config_file
         self.server_manager = server_manager
         self.input_array = np.array([])
         self.output_array = np.array([])
