@@ -2,10 +2,12 @@ import io
 import os
 import struct
 
-from conversions.input.input_formatter import get_state_dim
 import numpy as np
 import time
 import logging
+from conversions.input import input_formatter
+
+import gzip
 
 EMPTY_FILE = 'empty'
 NO_FILE_VERSION = -1
@@ -20,6 +22,11 @@ TIME_ADDITION_FILE_VERSION = 5
 def get_latest_file_version():
     return TIME_ADDITION_FILE_VERSION
 
+def get_state_dim(file_version):
+    if file_version == 4:
+        return 206
+    elif file_version is get_latest_file_version():
+        return input_formatter.get_state_dim()
 
 def write_array_to_file(game_file, array):
     """
@@ -153,14 +160,19 @@ def read_data(file, process_pair_function, batching=False):
                 break
             output_array, num_bytes = get_array(file, chunk)
             total_time += time.time() - start
-            batch_size = int(len(input_array) / get_state_dim())
-            input_array = np.reshape(input_array, (batch_size, int(get_state_dim())))
+            batch_size = int(len(input_array) / get_state_dim(file_version))
+            input_array = np.reshape(input_array, (batch_size, int(get_state_dim(file_version))))
             output_array = np.reshape(output_array, (batch_size, 8))
             if not batching:
                 for i in range(len(input_array)):
-                    process_pair_function(input_array[i], output_array[i], pair_number, hashed_name)
+                    input_ = input_array[i]
+                    if file_version is 4:
+                        input_ = v4tov5(input_)
+                    process_pair_function(input_, output_array[i], pair_number, hashed_name)
                     pair_number += 1
             else:
+                if file_version is 4:
+                    input_array = v4tov5(input_array)
                 process_pair_function(input_array, output_array, pair_number, hashed_name)
                 pair_number += batch_size
             totalbytes += num_bytes + 4
@@ -178,6 +190,16 @@ def read_data(file, process_pair_function, batching=False):
         # print('read: 100% of file')
     else:
         print('read: ' + str(totalbytes) + '/' + str(file_size) + ' bytes')
+
+
+def v4tov5(input_array):
+    # Passed time (after game_info) 1
+    input_array = np.insert(input_array, 1, 0.0, axis=1)
+    for i in range(6):
+        i = 22 if i is 0 else 43 + 20 * i
+        input_array = np.insert(input_array, i, 0, axis=1)
+        input_array = np.insert(input_array, i + 1, np.greater(np.hypot(np.hypot(input_array[:, i - 6], input_array[:, i - 5]), input_array[:, i - 4]), 2200), axis=1)
+    return input_array
 
 
 def get_array(file, chunk):
@@ -215,3 +237,12 @@ def default_process_pair(input_array, output_array, pair_number):
     """
     pass
 
+def print_values(input_array, output_array, somevalue, anothervalue):
+    return
+
+if __name__ ==  '__main__':
+    with gzip.open("path_to_file", 'rb') as f:
+        try:
+            read_data(f, print_values, batching=True)
+        except Exception as e:
+            print('error training on file ', e)

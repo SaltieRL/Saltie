@@ -110,8 +110,8 @@ class InputFormatter:
         player_angular_speed_x = game_tick_packet.gamecars[index].AngularVelocity.X
         player_angular_speed_y = game_tick_packet.gamecars[index].AngularVelocity.Y
         player_angular_speed_z = game_tick_packet.gamecars[index].AngularVelocity.Z
-        player_on_ground = game_tick_packet.gamecars[self.index].bOnGround
-        player_supersonic = game_tick_packet.gamecars[self.index].bSuperSonic
+        player_on_ground = game_tick_packet.gamecars[index].bOnGround
+        player_supersonic = game_tick_packet.gamecars[index].bSuperSonic
         player_demolished = game_tick_packet.gamecars[index].bDemolished
         player_jumped = game_tick_packet.gamecars[index].bJumped
         player_double_jumped = game_tick_packet.gamecars[index].bDoubleJumped
