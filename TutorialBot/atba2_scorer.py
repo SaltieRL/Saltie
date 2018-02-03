@@ -91,11 +91,6 @@ class TutorialBotOutput:
         jump = ( tf.cast( tfand(150<z, tfand(z<400 , tfand(d22<300, tf.abs(a-pva)<.03 ))), 
                  tf.float32) )
 
-        jump = tif( fwcond, one, jump)
-        pitch = tif( fwcond, tf.abs(a)*2 -1, pitch)
-        yaw = tif( fwcond, zero, yaw)
-        roll = tif( fwcond, zero, roll)
-
         # dodge
         dgcond = tfand(d22<150, tfand(tf.abs(z)<150, tfand( Range180(gta-gpa,1)<.05,
                  tfand( gtd<gpd,tf.logical_not(pdJ) ))))
