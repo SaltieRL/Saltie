@@ -3,7 +3,8 @@ import importlib
 import inspect
 
 import os
-import tensorflow as tf
+
+from trainer.utils.config_objects import *
 
 from trainer.utils.ding import ding
 
@@ -15,8 +16,12 @@ class BaseTrainer:
     batch_size = None
     model = None
     config = None
+    config_path = None
 
-    def __init__(self):
+    def __init__(self, config_path=None):
+        if config_path is None:
+            config_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + os.sep + self.get_config_name()
+        self.config_path = config_path
         self.load_config()
 
     def get_class(self, class_package, class_name):
@@ -41,10 +46,20 @@ class BaseTrainer:
     def create_config(self):
         if self.config is None:
             self.config = configparser.RawConfigParser()
-            file = 'configs/' + str(self.get_config_name())
-            dir_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-            self.config.read(dir_path + '/' + file)
+            self.config.read(self.config_path)
         return self.config
+
+    def get_config_layout(self):
+        config = Config()
+
+        config.add_header_name(self.BASE_CONFIG_HEADER)
+
+        model_header = config.ConfigHeader(self.MODEL_CONFIG_HEADER)
+        model_header.add_value('batch_size', int)
+        model_header.add_value('model_package', str)
+        model_header.add_value('model_name', str)
+        config.add_header(model_header)
+        return config
 
     def load_config(self):
         # Obtaining necessary data for training from the config
