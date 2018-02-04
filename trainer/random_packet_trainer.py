@@ -28,7 +28,7 @@ class RandomPacketTrainer(DefaultModelTrainer):
         return output_array, game_tick_packet
 
     def get_config_name(self):
-        return 'randomised_trainer.cfg'
+        return 'random_packet_trainer.cfg'
 
     def get_event_filename(self):
         return 'random_packet'

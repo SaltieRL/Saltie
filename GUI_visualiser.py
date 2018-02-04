@@ -16,11 +16,6 @@ split_spacing = 220
 default_circle_dia = 30
 
 
-logging.basicConfig(level=logging.DEBUG,
-                    format='[%(levelname)s] (%(threadName)-10s) %(message)s',
-                    )
-
-
 class AutoScrollbar(Scrollbar):
     def set(self, lo, hi):
         if float(lo) <= 0.0 and float(hi) >= 1.0:
