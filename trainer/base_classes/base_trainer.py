@@ -18,11 +18,14 @@ class BaseTrainer:
     config = None
     config_path = None
 
-    def __init__(self, config_path=None):
+    def __init__(self, config_path=None, config=None):
         if config_path is None:
             config_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + os.sep + self.get_config_name()
         self.config_path = config_path
+        if config is not None:
+            self.config = config
         self.load_config()
+        self.create_config_layout()
 
     def get_class(self, class_package, class_name):
         class_package = importlib.import_module(class_package)
@@ -49,17 +52,16 @@ class BaseTrainer:
             self.config.read(self.config_path)
         return self.config
 
-    def get_config_layout(self):
-        config = Config()
+    def create_config_layout(self):
+        self.config_layout = Config()
 
-        config.add_header_name(self.BASE_CONFIG_HEADER)
+        self.config_layout.add_header_name(self.BASE_CONFIG_HEADER)
 
-        model_header = config.ConfigHeader(self.MODEL_CONFIG_HEADER)
-        model_header.add_value('batch_size', int)
-        model_header.add_value('model_package', str)
-        model_header.add_value('model_name', str)
-        config.add_header(model_header)
-        return config
+        model_header = self.config_layout.ConfigHeader(self.MODEL_CONFIG_HEADER)
+        model_header.add_value('batch_size', int, "The batch size for training")
+        model_header.add_value('model_package', str, "The package containing the model")
+        model_header.add_value('model_name', str, "The name of the model class")
+        self.config_layout.add_header(model_header)
 
     def load_config(self):
         # Obtaining necessary data for training from the config

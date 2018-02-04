@@ -23,6 +23,10 @@ class CopyTrainer(DownloadTrainer, DefaultModelTrainer):
     controller_stats = None
     action_length = None
 
+    def create_config_layout(self):
+        super().create_config_layout()
+        self.config_layout.get_header(self.DOWNLOAD_TRAINER_CONFIGURATION_HEADER).add_value("download_files", bool)  # TODO add description
+
     def load_config(self):
         super().load_config()
         config = super().create_config()

@@ -7,9 +7,11 @@ from trainer.utils import controller_statistics
 from tqdm import tqdm
 
 from trainer.utils.trainer_runner import run_trainer
+from trainer.utils.config_objects import *
 
 
 class RandomPacketTrainer(DefaultModelTrainer):
+    RANDOMISED_TRAINER_CONFIG_HEADER = 'Randomised Trainer Configuration'
     total_batches = None
     save_step = None
     teacher_package = None
@@ -33,14 +35,23 @@ class RandomPacketTrainer(DefaultModelTrainer):
     def get_event_filename(self):
         return 'random_packet'
 
+    def create_config_layout(self):
+        super().create_config_layout()
+        random_header = self.config_layout.get_header(self.RANDOMISED_TRAINER_CONFIG_HEADER)
+        random_header.add_value('total_batches', int, "Total amount of randomised batches")
+        random_header.add_value("save_step", int)  # TODO add description
+        random_header.add_value("teacher_package", str, "The package containing the teacher bot")
+        self.config_layout.add_header(random_header)
+
+
     def load_config(self):
         super().load_config()
         # Obtaining necessary data for training from the config
         config = self.create_config()
-        self.total_batches = config.getint('Randomised Trainer Configuration', 'total_batches')
-        self.save_step = config.getint('Randomised Trainer Configuration', 'save_step')
+        self.total_batches = config.getint(self.RANDOMISED_TRAINER_CONFIG_HEADER, 'total_batches')
+        self.save_step = config.getint(self.RANDOMISED_TRAINER_CONFIG_HEADER, 'save_step')
         # Over here the model data is obtained
-        self.teacher_package = config.get('Randomised Trainer Configuration', 'teacher_package')
+        self.teacher_package = config.get(self.RANDOMISED_TRAINER_CONFIG_HEADER, 'teacher_package')
 
     def setup_trainer(self):
         super().setup_trainer()

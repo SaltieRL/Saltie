@@ -10,6 +10,13 @@ class Config:
     def add_header_name(self, header_name):
         self.headers.append(self.ConfigHeader(header_name))
 
+    def get_header(self, header_name):
+        for header in self.headers:
+            if header.name == header_name:
+                return header
+        self.add_header_name(header_name)
+        return self.get_header(header_name)
+
     class ConfigHeader:
         def __init__(self, header_name):
             self.name = header_name
