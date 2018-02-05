@@ -7,7 +7,6 @@ from trainer.utils import controller_statistics
 from tqdm import tqdm
 
 from trainer.utils.trainer_runner import run_trainer
-from trainer.utils.config_objects import *
 
 
 class RandomPacketTrainer(DefaultModelTrainer):
@@ -38,10 +37,9 @@ class RandomPacketTrainer(DefaultModelTrainer):
     def create_config_layout(self):
         super().create_config_layout()
         random_header = self.config_layout.get_header(self.RANDOMISED_TRAINER_CONFIG_HEADER)
-        random_header.add_value('total_batches', int, "Total amount of randomised batches")
-        random_header.add_value("save_step", int)  # TODO add description
-        random_header.add_value("teacher_package", str, "The package containing the teacher bot")
-        self.config_layout.add_header(random_header)
+        random_header.add_value('total_batches', int, default=10000, description="Total amount of randomised batches")
+        random_header.add_value("save_step", int, default=50)  # TODO add description
+        random_header.add_value("teacher_package", str, description="The package containing the teacher bot")
 
 
     def load_config(self):

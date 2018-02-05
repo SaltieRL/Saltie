@@ -17,10 +17,12 @@ class BaseTrainer:
     model = None
     config = None
     config_path = None
+    config_layout = None
 
     def __init__(self, config_path=None, config=None):
         if config_path is None:
-            config_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + os.sep + self.get_config_name()
+            config_path = os.path.dirname(
+                os.path.dirname(os.path.realpath(__file__))) + os.sep + "configs" + os.sep + self.get_config_name()
         self.config_path = config_path
         if config is not None:
             self.config = config
@@ -58,9 +60,9 @@ class BaseTrainer:
         self.config_layout.add_header_name(self.BASE_CONFIG_HEADER)
 
         model_header = self.config_layout.ConfigHeader(self.MODEL_CONFIG_HEADER)
-        model_header.add_value('batch_size', int, "The batch size for training")
-        model_header.add_value('model_package', str, "The package containing the model")
-        model_header.add_value('model_name', str, "The name of the model class")
+        model_header.add_value('batch_size', int, default=5000, description="The batch size for training")
+        model_header.add_value('model_package', str, description="The package containing the model")
+        model_header.add_value('model_name', str, description="The name of the model class")
         self.config_layout.add_header(model_header)
 
     def load_config(self):

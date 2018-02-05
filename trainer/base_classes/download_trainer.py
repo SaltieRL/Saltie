@@ -7,7 +7,6 @@ from conversions.server_converter import ServerConverter
 from trainer.base_classes.base_trainer import BaseTrainer
 from trainer.utils.file_download_manager import get_file_get_function, get_file_list_get_function
 from trainer.utils.threaded_file_downloader import ThreadedFileDownloader
-from trainer.utils.config_objects import *
 
 
 class DownloadTrainer(BaseTrainer):
@@ -25,12 +24,11 @@ class DownloadTrainer(BaseTrainer):
     def create_config_layout(self):
         super().create_config_layout()
         download_header = self.config_layout.get_header(self.DOWNLOAD_TRAINER_CONFIGURATION_HEADER)
-        download_header.add_value('download_files', bool)  # TODO add description
-        download_header.add_value('max_files', int)  # TODO add description
-        download_header.add_value('number_download_threads', int)  # TODO add description
-        download_header.add_value('number_training_threads', int)  # TODO add description
-        download_header.add_value('batch_process', bool)   # TODO add description
-        self.config_layout.add_header(download_header)
+        download_header.add_value('download_files', bool, default=True)  # TODO add description
+        download_header.add_value('max_files', int, default=40)  # TODO add description
+        download_header.add_value('number_download_threads', int, default=10)  # TODO add description
+        download_header.add_value('number_training_threads', int, default=1)  # TODO add description
+        download_header.add_value('batch_process', bool, default=True)   # TODO add description
 
 
     def load_config(self):

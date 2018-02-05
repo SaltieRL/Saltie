@@ -5,7 +5,6 @@ from conversions.input.input_formatter import get_state_dim
 from modelHelpers.actions import action_factory, dynamic_action_handler
 from modelHelpers.tensorflow_feature_creator import TensorflowFeatureCreator
 from trainer.base_classes.base_trainer import BaseTrainer
-from trainer.utils.config_objects import *
 
 
 class DefaultModelTrainer(BaseTrainer):
@@ -23,13 +22,11 @@ class DefaultModelTrainer(BaseTrainer):
     def create_config_layout(self):
         super().create_config_layout()
         optimizer_header = self.config_layout.get_header(self.OPTIMIZER_CONFIG_HEADER)
-        optimizer_header.add_value('learning_rate', float, "The learning rate for the optimizer")
-        optimizer_header.add_value('should_apply_features', bool)  # TODO add description
-        self.config_layout.add_header(optimizer_header)
+        optimizer_header.add_value('learning_rate', float, default=0.001, description="The learning rate for the optimizer")
+        optimizer_header.add_value('should_apply_features', bool, default=True)  # TODO add description
 
         misc_header = self.config_layout.get_header(self.MISC_CONFIG_HEADER)
-        misc_header.add_value('control_scheme', str)  # TODO add description
-        self.config_layout.add_header(misc_header)
+        misc_header.add_value('control_scheme', str, default="default_scheme")  # TODO add description
 
 
     def load_config(self):
