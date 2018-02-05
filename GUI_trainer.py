@@ -6,6 +6,7 @@ import os
 import importlib
 import inspect
 
+
 class TrainerGUI(tk.Frame):
     def __init__(self, parent, *args, **kwargs):
         tk.Frame.__init__(self, parent, *args, **kwargs)
@@ -15,16 +16,16 @@ class TrainerGUI(tk.Frame):
 
         self.trainer_path = tk.StringVar()
 
-        ttk.Label(self, text="Trainer path: ", anchor="e", justify="right").grid(row=0, column=0, padx=(0, 5))
+        ttk.Label(self, text="Trainer path: ", anchor="e").grid(row=0, column=0, padx=(0, 5), sticky="e")
         ttk.Entry(self, textvariable=self.trainer_path, state="readonly").grid(row=0, column=1, sticky="ew")
-        ttk.Button(self, text="Select file", command=self.change_trainer_path).grid(row=0, column=2, padx=(5, 0))
+        ttk.Button(self, text="Select file", command=self.change_trainer_path).grid(row=0, column=2, padx=(5, 0), sticky="w")
 
-        ttk.Label(self, text="Config: ", anchor="e", justify="right").grid(row=1, column=0, padx=(0, 5))
+        ttk.Label(self, text="Config: ", anchor="e").grid(row=1, column=0, padx=(0, 5), sticky="e")
         self.config_options = ttk.Combobox(self, state="readonly")
         self.config_options.bind("<<ComboboxSelected>>", self.change_config)
         self.config_options.grid(row=1, column=1, sticky="ew")
         self.config_button = ttk.Button(self, text="Add config", command=self.add_config_option, state="disabled")
-        self.config_button.grid(row=1, column=2, padx=(5, 0))
+        self.config_button.grid(row=1, column=2, padx=(5, 0), sticky="w")
 
     def initialise_custom_config(self):
         self.custom_options = tk.Frame(self)
@@ -34,30 +35,37 @@ class TrainerGUI(tk.Frame):
             if not header.values:
                 continue
             header_frame = tk.Frame(self.custom_options)
-            header_frame.grid(row=0, column=header_index)
-            ttk.Label(header_frame, text=header.name).grid(row=0, column=0, columnspan=2)
+            header_frame.grid(row=0, column=header_index, sticky="n", padx=(10, 10), pady=(10, 10))
+            ttk.Label(header_frame, text=header.name, anchor="center").grid(row=0, column=0, columnspan=2)
             self.trainer_config[header.name] = {}
             for i, parameter in enumerate(header.values):
-                ttk.Label(header_frame, text=parameter.name).grid(row=i + 1, column=0)
+                ttk.Label(header_frame, text=parameter.name + ":", anchor='w').grid(row=i + 1, column=0, sticky="ew")
                 big = 20000000
                 if parameter.type == int:
                     self.trainer_config[header.name][parameter.name] = tk.IntVar()
-                    tk.Spinbox(header_frame, textvariable=self.trainer_config[header.name][parameter.name], from_=0, to=big).grid(row=i + 1, column=1)
+                    tk.Spinbox(header_frame, textvariable=self.trainer_config[header.name][parameter.name], from_=0,
+                               to=big).grid(row=i + 1, column=1, sticky="ew")
                 elif parameter.type == float:
                     self.trainer_config[header.name][parameter.name] = tk.DoubleVar()
-                    tk.Spinbox(header_frame, textvariable=self.trainer_config[header.name][parameter.name], from_=0, to=big, increment=.01).grid(row=i + 1, column=1)
+                    tk.Spinbox(header_frame, textvariable=self.trainer_config[header.name][parameter.name], from_=0,
+                               to=big, increment=.01).grid(row=i + 1, column=1, sticky="ew")
                 elif parameter.type == bool:
-                    print("Gotta add boolean thing")
                     self.trainer_config[header.name][parameter.name] = tk.BooleanVar()
+                    box = ttk.Combobox(header_frame, textvariable=self.trainer_config[header.name][parameter.name],
+                                       values=(True, False), state="readonly")
+                    if parameter.default:
+                        box.current(0)
+                    else:
+                        box.current(1)
+                    box.grid(row=i + 1, column=1, sticky="ew")
                 elif parameter.type == str:
                     self.trainer_config[header.name][parameter.name] = tk.StringVar()
-                    tk.Entry(header_frame, textvariable=self.trainer_config[header.name][parameter.name]).grid(row=i + 1, column=1)
+                    tk.Entry(header_frame, textvariable=self.trainer_config[header.name][parameter.name]).grid(
+                        row=i + 1, column=1, sticky="ew")
                 else:
                     print("UNKNOWN TYPE")
-                if parameter.default is not None:
+                if parameter.default is not None and parameter.type is not bool:
                     self.trainer_config[header.name][parameter.name].set(parameter.default)
-
-
 
     def change_trainer_path(self):
         trainer_file_path = askopenfilename(
@@ -89,7 +97,8 @@ class TrainerGUI(tk.Frame):
                 popup.grab_set()
                 popup.protocol("WM_DELETE_WINDOW", lambda: None)
                 selected = tk.IntVar()
-                tk.Label(popup, text="Select the class and press continue").grid(row=0, column=0, columnspan=2, padx=(10, 10), pady=(10, 5))
+                tk.Label(popup, text="Select the class and press continue").grid(row=0, column=0, columnspan=2,
+                                                                                 padx=(10, 10), pady=(10, 5))
                 for i in range(len(trainer_classes)):
                     tk.Radiobutton(popup, text=trainer_classes[i][0], value=i, anchor="w", variable=selected).grid(
                         row=i + 1, column=0, sticky="nsew", padx=(10, 0))
@@ -99,7 +108,9 @@ class TrainerGUI(tk.Frame):
                     self.trainer_class = trainer_classes[selected.get()]
                     popup.destroy()
 
-                tk.Button(popup, text="Continue", anchor="se", command=chosen_class).grid(row=len(trainer_classes), column=1, padx=(0, 10), pady=(0, 10))
+                tk.Button(popup, text="Continue", anchor="se", command=chosen_class).grid(row=len(trainer_classes),
+                                                                                          column=1, padx=(0, 10),
+                                                                                          pady=(0, 10))
                 self.wait_window(popup)
             else:
                 self.trainer_class = trainer_classes[0]
@@ -126,7 +137,6 @@ class TrainerGUI(tk.Frame):
             if self.custom_options.winfo_ismapped():
                 self.custom_options.grid_forget()
                 print("Remove custom stuff")
-
 
 
 if __name__ == '__main__':

@@ -25,6 +25,9 @@ class RewardTrainer(DownloadTrainer, DefaultModelTrainer):
     def setup_trainer(self):
         super().setup_trainer()
 
+    def get_config_name(self):
+        return 'reward_trainer.cfg'
+
     def setup_model(self):
         super().setup_model()
         self.model.create_model()
