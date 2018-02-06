@@ -1,4 +1,4 @@
-import live_data_util
+from bot_code.livedata import live_data_util
 
 # In order to run this you need to install pyqtgraph and pyqt4 (haven't tried other versions)
 # Run python -m pyqtgraph.examples for example code

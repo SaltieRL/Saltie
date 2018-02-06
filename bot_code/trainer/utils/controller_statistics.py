@@ -1,4 +1,3 @@
-from trainer.utils import random_packet_creator
 import tensorflow as tf
 import numpy as np
 

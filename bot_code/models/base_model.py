@@ -3,9 +3,9 @@ import os
 import tensorflow as tf
 import numpy as np
 
-from bot_code.conversions.input import InputFormatter
+from bot_code.conversions.input.input_formatter import InputFormatter
 from bot_code.modelHelpers import tensorflow_feature_creator
-from bot_code.modelHelpers import DataNormalizer
+from bot_code.modelHelpers.data_normalizer import DataNormalizer
 
 MODEL_CONFIGURATION_HEADER = 'Model Configuration'
 

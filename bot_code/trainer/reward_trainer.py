@@ -1,9 +1,9 @@
 from bot_code.modelHelpers import reward_manager
 import time
 
-from trainer.base_classes.default_model_trainer import DefaultModelTrainer
-from trainer.base_classes.download_trainer import DownloadTrainer
-from trainer.utils.trainer_runner import run_trainer
+from bot_code.trainer.base_classes.default_model_trainer import DefaultModelTrainer
+from bot_code.trainer.base_classes.download_trainer import DownloadTrainer
+from bot_code.trainer.utils.trainer_runner import run_trainer
 
 
 class RewardTrainer(DownloadTrainer, DefaultModelTrainer):

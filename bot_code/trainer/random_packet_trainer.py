@@ -1,12 +1,12 @@
 import tensorflow as tf
 import time
 
-from trainer.base_classes.default_model_trainer import DefaultModelTrainer
-from trainer.utils import random_packet_creator
-from trainer.utils import controller_statistics
+from bot_code.trainer.base_classes.default_model_trainer import DefaultModelTrainer
+from bot_code.trainer.utils import random_packet_creator
+from bot_code.trainer.utils import controller_statistics
 from tqdm import tqdm
 
-from trainer.utils.trainer_runner import run_trainer
+from bot_code.trainer.utils.trainer_runner import run_trainer
 
 
 class RandomPacketTrainer(DefaultModelTrainer):

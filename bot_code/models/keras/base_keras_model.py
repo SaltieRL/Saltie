@@ -1,5 +1,5 @@
 from bot_code.conversions.input.simple_input_formatter import SimpleInputFormatter
-from bot_code.models import BaseModel, MODEL_CONFIGURATION_HEADER
+from bot_code.models.base_model import BaseModel, MODEL_CONFIGURATION_HEADER
 from keras.models import Model
 from keras.layers import Input, Dense, Dropout
 from keras import backend as K

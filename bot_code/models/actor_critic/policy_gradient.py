@@ -3,7 +3,7 @@ import tensorflow as tf
 
 from bot_code.models import base_model
 from bot_code.modelHelpers import tensorflow_reward_manager
-from bot_code.models import SplitLayers
+from bot_code.models.actor_critic.split_layers import SplitLayers
 
 
 class PolicyGradient(SplitLayers):

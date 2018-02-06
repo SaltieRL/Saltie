@@ -5,6 +5,7 @@ from bot_code.models.atbas import nnatba
 CUDNN = "cudnn"
 BASIC = "basic"
 
+
 class RNNAtba(nnatba.NNAtba):
 
     num_hidden_1 = 500 # 1st layer num features

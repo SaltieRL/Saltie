@@ -1,5 +1,5 @@
 import tensorflow as tf
-from bot_code.conversions.input import NormalizationInputFormatter
+from bot_code.conversions.input.normalization_input_formatter import NormalizationInputFormatter
 
 
 class DataNormalizer:

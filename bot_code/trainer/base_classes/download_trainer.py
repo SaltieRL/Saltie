@@ -3,10 +3,10 @@ import io
 import time
 
 from bot_code.conversions import binary_converter
-from bot_code.conversions import ServerConverter
-from trainer.base_classes.base_trainer import BaseTrainer
-from trainer.utils.file_download_manager import get_file_get_function, get_file_list_get_function
-from trainer.utils.threaded_file_downloader import ThreadedFileDownloader
+from bot_code.conversions.server_converter import ServerConverter
+from bot_code.trainer.base_classes.base_trainer import BaseTrainer
+from bot_code.trainer.utils.file_download_manager import get_file_get_function, get_file_list_get_function
+from bot_code.trainer.utils.threaded_file_downloader import ThreadedFileDownloader
 
 
 class DownloadTrainer(BaseTrainer):

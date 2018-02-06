@@ -2,7 +2,7 @@ import importlib
 import inspect
 import tensorflow as tf
 from bot_code.conversions import output_formatter
-from bot_code.models import BaseModel
+from bot_code.models.base_model import BaseModel
 
 
 class FakeModel(BaseModel):

@@ -3,9 +3,8 @@ import importlib
 import inspect
 
 import os
-import tensorflow as tf
 
-from trainer.utils.ding import ding
+from bot_code.trainer.utils.ding import ding
 
 
 class BaseTrainer:

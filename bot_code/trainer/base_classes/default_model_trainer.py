@@ -2,8 +2,8 @@ import tensorflow as tf
 
 from bot_code.conversions.input import tensorflow_input_formatter
 from bot_code.modelHelpers.actions import action_factory
-from bot_code.modelHelpers import TensorflowFeatureCreator
-from trainer.base_classes.base_trainer import BaseTrainer
+from bot_code.modelHelpers.tensorflow_feature_creator import TensorflowFeatureCreator
+from bot_code.trainer.base_classes.base_trainer import BaseTrainer
 
 
 class DefaultModelTrainer(BaseTrainer):

@@ -1,6 +1,5 @@
 import queue
 import threading
-from trainer.utils.ding import ding
 
 
 class ThreadedFileDownloader:

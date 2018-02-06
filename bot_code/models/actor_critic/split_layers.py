@@ -2,7 +2,7 @@ import tensorflow as tf
 import numpy as np
 
 from bot_code.models import base_model
-from bot_code.models import BaseActorCritic
+from bot_code.models.actor_critic.base_actor_critic import BaseActorCritic
 
 
 class SplitLayers(BaseActorCritic):

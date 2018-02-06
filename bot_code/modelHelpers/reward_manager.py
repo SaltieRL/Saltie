@@ -1,4 +1,4 @@
-from bot_code.modelHelpers import get_distance_location
+from bot_code.modelHelpers.feature_creator import get_distance_location
 from bot_code.conversions import output_formatter
 
 

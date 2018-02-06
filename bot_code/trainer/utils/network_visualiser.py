@@ -1,7 +1,7 @@
 from tkinter.ttk import *
 from tkinter import *
 import ast
-from trainer.utils import random_packet_creator
+from bot_code.trainer.utils import random_packet_creator
 from bot_code.conversions.input import tensorflow_input_formatter
 import tensorflow as tf
 from bot_code.models.actor_critic import tutorial_model
