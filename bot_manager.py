@@ -13,12 +13,10 @@ import bot_input_struct as bi
 import game_data_struct as gd
 import rate_limiter
 import sys
-import imp
 import traceback
 
-
-from conversions import binary_converter as compressor
-from conversions.input import input_formatter
+from bot_code.conversions import binary_converter as compressor
+from bot_code.conversions.input import input_formatter
 
 OUTPUT_SHARED_MEMORY_TAG = 'Local\\RLBotOutput'
 INPUT_SHARED_MEMORY_TAG = 'Local\\RLBotInput'
@@ -35,10 +33,10 @@ class BotManager:
     model_hash = None
     is_eval = False
 
-    def __init__(self, terminateEvent, callbackEvent, config_file, name, team, index, modulename, gamename, savedata, server_manager):
+    def __init__(self, terminateEvent, callbackEvent, bot_parameters, name, team, index, modulename, gamename, savedata, server_manager):
         self.terminateEvent = terminateEvent
         self.callbackEvent = callbackEvent
-        self.config_file = config_file
+        self.bot_parameters = bot_parameters
         self.name = name
         self.team = team
         self.index = index
@@ -56,9 +54,8 @@ class BotManager:
 
     def load_agent(self, agent_module):
         try:
-            agent = agent_module.Agent(self.name, self.team, self.index, config_file=self.config_file)
+            agent = agent_module.Agent(self.name, self.team, self.index, bot_parameters=self.bot_parameters)
         except TypeError as e:
-            print(e)
             agent = agent_module.Agent(self.name, self.team, self.index)
         return agent
 
@@ -99,13 +96,14 @@ class BotManager:
             self.model_hash = 0
 
         self.server_manager.set_model_hash(self.model_hash)
+        last_module_modification_time = os.stat(agent_module.__file__).st_mtime
 
         if hasattr(agent, 'is_evaluating'):
             self.is_eval = agent.is_evaluating
             self.server_manager.set_is_eval(self.is_eval)
 
         if self.save_data:
-            filename = self.game_name + '\\' + self.name + '-' + str(self.file_number) + '.bin'
+            filename = self.create_file_name()
             print('creating file ' + filename)
             self.create_new_file(filename)
         old_time = 0
@@ -146,8 +144,13 @@ class BotManager:
                     if new_module_modification_time != last_module_modification_time:
                         last_module_modification_time = new_module_modification_time
                         print('Reloading Agent: ' + agent_module.__file__)
-                        imp.reload(agent_module)
+
+                        importlib.reload(agent_module)
+                        old_agent = agent
                         agent = self.load_agent(agent_module)
+                        # Retire after the replacement initialized properly.
+                        if hasattr(old_agent, 'retire'):
+                            old_agent.retire()
 
                     # Call agent
                     controller_input = agent.get_output_vector(game_tick_packet)
@@ -191,7 +194,7 @@ class BotManager:
                     self.game_file.close()
                     print('creating file ' + filename)
                     self.maybe_compress_and_upload(filename)
-                    filename = self.game_name + '\\' + self.name + '-' + str(self.file_number) + '.bin'
+                    filename = self.create_file_name()
                     self.create_new_file(filename)
                     self.maybe_delete(self.file_number - 3)
                 self.frames += 1
@@ -212,6 +215,8 @@ class BotManager:
 
             r.acquire(after - before)
 
+        if hasattr(agent, 'retire'):
+            agent.retire()
         # If terminated, send callback
         print("something ended closing file")
         if self.save_data:
@@ -244,3 +249,6 @@ class BotManager:
         compressor.write_version_info(self.game_file, compressor.get_latest_file_version())
         compressor.write_bot_hash(self.game_file, self.model_hash)
         compressor.write_is_eval(self.game_file, self.is_eval)
+
+    def create_file_name(self):
+        return self.game_name + '/' + self.name + '-' + str(self.file_number) + '.bin'

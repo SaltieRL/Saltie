@@ -1,4 +1,4 @@
-from conversions.input.controller_input import controller
+from bot_code.conversions.input import controller
 
 class Agent:
     def __init__(self, name, team, index):
