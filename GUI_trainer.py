@@ -6,10 +6,10 @@ import os
 import importlib
 import inspect
 
-from trainer.utils.custom_config import CConfig
-from trainer.utils import trainer_runner
+from bot_code.trainer.utils.custom_config import CConfig
+from bot_code.trainer.utils import trainer_runner
 
-class TrainerGUI(tk.Frame):
+class StartTrainerGUI(tk.Frame):
     def __init__(self, parent, *args, **kwargs):
         tk.Frame.__init__(self, parent, *args, **kwargs)
         self.parent = parent
@@ -80,15 +80,14 @@ class TrainerGUI(tk.Frame):
 
     def change_trainer_path(self):
         trainer_file_path = askopenfilename(
-            initialdir=os.path.dirname(os.path.realpath(__file__)) + os.sep + "trainer",
+            initialdir="bot_code" + os.sep + "trainer",
             filetypes=[("Python File", "*.py")],
             title="Choose a file.")
         if trainer_file_path:
             self.trainer_path.set(trainer_file_path)
             self.config_button["state"] = "normal"
             trainer_name = os.path.splitext(os.path.basename(os.path.realpath(trainer_file_path)))[0]
-            config_path = os.path.dirname(
-                os.path.realpath(__file__)) + os.sep + "trainer" + os.sep + "configs" + os.sep + trainer_name + ".cfg"
+            config_path = "bot_code" + os.sep + "trainer" + os.sep + "configs" + os.sep + trainer_name + ".cfg"
             if os.path.isfile(config_path):
                 self.default_config_path = config_path
                 self.config_options_path[trainer_name] = config_path
@@ -131,7 +130,7 @@ class TrainerGUI(tk.Frame):
 
     def add_config_option(self):
         config_path = askopenfilename(
-            initialdir=os.path.dirname(os.path.realpath(__file__)) + os.sep + "trainer" + os.sep + "configs",
+            initialdir="bot_code" + os.sep + "trainer" + os.sep + "configs",
             filetypes=[("Config File", "*.cfg")],
             title="Choose a file.")
         if config_path:
@@ -152,12 +151,15 @@ class TrainerGUI(tk.Frame):
     def start_training(self):
         if self.config_options.get() == "custom":
             config = CConfig(self.trainer_config)
-            trainer_runner.run_trainer(self.trainer_class[1](config=config))
+            trainer_class = self.trainer_class[1](config=config)
         else:
-            trainer_runner.run_trainer(self.trainer_class[1](config_path=self.config_options_path[self.config_options.get()]))
+            trainer_class = self.trainer_class[1](config_path=self.config_options_path[self.config_options.get()])
+        self.forget()
+        self.parent.destroy()
+        trainer_runner.run_trainer(trainer_class)
 
 
 if __name__ == '__main__':
     root = tk.Tk()
-    TrainerGUI(root).pack(side="top", fill="both", expand=True)
+    StartTrainerGUI(root).pack(side="top", fill="both", expand=True)
     root.mainloop()
