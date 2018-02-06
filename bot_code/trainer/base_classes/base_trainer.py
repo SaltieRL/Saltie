@@ -19,7 +19,7 @@ class BaseTrainer:
         self.load_config()
 
     def get_class(self, class_package, class_name):
-        class_package = importlib.import_module(class_package)
+        class_package = importlib.import_module('bot_code.' + class_package)
         module_classes = inspect.getmembers(class_package, inspect.isclass)
         for class_group in module_classes:
             if class_group[0] == class_name:
@@ -27,7 +27,7 @@ class BaseTrainer:
         return None
 
     def get_field(self, class_package, class_name):
-        class_package = importlib.import_module(class_package)
+        class_package = importlib.import_module('bot_code.' + class_package)
         module_classes = inspect.getmembers(class_package)
         for class_group in module_classes:
             if class_group[0] == class_name:

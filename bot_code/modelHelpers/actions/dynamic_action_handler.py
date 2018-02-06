@@ -5,7 +5,7 @@ import tensorflow as tf
 from tensorflow.python.ops.losses.losses_impl import Reduction
 
 from bot_code.modelHelpers.actions.action_handler import ActionMap
-from bot_code.modelHelpers import SplitActionHandler
+from bot_code.modelHelpers.actions.split_action_handler import SplitActionHandler
 
 
 COMBO = 'combo'

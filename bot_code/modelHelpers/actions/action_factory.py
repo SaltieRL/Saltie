@@ -1,7 +1,7 @@
 from bot_code.modelHelpers.actions.action_handler import ActionHandler
 from bot_code.modelHelpers.actions.dynamic_action_handler import DynamicActionHandler, LOSS_SQUARE_MEAN, LOSS_SPARSE_CROSS, \
     LOSS_ABSOLUTE_DIFFERENCE
-from bot_code.modelHelpers import SplitActionHandler
+from bot_code.modelHelpers.actions.split_action_handler import SplitActionHandler
 
 default_scheme = [[('steer', (-1, 1.5, .5)), ('pitch', (-1, 1.5, .5)), ('roll', (-1, 1.5, .5))],
                   [('throttle', (-1, 2, 1)), ('jump', (0, 2, 1)), ('boost', (0, 2, 1)), ('handbrake', (0, 2, 1))],
