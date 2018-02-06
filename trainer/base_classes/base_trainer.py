@@ -19,14 +19,17 @@ class BaseTrainer:
     config_path = None
     config_layout = None
 
-    def __init__(self, config_path=None, config=None):
-        if config_path is None:
-            config_path = os.path.dirname(
-                os.path.dirname(os.path.realpath(__file__))) + os.sep + "configs" + os.sep + self.get_config_name()
-        self.config_path = config_path
-        if config is not None:
-            self.config = config
-        self.load_config()
+    def __init__(self, config_path=None, config=None, load_config=True):
+        if load_config:
+            if config_path is None:
+                config_path = os.path.dirname(
+                    os.path.dirname(os.path.realpath(__file__))) + os.sep + "configs" + os.sep + self.get_config_name()
+                print("Using config at", config_path)
+            self.config_path = config_path
+            if config is not None:
+                print("Using custom config")
+                self.config = config
+            self.load_config()
         self.create_config_layout()
 
     def get_class(self, class_package, class_name):
@@ -55,7 +58,7 @@ class BaseTrainer:
         return self.config
 
     def create_config_layout(self):
-        self.config_layout = Config()
+        self.config_layout = ConfigObject()
 
         self.config_layout.add_header_name(self.BASE_CONFIG_HEADER)
 
@@ -64,6 +67,7 @@ class BaseTrainer:
         model_header.add_value('model_package', str, description="The package containing the model")
         model_header.add_value('model_name', str, description="The name of the model class")
         self.config_layout.add_header(model_header)
+        return self.config_layout
 
     def load_config(self):
         # Obtaining necessary data for training from the config

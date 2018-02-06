@@ -20,9 +20,6 @@ class RandomPacketTrainer(DefaultModelTrainer):
     model_save_time = None
     frame_per_file = 20000
 
-    def __init__(self):
-        super().__init__()
-
     def get_random_data(self, packet_generator, input_formatter):
         game_tick_packet = packet_generator.get_random_array()
         output_array = input_formatter.create_input_array(game_tick_packet, game_tick_packet.time_diff)

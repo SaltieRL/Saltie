@@ -1,4 +1,4 @@
-class Config:
+class ConfigObject:
     headers = None
 
     def __init__(self):

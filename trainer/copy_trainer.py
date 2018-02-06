@@ -132,6 +132,8 @@ class CopyTrainer(DownloadTrainer, DefaultModelTrainer):
     def end_everything(self):
         self.model.save_model()
 
+class RandomClass:
+    print("Some text")
 
 if __name__ == '__main__':
     run_trainer(trainer=CopyTrainer())

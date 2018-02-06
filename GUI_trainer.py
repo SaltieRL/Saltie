@@ -6,6 +6,8 @@ import os
 import importlib
 import inspect
 
+from trainer.utils.custom_config import CConfig
+from trainer.utils import trainer_runner
 
 class TrainerGUI(tk.Frame):
     def __init__(self, parent, *args, **kwargs):
@@ -15,6 +17,7 @@ class TrainerGUI(tk.Frame):
         self.parent.iconbitmap(default="images" + os.sep + "Saltie_logo.ico")
 
         self.trainer_path = tk.StringVar()
+        self.config_options_path = {}
 
         ttk.Label(self, text="Trainer path: ", anchor="e").grid(row=0, column=0, padx=(0, 5), sticky="e")
         ttk.Entry(self, textvariable=self.trainer_path, state="readonly").grid(row=0, column=1, sticky="ew")
@@ -27,9 +30,17 @@ class TrainerGUI(tk.Frame):
         self.config_button = ttk.Button(self, text="Add config", command=self.add_config_option, state="disabled")
         self.config_button.grid(row=1, column=2, padx=(5, 0), sticky="w")
 
+        self.start_button = ttk.Button(self, text="Start training!", command=self.start_training, state="disabled")
+        self.start_button.grid(row=3, column=2, sticky="se")
+
     def initialise_custom_config(self):
-        self.custom_options = tk.Frame(self)
-        layout = self.trainer_class[1]().config_layout
+        self.custom_options = tk.Frame(self, borderwidth=2, relief=tk.SUNKEN)
+        try:
+            layout = self.trainer_class[1](load_config=False).config_layout
+        except AttributeError as e:
+            error = "This class does not contain a config layout, unable to create custom config"
+            ttk.Label(self.custom_options, text=error).grid()
+            return
         self.trainer_config = {}
         for header_index, header in enumerate(layout.headers):
             if not header.values:
@@ -60,10 +71,10 @@ class TrainerGUI(tk.Frame):
                     box.grid(row=i + 1, column=1, sticky="ew")
                 elif parameter.type == str:
                     self.trainer_config[header.name][parameter.name] = tk.StringVar()
-                    tk.Entry(header_frame, textvariable=self.trainer_config[header.name][parameter.name]).grid(
+                    ttk.Entry(header_frame, textvariable=self.trainer_config[header.name][parameter.name]).grid(
                         row=i + 1, column=1, sticky="ew")
                 else:
-                    print("UNKNOWN TYPE")
+                    print("Unknown type for", parameter.name, "in", self.trainer_class[0])
                 if parameter.default is not None and parameter.type is not bool:
                     self.trainer_config[header.name][parameter.name].set(parameter.default)
 
@@ -80,6 +91,7 @@ class TrainerGUI(tk.Frame):
                 os.path.realpath(__file__)) + os.sep + "trainer" + os.sep + "configs" + os.sep + trainer_name + ".cfg"
             if os.path.isfile(config_path):
                 self.default_config_path = config_path
+                self.config_options_path[trainer_name] = config_path
                 self.config_options['values'] = (trainer_name, "custom")
                 self.config_options.set(trainer_name)
             else:
@@ -100,7 +112,7 @@ class TrainerGUI(tk.Frame):
                 tk.Label(popup, text="Select the class and press continue").grid(row=0, column=0, columnspan=2,
                                                                                  padx=(10, 10), pady=(10, 5))
                 for i in range(len(trainer_classes)):
-                    tk.Radiobutton(popup, text=trainer_classes[i][0], value=i, anchor="w", variable=selected).grid(
+                    ttk.Radiobutton(popup, text=trainer_classes[i][0], value=i, variable=selected).grid(
                         row=i + 1, column=0, sticky="nsew", padx=(10, 0))
                 selected.set(0)
 
@@ -108,12 +120,12 @@ class TrainerGUI(tk.Frame):
                     self.trainer_class = trainer_classes[selected.get()]
                     popup.destroy()
 
-                tk.Button(popup, text="Continue", anchor="se", command=chosen_class).grid(row=len(trainer_classes),
-                                                                                          column=1, padx=(0, 10),
-                                                                                          pady=(0, 10))
+                ttk.Button(popup, text="Continue", command=chosen_class).grid(row=len(trainer_classes), column=1,
+                                                                              padx=(0, 10), pady=(0, 10))
                 self.wait_window(popup)
             else:
                 self.trainer_class = trainer_classes[0]
+            self.start_button["state"] = "normal"
             self.initialise_custom_config()
             self.change_config()
 
@@ -124,6 +136,7 @@ class TrainerGUI(tk.Frame):
             title="Choose a file.")
         if config_path:
             config_name = os.path.splitext(os.path.basename(os.path.realpath(config_path)))[0]
+            self.config_options_path[config_name] = config_path
             self.config_options['values'] += (config_name,)
             self.config_options.set(config_name)
 
@@ -132,11 +145,16 @@ class TrainerGUI(tk.Frame):
         if config_name == "custom":
             if not self.custom_options.winfo_ismapped():
                 self.custom_options.grid(row=2, column=0, columnspan=3)
-                print("Add custom stuff")
         else:
             if self.custom_options.winfo_ismapped():
                 self.custom_options.grid_forget()
-                print("Remove custom stuff")
+
+    def start_training(self):
+        if self.config_options.get() == "custom":
+            config = CConfig(self.trainer_config)
+            trainer_runner.run_trainer(self.trainer_class[1](config=config))
+        else:
+            trainer_runner.run_trainer(self.trainer_class[1](config_path=self.config_options_path[self.config_options.get()]))
 
 
 if __name__ == '__main__':
