@@ -1,10 +1,10 @@
 # Defined as a generic bot, can use multiple models
 import importlib
 import inspect
-from modelHelpers.actions import action_factory
-from modelHelpers import reward_manager
-from modelHelpers.tensorflow_feature_creator import TensorflowFeatureCreator
-import livedata.live_data_util as live_data_util
+from bot_code.modelHelpers.actions import action_factory
+from bot_code.modelHelpers import reward_manager
+from bot_code.modelHelpers import TensorflowFeatureCreator
+import bot_code.livedata.live_data_util as live_data_util
 
 import numpy as np
 import tensorflow as tf

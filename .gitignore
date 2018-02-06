@@ -1,6 +1,6 @@
 #### TEMP IGNORE TILL FILE IS FINALIZED
 training/
-models/data
+bot_code/models/data
 
 #tensorflow
 tmp/
@@ -125,6 +125,6 @@ ENV/
 RLBot_Injector.exe
 /config.py
 
-TutorialBot/trained_variables
+bot_code/TutorialBot/trained_variables
 
 *.py___jb_tmp___
