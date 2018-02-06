@@ -13,7 +13,6 @@ import bot_input_struct as bi
 import game_data_struct as gd
 import rate_limiter
 import sys
-import imp
 import traceback
 
 from bot_code.conversions import binary_converter as compressor
@@ -34,10 +33,10 @@ class BotManager:
     model_hash = None
     is_eval = False
 
-    def __init__(self, terminateEvent, callbackEvent, config_file, name, team, index, modulename, gamename, savedata, server_manager):
+    def __init__(self, terminateEvent, callbackEvent, bot_parameters, name, team, index, modulename, gamename, savedata, server_manager):
         self.terminateEvent = terminateEvent
         self.callbackEvent = callbackEvent
-        self.config_file = config_file
+        self.bot_parameters = bot_parameters
         self.name = name
         self.team = team
         self.index = index
@@ -55,9 +54,8 @@ class BotManager:
 
     def load_agent(self, agent_module):
         try:
-            agent = agent_module.Agent(self.name, self.team, self.index, config_file=self.config_file)
+            agent = agent_module.Agent(self.name, self.team, self.index, bot_parameters=self.bot_parameters)
         except TypeError as e:
-            print(e)
             agent = agent_module.Agent(self.name, self.team, self.index)
         return agent
 
@@ -98,6 +96,7 @@ class BotManager:
             self.model_hash = 0
 
         self.server_manager.set_model_hash(self.model_hash)
+        last_module_modification_time = os.stat(agent_module.__file__).st_mtime
 
         if hasattr(agent, 'is_evaluating'):
             self.is_eval = agent.is_evaluating
@@ -145,8 +144,13 @@ class BotManager:
                     if new_module_modification_time != last_module_modification_time:
                         last_module_modification_time = new_module_modification_time
                         print('Reloading Agent: ' + agent_module.__file__)
-                        imp.reload(agent_module)
+
+                        importlib.reload(agent_module)
+                        old_agent = agent
                         agent = self.load_agent(agent_module)
+                        # Retire after the replacement initialized properly.
+                        if hasattr(old_agent, 'retire'):
+                            old_agent.retire()
 
                     # Call agent
                     controller_input = agent.get_output_vector(game_tick_packet)
@@ -211,6 +215,8 @@ class BotManager:
 
             r.acquire(after - before)
 
+        if hasattr(agent, 'retire'):
+            agent.retire()
         # If terminated, send callback
         print("something ended closing file")
         if self.save_data:
