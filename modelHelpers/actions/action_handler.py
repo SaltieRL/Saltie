@@ -114,7 +114,7 @@ class ActionHandler:
     def create_action_index(self, real_action):
         return [self._find_matching_action(real_action)]
 
-    def _find_closet_real_number(self, number):
+    def _find_closet_real_number(self, number, index=0):
         if number <= -0.25:
             if number <= -0.75:
                 return 0

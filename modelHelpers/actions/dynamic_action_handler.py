@@ -196,6 +196,12 @@ class DynamicActionHandler(SplitActionHandler):
         rounded_amount = float(action_size // 2)
         return float(round(rounded_amount * input)) / rounded_amount
 
+    def _find_closet_real_number(self, number, index=0):
+        comparison = np.array(self.actions[index])
+        result = np.abs(comparison - np.array(number))
+        index = np.argmin(result)
+        return index
+
     def _create_combo_index(self, real_action, combo_list):
         return self.action_map.get_key(combo_list)
 
@@ -219,11 +225,12 @@ class DynamicActionHandler(SplitActionHandler):
                 combo_list[real_index] = bucketed_control
             else:
                 if indexes[action_index] is None and self.is_classification(action_index):
-                    indexes[action_index] = (self._find_closet_real_number(real_control))
+                    indexes[action_index] = self._find_closet_real_number(real_control, action_index)
                 elif indexes[action_index] is None:
                     indexes[action_index] = real_control
 
-        indexes[self.action_name_index_map[COMBO]] = self._create_combo_index(real_action, combo_list)
+        if len(self.combo_list) > 0:
+            indexes[self.action_name_index_map[COMBO]] = self._create_combo_index(real_action, combo_list)
 
         return indexes
 
@@ -245,11 +252,9 @@ class DynamicActionHandler(SplitActionHandler):
         return binary_combo_index
 
     def _find_closet_real_number_graph(self, number, index=0):
-        pure_number = tf.round(number * 2.0) / 2.0
-        comparison = tf.Variable(np.array(self.actions[index]), dtype=tf.float32)
-        pure_number = tf.cast(pure_number, tf.float32)
-        equal = tf.equal(comparison, pure_number)
-        index = tf.argmax(tf.cast(equal, tf.float32), axis=1)
+        comparison = tf.constant(np.array(self.actions[index]), dtype=tf.float32, shape=[1, len(self.actions[index])])
+        result = tf.abs(comparison - number)
+        index = tf.argmin(result, axis=1)
         return tf.cast(index, tf.float32)
 
     def create_action_indexes_graph(self, real_action, batch_size=None):
@@ -302,7 +307,7 @@ class DynamicActionHandler(SplitActionHandler):
             loss = tf.losses.absolute_difference(labels, tf.squeeze(logits), reduction=Reduction.NONE)
         else:
             loss = tf.constant(0.0)
-        # loss = tf.check_numerics(loss, self.action_list_names[index])
+        loss = tf.check_numerics(loss, self.action_list_names[index])
         return loss
 
     def get_last_layer_activation_function(self, func, index):
