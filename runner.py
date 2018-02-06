@@ -13,7 +13,7 @@ import bot_manager
 import game_data_struct as gd
 import rlbot_exception
 
-from conversions.server_converter import ServerConverter
+from bot_code.conversions.server_converter import ServerConverter
 
 
 PARTICPANT_CONFIGURATION_HEADER = 'Participant Configuration'
@@ -102,7 +102,7 @@ def main():
     name_dict = dict()
 
     save_data = True
-    save_path = os.getcwd() + '/training/replays'
+    save_path = os.getcwd() + '/bot_code/training/replays'
     game_name = str(int(round(time.time() * 1000))) + '-' + str(random.randint(0, 1000))
     if save_data:
         print(save_path)

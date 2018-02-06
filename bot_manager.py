@@ -15,9 +15,8 @@ import rate_limiter
 import sys
 import traceback
 
-
-from conversions import binary_converter as compressor
-from conversions.input import input_formatter
+from bot_code.conversions import binary_converter as compressor
+from bot_code.conversions.input import input_formatter
 
 OUTPUT_SHARED_MEMORY_TAG = 'Local\\RLBotOutput'
 INPUT_SHARED_MEMORY_TAG = 'Local\\RLBotInput'
@@ -47,7 +46,6 @@ class BotManager:
         self.input_converter = input_formatter.InputFormatter(team, index)
         self.frames = 0
         self.file_number = 1
-        self.bot_parameters = bot_parameters
         self.server_manager = server_manager
         self.input_array = np.array([])
         self.output_array = np.array([])
@@ -105,7 +103,7 @@ class BotManager:
             self.server_manager.set_is_eval(self.is_eval)
 
         if self.save_data:
-            filename = self.game_name + '\\' + self.name + '-' + str(self.file_number) + '.bin'
+            filename = self.create_file_name()
             print('creating file ' + filename)
             self.create_new_file(filename)
         old_time = 0
@@ -196,7 +194,7 @@ class BotManager:
                     self.game_file.close()
                     print('creating file ' + filename)
                     self.maybe_compress_and_upload(filename)
-                    filename = self.game_name + '\\' + self.name + '-' + str(self.file_number) + '.bin'
+                    filename = self.create_file_name()
                     self.create_new_file(filename)
                     self.maybe_delete(self.file_number - 3)
                 self.frames += 1
@@ -251,3 +249,6 @@ class BotManager:
         compressor.write_version_info(self.game_file, compressor.get_latest_file_version())
         compressor.write_bot_hash(self.game_file, self.model_hash)
         compressor.write_is_eval(self.game_file, self.is_eval)
+
+    def create_file_name(self):
+        return self.game_name + '/' + self.name + '-' + str(self.file_number) + '.bin'
