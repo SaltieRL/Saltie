@@ -102,7 +102,7 @@ def main():
     name_dict = dict()
 
     save_data = True
-    save_path = os.getcwd() + '/training/replays'
+    save_path = os.getcwd() + '/bot_code/training/replays'
     game_name = str(int(round(time.time() * 1000))) + '-' + str(random.randint(0, 1000))
     if save_data:
         print(save_path)
