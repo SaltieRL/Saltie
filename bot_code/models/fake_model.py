@@ -33,7 +33,7 @@ class FakeModel(BaseModel):
 
     def load_config_file(self):
         super().load_config_file()
-        self.teacher_package = self.config_file.get('Model Configuration', 'teacher_package')
+        self.teacher_package = self.config_file.get('teacher_package')
 
     def sample_action(self, input_state):
         result = self.sess.run(self.actions, feed_dict={self.input_placeholder: input_state})[0]

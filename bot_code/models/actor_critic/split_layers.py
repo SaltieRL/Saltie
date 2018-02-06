@@ -1,7 +1,6 @@
 import tensorflow as tf
 import numpy as np
 
-from bot_code.models import base_model
 from bot_code.models.actor_critic.base_actor_critic import BaseActorCritic
 
 
@@ -21,13 +20,11 @@ class SplitLayers(BaseActorCritic):
     def load_config_file(self):
         super().load_config_file()
         try:
-            self.num_split_layers = self.config_file.getint(base_model.MODEL_CONFIGURATION_HEADER,
-                                                            'num_split_layers')
+            self.num_split_layers = self.config_file.getint('num_split_layers', self.num_split_layers)
         except:
             print('unable to load num_split_layers')
         try:
-            self.gated_layer_index = self.config_file.getint(base_model.MODEL_CONFIGURATION_HEADER,
-                                                             'gated_layer_index')
+            self.gated_layer_index = self.config_file.getint('gated_layer_index', self.gated_layer_index)
         except:
             print('unable to load gated_layer_index')
 

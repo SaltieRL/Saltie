@@ -1,5 +1,4 @@
 from bot_code.models import base_reinforcement
-from bot_code.models import base_model
 import numpy as np
 import tensorflow as tf
 import random
@@ -63,27 +62,23 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
     def load_config_file(self):
         super().load_config_file()
         try:
-            self.num_layers = self.config_file.getint(base_model.MODEL_CONFIGURATION_HEADER,
-                                                      'num_layers')
+            self.num_layers = self.config_file.getint('num_layers', self.num_layers)
         except:
             print('unable to load num_layers')
 
         try:
-            self.network_size = self.config_file.getint(base_model.MODEL_CONFIGURATION_HEADER,
-                                                        'num_width')
+            self.network_size = self.config_file.getint('num_width', self.network_size)
         except:
             print('unable to load the width of each layer')
 
 
         try:
-            self.forced_frame_action = self.config_file.getint(base_model.MODEL_CONFIGURATION_HEADER,
-                                                               'exploration_factor')
+            self.forced_frame_action = self.config_file.getint('exploration_factor', self.forced_frame_action)
         except:
             print('unable to load exploration_factor')
 
         try:
-            self.keep_prob = self.config_file.getfloat(base_model.MODEL_CONFIGURATION_HEADER,
-                                                     'keep_probability')
+            self.keep_prob = self.config_file.getfloat('keep_probability', self.keep_prob)
         except:
             print('unable to load keep_probability')
 

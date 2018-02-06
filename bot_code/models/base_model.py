@@ -7,8 +7,6 @@ from bot_code.conversions.input.input_formatter import InputFormatter
 from bot_code.modelHelpers import tensorflow_feature_creator
 from bot_code.modelHelpers.data_normalizer import DataNormalizer
 
-MODEL_CONFIGURATION_HEADER = 'Model Configuration'
-
 
 class BaseModel:
     savers_map = {}
@@ -375,43 +373,38 @@ class BaseModel:
     def load_config_file(self):
         """Loads a config file.  The config file is stored in self.config_file"""
         try:
-            self.model_file = self.config_file.get(MODEL_CONFIGURATION_HEADER, 'model_directory')
+            self.model_file = self.config_file.get('model_directory', self.model_file)
         except Exception as e:
             print('model directory is not in config', e)
 
         try:
-            self.batch_size = self.config_file.getint(MODEL_CONFIGURATION_HEADER, 'batch_size')
+            self.batch_size = self.config_file.getint('batch_size', self.batch_size)
         except Exception:
             print('batch size is not in config')
 
         try:
-            self.mini_batch_size = self.config_file.getint(MODEL_CONFIGURATION_HEADER, 'mini_batch_size')
+            self.mini_batch_size = self.config_file.getint('mini_batch_size', self.mini_batch_size)
         except Exception:
             print('mini batch size is not in config')
 
         try:
-            self.is_evaluating = self.config_file.getboolean(MODEL_CONFIGURATION_HEADER,
-                                                             'is_evaluating')
+            self.is_evaluating = self.config_file.getboolean('is_evaluating', self.is_evaluating)
         except Exception as e:
             print('unable to load if it should be evaluating')
 
         try:
-            self.is_normalizing = self.config_file.getboolean(MODEL_CONFIGURATION_HEADER,
-                                                              'is_normalizing')
+            self.is_normalizing = self.config_file.getboolean('is_normalizing', self.is_normalizing)
         except Exception as e:
             print('unable to load if it should be normalizing defaulting to true')
         try:
-            self.should_regulate = self.config_file.getboolean(MODEL_CONFIGURATION_HEADER,
-                                                              'should_regulate')
+            self.should_regulate = self.config_file.getboolean('should_regulate', True)
         except Exception as e:
-            self.should_regulate = True
             print('unable to load if it should be regulating defaulting to true')
         try:
-            self.reg_param = self.config_file.getfloat(MODEL_CONFIGURATION_HEADER,
-                                                               'regulate_param')
+            self.reg_param = self.config_file.getfloat('regulate_param', self.reg_param)
         except Exception as e:
-            self.reg_param = 0.001
             print('unable to load if it should be regulating defaulting to true')
+        print('done loading')
 
     def add_saver(self, name, variable_list):
         """

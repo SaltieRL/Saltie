@@ -78,16 +78,16 @@ class Agent:
         model_name = self.config_file.get('model_name')
 
         try:
-            self.is_graphing = self.config_file.getboolean('should_graph')
+            self.is_graphing = self.config_file.getboolean('should_graph', self.is_graphing)
         except:
             print('not generating graph data')
 
         try:
-            self.is_online_training = self.config_file.getboolean('train_online')
+            self.is_online_training = self.config_file.getboolean('train_online', self.is_online_training)
         except:
             print('not training online')
         try:
-            control_scheme = self.config_file.get('control_scheme')
+            control_scheme = self.config_file.get('control_scheme', 'default_scheme')
         except Exception as e:
             control_scheme = 'default_scheme'
 

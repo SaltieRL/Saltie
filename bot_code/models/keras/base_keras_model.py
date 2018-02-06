@@ -1,5 +1,5 @@
 from bot_code.conversions.input.simple_input_formatter import SimpleInputFormatter
-from bot_code.models.base_model import BaseModel, MODEL_CONFIGURATION_HEADER
+from bot_code.models.base_model import BaseModel
 from keras.models import Model
 from keras.layers import Input, Dense, Dropout
 from keras import backend as K
@@ -174,7 +174,7 @@ class BaseKerasModel(BaseModel):
     def create_batched_inputs(self, inputs):
         return inputs
 
-    def add_summary_writer(self, even_name):
+    def add_summary_writer(self, even_name, is_replay=False):
         log_dir = self.get_event_path(even_name)
         self.tensorboard = TensorBoard(
             write_graph=False, write_images=False, log_dir=log_dir, histogram_freq=10)
@@ -182,7 +182,7 @@ class BaseKerasModel(BaseModel):
     def load_config_file(self):
         super().load_config_file()
         try:
-            self.model_file = self.config_file.get(MODEL_CONFIGURATION_HEADER, 'model_directory')
+            self.model_file = self.config_file.get('model_directory', self.model_file)
         except Exception as e:
             print('model directory is not in config', e)
 
