@@ -16,9 +16,8 @@ import sys
 import imp
 import traceback
 
-
-from conversions import binary_converter as compressor
-from conversions.input import input_formatter
+from bot_code.conversions import binary_converter as compressor
+from bot_code.conversions.input import input_formatter
 
 OUTPUT_SHARED_MEMORY_TAG = 'Local\\RLBotOutput'
 INPUT_SHARED_MEMORY_TAG = 'Local\\RLBotInput'

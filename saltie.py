@@ -1,10 +1,10 @@
 # Defined as a generic bot, can use multiple models
 import importlib
 import inspect
-from modelHelpers.actions import action_factory
-from modelHelpers import reward_manager
-from modelHelpers.tensorflow_feature_creator import TensorflowFeatureCreator
-import livedata.live_data_util as live_data_util
+from bot_code.modelHelpers.actions import action_factory
+from bot_code.modelHelpers import reward_manager
+from bot_code.modelHelpers.tensorflow_feature_creator import TensorflowFeatureCreator
+import bot_code.livedata.live_data_util as live_data_util
 
 import numpy as np
 import tensorflow as tf
@@ -99,7 +99,7 @@ class Agent:
         self.control_scheme = self.get_field('modelHelpers.actions.action_factory', control_scheme)
 
     def get_class(self, class_package, class_name):
-        class_package = importlib.import_module(class_package)
+        class_package = importlib.import_module('bot_code.' + class_package)
         module_classes = inspect.getmembers(class_package, inspect.isclass)
         for class_group in module_classes:
             if class_group[0] == class_name:
@@ -107,7 +107,7 @@ class Agent:
         return None
 
     def get_field(self, class_package, class_name):
-        class_package = importlib.import_module(class_package)
+        class_package = importlib.import_module('bot_code.' + class_package)
         module_classes = inspect.getmembers(class_package)
         for class_group in module_classes:
             if class_group[0] == class_name:
