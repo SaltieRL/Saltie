@@ -1,4 +1,3 @@
-from bot_code.models import base_model
 from bot_code.models.actor_critic.policy_gradient import PolicyGradient
 import tensorflow as tf
 
@@ -44,8 +43,7 @@ class TutorialModel(PolicyGradient):
         super().load_config_file()
 
         try:
-            self.teacher = '_' + self.config_file.get(base_model.MODEL_CONFIGURATION_HEADER,
-                                                             'teacher')
+            self.teacher = '_' + self.config_file.get('teacher', self.teacher)
         except:
             print('unable to load the teacher')
 

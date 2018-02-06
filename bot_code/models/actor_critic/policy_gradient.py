@@ -1,7 +1,6 @@
 import numpy as np
 import tensorflow as tf
 
-from bot_code.models import base_model
 from bot_code.modelHelpers import tensorflow_reward_manager
 from bot_code.models.actor_critic.split_layers import SplitLayers
 
@@ -41,13 +40,11 @@ class PolicyGradient(SplitLayers):
     def load_config_file(self):
         super().load_config_file()
         try:
-            self.max_gradient = self.config_file.getint(base_model.MODEL_CONFIGURATION_HEADER,
-                                                      'max_gradient')
+            self.max_gradient = self.config_file.getint('max_gradient', self.max_gradient)
         except:
             print('unable to load max_gradient')
         try:
-            self.max_gradient = self.config_file.getint(base_model.MODEL_CONFIGURATION_HEADER,
-                                                        'total_loss_divider')
+            self.total_loss_divider = self.config_file.getint('total_loss_divider', self.total_loss_divider)
         except:
             print('unable to load total_loss_divider')
 

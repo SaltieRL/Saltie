@@ -63,6 +63,9 @@ class BaseTrainer:
         model_header.add_value('model_name', str, description="The name of the model class")
         self.config_layout.add_header(model_header)
 
+    def create_model_config(self):
+        return self.create_config()[self.MODEL_CONFIG_HEADER]
+
     def load_config(self):
         # Obtaining necessary data for training from the config
         config = self.create_config()

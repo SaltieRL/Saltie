@@ -59,7 +59,7 @@ class RandomPacketTrainer(DefaultModelTrainer):
         return model_class(self.sess, self.action_handler.get_logit_size(),
                            action_handler=self.action_handler, is_training=True,
                            optimizer=self.optimizer,
-                           config_file=self.create_config(), teacher=self.teacher)
+                           config_file=self.create_model_config(), teacher=self.teacher)
 
     def setup_model(self):
         super().setup_model()

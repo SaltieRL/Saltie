@@ -29,6 +29,7 @@ BOT_CONFIG_LOADOUT_HEADER = 'Participant Loadout'
 BOT_CONFIG_LOADOUT_ORANGE_HEADER = 'Participant Loadout Orange'
 BOT_CONFIG_MODULE_HEADER = 'Bot Location'
 USER_CONFIGURATION_HEADER = 'User Info'
+BOT_CONFIG_AGENT_HEADER = 'Bot Parameters'
 
 
 try:
@@ -97,11 +98,11 @@ def main():
     bot_modules = []
     processes = []
     callbacks = []
-    config_files = []
+    bot_parameter_list = []
     name_dict = dict()
 
     save_data = True
-    save_path = os.getcwd() + '/training/replays'
+    save_path = os.getcwd() + '/bot_code/training/replays'
     game_name = str(int(round(time.time() * 1000))) + '-' + str(random.randint(0, 1000))
     if save_data:
         print(save_path)
@@ -129,7 +130,7 @@ def main():
             bot_config.read(participant_configs[i])
 
         team_num = framework_config.getint(PARTICPANT_CONFIGURATION_HEADER,
-                                PARTICPANT_TEAM_PREFIX + str(i))
+                                           PARTICPANT_TEAM_PREFIX + str(i))
 
         loadout_header = BOT_CONFIG_LOADOUT_HEADER
         if (team_num == 1 and bot_config.has_section(BOT_CONFIG_LOADOUT_ORANGE_HEADER)):
@@ -148,8 +149,9 @@ def main():
                                                                                       + str(i))
         gameInputPacket.sPlayerConfiguration[i].iPlayerIndex = i
 
-        gameInputPacket.sPlayerConfiguration[i].wName = get_sanitized_bot_name(name_dict, bot_config.get(loadout_header,
-                                                                       'name'))
+        gameInputPacket.sPlayerConfiguration[i].wName = get_sanitized_bot_name(name_dict,
+                                                                               bot_config.get(loadout_header, 'name'))
+
         gameInputPacket.sPlayerConfiguration[i].ucTeam = team_num
         gameInputPacket.sPlayerConfiguration[i].ucTeamColorID = bot_config.getint(loadout_header,
                                                                                   'team_color_id')
@@ -170,7 +172,12 @@ def main():
         gameInputPacket.sPlayerConfiguration[i].iTrailsID = bot_config.getint(loadout_header, 'trails_id')
         gameInputPacket.sPlayerConfiguration[i].iGoalExplosionID = bot_config.getint(loadout_header,
                                                                                      'goal_explosion_id')
-        config_files.append(bot_config)
+
+        if bot_config.has_section(BOT_CONFIG_AGENT_HEADER):
+            bot_parameter_list.append(bot_config[BOT_CONFIG_AGENT_HEADER])
+        else:
+            bot_parameter_list.append(None)
+
 
         bot_names.append(bot_config.get(loadout_header, 'name'))
         bot_teams.append(framework_config.getint(PARTICPANT_CONFIGURATION_HEADER, PARTICPANT_TEAM_PREFIX + str(i)))
@@ -189,9 +196,11 @@ def main():
         if gameInputPacket.sPlayerConfiguration[i].bRLBotControlled:
             callback = mp.Event()
             callbacks.append(callback)
-            process = mp.Process(target=run_agent, args=(
-                quit_event, callback, config_files[i], str(gameInputPacket.sPlayerConfiguration[i].wName),
-                bot_teams[i], i, bot_modules[i], save_path + '\\' + game_name, save_data, server_manager))
+            process = mp.Process(target=run_agent,
+                                 args=(quit_event, callback, bot_parameter_list[i],
+                                       str(gameInputPacket.sPlayerConfiguration[i].wName),
+                                       bot_teams[i], i, bot_modules[i], save_path + '\\' + game_name,
+                                       save_data, server_manager))
             process.start()
 
     print("Successfully configured bots. Setting flag for injected dll.")

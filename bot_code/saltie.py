@@ -10,8 +10,6 @@ import numpy as np
 import tensorflow as tf
 import time
 
-MODEL_CONFIGURATION_HEADER = 'Model Configuration'
-
 
 class Agent:
     model_class = None
@@ -24,9 +22,9 @@ class Agent:
     is_graphing = True
     control_scheme = None
 
-    def __init__(self, name, team, index, config_file=None):
+    def __init__(self, name, team, index, bot_parameters=None):
         self.last_frame_time = None
-        self.config_file = config_file
+        self.config_file = bot_parameters
         self.index = index
         self.load_config_file()
         self.reward_manager = reward_manager.RewardManager()
@@ -43,7 +41,7 @@ class Agent:
                                             input_formatter_info=[team, index],
                                             player_index=self.index,
                                             action_handler=self.actions_handler,
-                                            config_file=config_file,
+                                            config_file=bot_parameters,
                                             is_training=False)
 
         self.model.add_summary_writer('random_packet', is_replay=True)
@@ -76,20 +74,20 @@ class Agent:
             return
         # read file code here
 
-        model_package = self.config_file.get(MODEL_CONFIGURATION_HEADER, 'model_package')
-        model_name = self.config_file.get(MODEL_CONFIGURATION_HEADER, 'model_name')
+        model_package = self.config_file.get('model_package')
+        model_name = self.config_file.get('model_name')
 
         try:
-            self.is_graphing = self.config_file.getboolean(MODEL_CONFIGURATION_HEADER, 'should_graph')
+            self.is_graphing = self.config_file.getboolean('should_graph', self.is_graphing)
         except:
             print('not generating graph data')
 
         try:
-            self.is_online_training = self.config_file.getboolean(MODEL_CONFIGURATION_HEADER, 'train_online')
+            self.is_online_training = self.config_file.getboolean('train_online', self.is_online_training)
         except:
             print('not training online')
         try:
-            control_scheme = self.config_file.get(MODEL_CONFIGURATION_HEADER, 'control_scheme')
+            control_scheme = self.config_file.get('control_scheme', 'default_scheme')
         except Exception as e:
             control_scheme = 'default_scheme'
 
