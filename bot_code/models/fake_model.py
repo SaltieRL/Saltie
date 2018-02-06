@@ -24,7 +24,7 @@ class FakeModel(BaseModel):
                          config_file=config_file)
 
     def get_class(self, class_package, class_name):
-        class_package = importlib.import_module(class_package)
+        class_package = importlib.import_module('bot_code.' + class_package)
         module_classes = inspect.getmembers(class_package, inspect.isclass)
         for class_group in module_classes:
             if class_group[0] == class_name:

@@ -3,7 +3,7 @@ import importlib
 import inspect
 from bot_code.modelHelpers.actions import action_factory
 from bot_code.modelHelpers import reward_manager
-from bot_code.modelHelpers import TensorflowFeatureCreator
+from bot_code.modelHelpers.tensorflow_feature_creator import TensorflowFeatureCreator
 import bot_code.livedata.live_data_util as live_data_util
 
 import numpy as np

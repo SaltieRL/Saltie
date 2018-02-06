@@ -13,7 +13,7 @@ import bot_manager
 import game_data_struct as gd
 import rlbot_exception
 
-from bot_code.conversions import ServerConverter
+from bot_code.conversions.server_converter import ServerConverter
 
 
 PARTICPANT_CONFIGURATION_HEADER = 'Participant Configuration'
