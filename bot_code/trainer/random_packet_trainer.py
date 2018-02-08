@@ -38,6 +38,9 @@ class RandomPacketTrainer(DefaultModelTrainer):
         random_header.add_value("save_step", int, default=50)  # TODO add description
         random_header.add_value("teacher_package", str, description="The package containing the teacher bot")
 
+        self.config_layout[self.MODEL_CONFIG_HEADER]["model_package"].default = "models.actor_critic.tutorial_model"
+        self.config_layout[self.MODEL_CONFIG_HEADER]["model_name"].default = "TutorialModel"
+
 
     def load_config(self):
         super().load_config()

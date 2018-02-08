@@ -3,7 +3,7 @@ import importlib
 import inspect
 
 import os
-from bot_code.trainer.utils.config_objects import *
+from bot_code.trainer.utils.custom_config import *
 from bot_code.trainer.utils.ding import ding
 
 
@@ -60,11 +60,11 @@ class BaseTrainer:
 
         self.config_layout.add_header_name(self.BASE_CONFIG_HEADER)
 
-        model_header = self.config_layout.ConfigHeader(self.MODEL_CONFIG_HEADER)
+        model_header = self.config_layout.ConfigHeader()
         model_header.add_value('batch_size', int, default=5000, description="The batch size for training")
         model_header.add_value('model_package', str, description="The package containing the model")
         model_header.add_value('model_name', str, description="The name of the model class")
-        self.config_layout.add_header(model_header)
+        self.config_layout.add_header(self.MODEL_CONFIG_HEADER, model_header)
         return self.config_layout
 
     def create_model_config(self):

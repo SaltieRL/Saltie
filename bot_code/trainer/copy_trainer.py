@@ -7,7 +7,6 @@ from bot_code.trainer.utils.trainer_runner import run_trainer
 
 
 class CopyTrainer(DownloadTrainer, DefaultModelTrainer):
-
     should_shuffle = False
     file_number = 0
 
@@ -25,14 +24,21 @@ class CopyTrainer(DownloadTrainer, DefaultModelTrainer):
 
     def create_config_layout(self):
         super().create_config_layout()
-        self.config_layout.get_header(self.DOWNLOAD_TRAINER_CONFIGURATION_HEADER).add_value("download_files", bool, default=True)  # TODO add description
+        self.config_layout.get_header(self.DOWNLOAD_TRAINER_CONFIGURATION_HEADER).add_value("download_files", bool,
+                                                                                            default=True)  # TODO add description
+
+        self.config_layout[self.OPTIMIZER_CONFIG_HEADER]["keep_probability"] = 0.0005
+        self.config_layout[self.MISC_CONFIG_HEADER]["control_scheme"].default = "regression_controls"
+        self.config_layout[self.MODEL_CONFIG_HEADER]["batch_size"].default = 20000
+        self.config_layout[self.MODEL_CONFIG_HEADER]["model_package"].default = "models.actor_critic.tutorial_model"
+        self.config_layout[self.MODEL_CONFIG_HEADER]["model_name"].default = "TutorialModel"
 
     def load_config(self):
         super().load_config()
         config = super().create_config()
         try:
             self.should_shuffle = config.getboolean(self.DOWNLOAD_TRAINER_CONFIGURATION_HEADER,
-                                                   'download_files')
+                                                    'download_files')
         except Exception as e:
             self.should_shuffle = True
 
@@ -131,8 +137,10 @@ class CopyTrainer(DownloadTrainer, DefaultModelTrainer):
     def end_everything(self):
         self.model.save_model()
 
+
 class RandomClass:
     print("Some text")
+
 
 if __name__ == '__main__':
     run_trainer(trainer=CopyTrainer())
