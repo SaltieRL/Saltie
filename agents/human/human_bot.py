@@ -5,7 +5,6 @@ class Agent:
         pass
 
     def get_output_vector(self, game_tick_packet):
-
         return [
             controller.fThrottle,
             controller.fSteer,

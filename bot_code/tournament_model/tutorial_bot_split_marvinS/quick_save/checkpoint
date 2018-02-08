@@ -1,0 +1,3 @@
+model_checkpoint_path: "D:\\workspace\\Saltie\\bot_code/training/data/tutorial_bot_split_marvinS/quick_save/trained_variables1-29999"
+all_model_checkpoint_paths: "D:\\workspace\\Saltie\\bot_code/training/data/tutorial_bot_split_marvinS/quick_save/trained_variables0-14999"
+all_model_checkpoint_paths: "D:\\workspace\\Saltie\\bot_code/training/data/tutorial_bot_split_marvinS/quick_save/trained_variables1-29999"
