@@ -304,7 +304,8 @@ class BaseModel:
             model_file = self.get_model_path(self.get_default_file_name())
             self.model_file = model_file
         else:
-            model_file = self.model_file
+            parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            model_file = parent_dir + '/' + self.model_file
         print('looking for ' + model_file + '.keys')
         if os.path.isfile(model_file + '.keys'):
             print('loading existing model')

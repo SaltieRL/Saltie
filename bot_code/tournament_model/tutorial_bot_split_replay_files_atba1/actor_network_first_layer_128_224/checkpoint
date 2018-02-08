@@ -1,0 +1,2 @@
+model_checkpoint_path: "D:\\workspace\\Saltie/training/data/tutorial_bot_split_replay_files/actor_network_first_layer_128_224/trained_variables"
+all_model_checkpoint_paths: "D:\\workspace\\Saltie/training/data/tutorial_bot_split_replay_files/actor_network_first_layer_128_224/trained_variables"
