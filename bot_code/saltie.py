@@ -5,6 +5,7 @@ from bot_code.modelHelpers.actions import action_factory
 from bot_code.modelHelpers import reward_manager
 from bot_code.modelHelpers.tensorflow_feature_creator import TensorflowFeatureCreator
 import bot_code.livedata.live_data_util as live_data_util
+from bot_code.trainer.utils import custom_config
 
 import numpy as np
 import tensorflow as tf
@@ -163,3 +164,15 @@ class Agent:
         except Exception as e:
             print('creating hash exception', e)
             return 0
+
+    @staticmethod
+    def get_parameters_header():
+        header = custom_config.ConfigObject.ConfigHeader()  # TODO add defaults and some descriptions
+        header.add_value("model_package", str, description="Path to ML model")
+        header.add_value("model_name", str, description="Name of class containing model")
+        header.add_value("num_layers", int, description="Amount of hidden layers")
+        header.add_value("batch_size", int, description="Batch size")
+        header.add_value("mini_batch_size", int, description="Batch size")
+        header.add_value("is_evaluating", bool)
+        header.add_value("exploration_factor", int)
+        return header
