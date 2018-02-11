@@ -8,6 +8,7 @@ from bot_code.models.actor_critic.split_layers import SplitLayers
 class PolicyGradient(SplitLayers):
     max_gradient = 1.0
     total_loss_divider = 1.0
+    individual_loss_divider = 1.0
 
     def __init__(self, session,
                  num_actions,
@@ -40,13 +41,18 @@ class PolicyGradient(SplitLayers):
     def load_config_file(self):
         super().load_config_file()
         try:
-            self.max_gradient = self.config_file.getint('max_gradient', self.max_gradient)
+            self.max_gradient = self.config_file.getfloat('max_gradient', self.max_gradient)
         except:
             print('unable to load max_gradient')
         try:
-            self.total_loss_divider = self.config_file.getint('total_loss_divider', self.total_loss_divider)
+            self.total_loss_divider = self.config_file.getfloat('total_loss_divider', self.total_loss_divider)
         except:
             print('unable to load total_loss_divider')
+        try:
+            self.individual_loss_divider = self.config_file.getfloat('individual_loss_divider',
+                                                                     self.individual_loss_divider)
+        except:
+            print('unable to load individual_loss_divider')
 
     def create_training_op(self, logprobs, taken_actions):
         critic_gradients, critic_loss, critic_reg_loss = self.create_critic_gadients()
@@ -117,6 +123,8 @@ class PolicyGradient(SplitLayers):
         with tf.name_scope("compute_pg_gradients"):
             actor_loss = cross_entropy_loss * (wrongness * wrongness)
 
+            actor_loss = actor_loss / self.individual_loss_divider
+
             # actor_loss = tf.check_numerics(actor_loss, 'nan pg_loss')
 
             if reduced:
@@ -142,6 +150,11 @@ class PolicyGradient(SplitLayers):
                 tf.summary.scalar("actor_loss", actor_loss)
             else:
                 tf.summary.scalar("actor_loss", tf.reduce_mean(actor_loss))
+
+            if self.action_handler.action_list_names[index] == 'combo':
+                # combo represents multiple controls
+                actor_loss = actor_loss * len(self.action_handler.combo_list)
+
             return [actor_gradients, actor_loss]
 
     def create_critic_gadients(self):
