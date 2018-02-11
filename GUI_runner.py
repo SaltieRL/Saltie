@@ -16,27 +16,27 @@ class StartRunnerGUI(tk.Frame):
         self.parent.title("Runner GUI")
         self.parent.iconbitmap(default="images" + os.sep + "Saltie_logo.ico")
 
-        self.agent_frames = tk.Frame(self)
-        self.agent_frames.pack_propagate(False)
-        for i in [0, 1, 2]:
-            self.agent_frames.grid_columnconfigure(i, weight=1, minsize=350)
+        self.agent_frames = ttk.Notebook(self)
 
-        self.agent_frames.grid(row=0, column=0)
         self.agents = list()
         self.agents.append(self.AgentFrame(self.agent_frames))
-        ttk.Label(self.agent_frames, text="Bot 1").grid(row=0, column=0)
-        self.agents[0].grid(row=1, column=0)
+        self.agent_frames.add(self.agents[0], text="Bot 1")
+        self.agent_frames.bind("<<NotebookTabChanged>>", self.switch_tab)
+        self.add_agent_frame = tk.Frame(self.agent_frames)
+        self.agent_frames.add(self.add_agent_frame, text="Add Agent")
         self.current_agent_frame = 0
+
+        self.agent_frames.grid(row=0, column=0)
 
         self.left_button = ttk.Button(self.agent_frames, text="<<",
                                       command=lambda: self.change_view(self.current_agent_frame - 1))
         self.right_button = ttk.Button(self.agent_frames, text=">>",
                                        command=lambda: self.change_view(self.current_agent_frame + 1))
 
-        self.add_agent_frame = tk.Frame(self.agent_frames, bg='blue')
-        ttk.Button(self.add_agent_frame, text="Add Agent", command=self.add_agent).grid()
-        self.add_agent_frame.grid(row=1, column=1)
-        ttk.Label(self.agent_frames, text="").grid(row=1, column=2)
+        # self.add_agent_frame = tk.Frame(self.agent_frames, bg='blue')
+        # ttk.Button(self.add_agent_frame, text="Add Agent", command=self.add_agent).grid()
+        # self.add_agent_frame.grid(row=1, column=1)
+        # ttk.Label(self.agent_frames, text="").grid(row=1, column=2)
 
         self.start_button = ttk.Button(self, text="Start running!", command=self.start_running)
         self.start_button.grid(row=1, column=0, padx=(5, 10), pady=(5, 10), sticky="se")
@@ -65,57 +65,25 @@ class StartRunnerGUI(tk.Frame):
         self.parent.destroy()
         rocketleaguerunner.main(framework_config=rlbotcfg, bot_location=agent_locations)
 
-
-
-    def change_view(self, index):
-        for i in [0, 1]:
-            for widget in self.agent_frames.grid_slaves(row=i):
-                widget.grid_forget()
-        if len(self.agents) == 1:
-            ttk.Label(self.agent_frames, text="Bot " + str(index + 1)).grid(row=0, column=0)
-            self.agents[0].grid(row=1, column=0, sticky="nsew")
-            self.add_agent_frame.grid(row=1, column=1)
-            ttk.Label(self.agent_frames, text="").grid(row=1, column=2)
-        elif index == len(self.agents) - 2 and index < 8:
-            ttk.Label(self.agent_frames, text="Bot " + str(index + 1)).grid(row=0, column=0)
-            ttk.Label(self.agent_frames, text="Bot " + str(index + 2)).grid(row=0, column=1)
-            self.agents[index].grid(row=1, column=0, sticky="nsew")
-            self.agents[index + 1].grid(row=1, column=1, sticky="nsew")
-            self.add_agent_frame.grid(row=1, column=2)
-        else:
-            ttk.Label(self.agent_frames, text="Bot " + str(index + 1)).grid(row=0, column=0)
-            ttk.Label(self.agent_frames, text="Bot " + str(index + 2)).grid(row=0, column=1)
-            ttk.Label(self.agent_frames, text="Bot " + str(index + 3)).grid(row=0, column=2)
-            self.agents[index].grid(row=1, column=0, sticky="nsew")
-            self.agents[index + 1].grid(row=1, column=1, sticky="nsew")
-            self.agents[index + 2].grid(row=1, column=2, sticky="nsew")
-        if index < 1 and self.left_button.winfo_ismapped():
-            self.left_button.grid_forget()
-        elif index != 0 and not self.left_button.winfo_ismapped():
-            self.left_button.grid(row=2, column=0)
-        if (index > 6 or index == len(self.agents) - 2) and self.right_button.winfo_ismapped():
-            self.right_button.grid_forget()
-        elif not (index == 7 or index == len(self.agents) - 2) and len(
-                self.agents) > 2 and not self.right_button.winfo_ismapped():
-            self.right_button.grid(row=2, column=2)
-        self.current_agent_frame = index
+    def switch_tab(self, event=None):
+        if self.agent_frames.tab(self.agent_frames.index("current"), option="text") == "Add Agent":
+            self.add_agent()
 
     def add_agent(self):
+        index = self.agent_frames.index("current")
         self.agents.append(self.AgentFrame(self.agent_frames))
-        if len(self.agents) == 10:
-            self.change_view(len(self.agents) - 3)
-        else:
-            self.change_view(len(self.agents) - 2)
+        self.agent_frames.insert(index, self.agents[index], text="Bot " + str(index + 1))
+        if index == 9:
+            self.agent_frames.forget(index + 1)
+        self.agent_frames.select(index)
 
     def remove_agent(self, agent):
         agent.destroy()
         self.agents.remove(agent)
         if len(self.agents) == 0:
             self.agents.append(self.AgentFrame(self.agent_frames))
-        if self.current_agent_frame != 0 and self.current_agent_frame > len(self.agents) - 2:
-            self.change_view(self.current_agent_frame - 1)
-        else:
-            self.change_view(self.current_agent_frame)
+            self.agent_frames.add(self.agents[0])
+        self.agent_frames.add(self.add_agent_frame)
 
     class AgentFrame(tk.Frame):
         def __init__(self, parent, *args, **kwargs):
