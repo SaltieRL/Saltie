@@ -12,6 +12,12 @@ super_split_scheme = [[('throttle', (-1, 1.5, .5)), ('steer', (-1, 1.5, .5)),
                       [('jump', (0, 2, 1)), ('boost', (0, 2, 1)), ('handbrake', (0, 2, 1))],
                       []]
 
+super_split_scheme_no_combo = [[('throttle', (-1, 1.25, .25)), ('steer', (-1, 1.25, .25)),
+                                ('yaw', (-1, 1.25, .25)), ('pitch', (-1, 1.25, .25)), ('roll', (-1, 1.25, .25)),
+                                ('jump', (0, 2, 1)), ('boost', (0, 2, 1)), ('handbrake', (0, 2, 1))],
+                               [],
+                               []]
+
 only_steer_split_scheme = [[('steer', (-1, 1.5, .5))],
                            [('throttle', (-1, 2, 1)), ('jump', (0, 2, 1)), ('boost', (0, 2, 1)),
                             ('handbrake', (0, 2, 1)), ('yaw', (-1, 2, 1)),
