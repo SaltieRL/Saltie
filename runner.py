@@ -1,12 +1,13 @@
 import configparser
 import ctypes
+import io
 import mmap
 import msvcrt
 import multiprocessing as mp
 import os
+import sys
 import random
 import time
-import io
 
 import bot_input_struct as bi
 import bot_manager
@@ -121,14 +122,16 @@ def main(framework_config=None, bot_location=None):
     num_team_0 = 0
     # Set configuration values for bots and store name and team
     for i in range(num_participants):
+        bot_config_path = participant_configs[i]
+        sys.path.append(os.path.dirname(bot_config_path))
         bot_config = configparser.RawConfigParser()
         if server_manager.download_config:
-            if 'saltie' in os.path.basename(participant_configs[i]):
+            if 'saltie' in os.path.basename(bot_config_path):
                 bot_config._read(io.StringIO(server_manager.config_response.json()['content']), 'saltie.cfg')
             else:
-                bot_config.read(participant_configs[i])
+                bot_config.read(bot_config_path)
         else:
-            bot_config.read(participant_configs[i])
+            bot_config.read(bot_config_path)
 
         team_num = framework_config.getint(PARTICPANT_CONFIGURATION_HEADER,
                                            PARTICPANT_TEAM_PREFIX + str(i))

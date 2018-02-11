@@ -5,6 +5,7 @@ import tensorflow as tf
 class TutorialModel(PolicyGradient):
     max_gradient = 10.0
     total_loss_divider = 2.0
+    combo_wrongness_multiplier = 2.0
     # hidden_layer_activation = tf.nn.relu6
     # hidden_layer_activation = tf.tanh
 
@@ -47,6 +48,12 @@ class TutorialModel(PolicyGradient):
         except:
             print('unable to load the teacher')
 
+        try:
+            self.combo_wrongness_multiplier = self.config_file.getfloat('combo_wrongness_multiplier',
+                                                                        self.combo_wrongness_multiplier)
+        except:
+            print('unable to load the combo_wrongness_multiplier')
+
         self.num_split_layers = min(self.num_split_layers, self.num_layers - 2)
 
     def create_training_op(self, logprobs, labels):
@@ -83,14 +90,18 @@ class TutorialModel(PolicyGradient):
         if self.action_handler.action_list_names[index] != 'combo':
             if self.action_handler.is_classification(index):
                 wrongness += tf.cast(tf.abs(tf.cast(argmax, tf.float32) - taken_actions), tf.float32)
+                if self.action_handler.action_sizes[index] == 2:
+                    wrongness *= 1.0 + tf.cast(tf.not_equal(argmax, 0), tf.float32)
             else:
                 wrongness += tf.abs(tf.round(taken_actions * 2.0) / 2.0 - tf.round(logprobs * 2.0) / 2.0)
         else:
             # use temporarily
             # wrongness += tf.log(1.0 + tf.cast(tf.abs(tf.cast(argmax, tf.float32) - taken_actions), tf.float32))
 
-            number = tf.bitwise.bitwise_xor(tf.cast(self.argmax[index], tf.int64), tf.cast(taken_actions, tf.int64))
-            wrongness += tf.cast(self.fancy_calculate_number_of_ones(number), tf.float32)
+            number = tf.bitwise.bitwise_xor(tf.cast(argmax, tf.int64), tf.cast(taken_actions, tf.int64))
+            wrongness += tf.cast(self.fancy_calculate_number_of_ones(number),
+                                 tf.float32) * (1.0 + self.combo_wrongness_multiplier *
+                                                tf.cast(tf.not_equal(taken_actions, 0), tf.float32))
 
         return cross_entropy_loss, wrongness, False
 
