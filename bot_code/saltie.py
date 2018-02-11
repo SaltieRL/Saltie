@@ -126,8 +126,8 @@ class Agent:
     def get_output_vector(self, game_tick_packet):
         frame_time = 0.0
         if self.last_frame_time is not None:
-            frame_time = time.time() - self.last_frame_time
-        self.last_frame_time = time.time()
+            frame_time = game_tick_packet.gameInfo.TimeSeconds - self.last_frame_time
+        self.last_frame_time = game_tick_packet.gameInfo.TimeSeconds
         input_state = self.model.create_input_array(game_tick_packet, frame_time)
         if self.model.state_dim != len(input_state):
             print('wrong input size', self.index, len(input_state))

@@ -12,7 +12,6 @@ class SplitActionHandler(ActionHandler):
     action_sizes = []
     movement_actions = []
     tensorflow_combo_actions = []
-    action_list_size = 0
 
     def __init__(self):
         super().__init__()
@@ -21,7 +20,6 @@ class SplitActionHandler(ActionHandler):
         super().reset()
         self.actions = []
         self.action_sizes = []
-        self.action_list_size = 0
         self.movement_actions = []
         self.tensorflow_combo_actions = []
 
@@ -43,7 +41,7 @@ class SplitActionHandler(ActionHandler):
         boost = [False, True]
         handbrake = [False, True]
         action_list = [throttle, jump, boost, handbrake]
-        self.action_list_size = len(action_list)
+        self.combo_list = action_list
         # 24 + 5 + 5 + 5 = 39
         button_combo = list(itertools.product(*action_list))
         actions = []
@@ -145,7 +143,7 @@ class SplitActionHandler(ActionHandler):
         roll = tf.gather_nd(roll_actions, tf.stack([indexer, action_selection[2]], axis=1))
 
         button_combo = tf.gather_nd(combo_actions, tf.stack([indexer, action_selection[3]], axis=1))
-        new_shape = [self.action_list_size, batch_size]
+        new_shape = [len(self.combo_list), batch_size]
         button_combo = tf.reshape(button_combo, new_shape)
         throttle = button_combo[0]
         jump = button_combo[1]

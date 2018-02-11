@@ -27,7 +27,6 @@ class DynamicActionHandler(SplitActionHandler):
     combo_name_index_map = {}
     action_sizes = []
     combo_action_sizes = []
-    combo_list = []
     button_combo = []
     combo_name_list = []
     dodge_suppressor_list = [['jump'], ['steer', 'pitch', 'roll', 'yaw']]
