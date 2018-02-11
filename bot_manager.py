@@ -183,7 +183,7 @@ class BotManager:
                 self.input_array = np.append(self.input_array, np_input)
                 self.output_array = np.append(self.output_array, np_output)
                 if self.frames % self.batch_size == 0 and not self.frames == 0:
-                    print('writing big array')
+                    print('writing big array', self.frames)
                     compressor.write_array_to_file(self.game_file, self.input_array)
                     compressor.write_array_to_file(self.game_file, self.output_array)
                     self.input_array = np.array([])
