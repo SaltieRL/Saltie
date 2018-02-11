@@ -23,19 +23,19 @@ class ConfigObject:
         return self.add_header_name(header_name)
 
     def get(self, section, option):
-        return self[section][option].value.get() if isinstance(self[section][option], tk.StringVar) \
+        return self[section][option].value.get() if isinstance(self[section][option].value, tk.StringVar) \
             else self[section][option].value
 
     def getint(self, section, option):
-        return self[section][option].value.get() if isinstance(self[section][option], tk.IntVar) \
+        return self[section][option].value.get() if isinstance(self[section][option].value, tk.IntVar) \
             else int(self[section][option].value)
 
     def getboolean(self, section, option):
-        return self[section][option].value.get() if isinstance(self[section][option], tk.BooleanVar) \
+        return self[section][option].value.get() if isinstance(self[section][option].value, tk.BooleanVar) \
             else bool(self[section][option].value)
 
     def getfloat(self, section, option):
-        return float(self[section][option].value.get()) if isinstance(self[section][option], tk.DoubleVar) \
+        return float(self[section][option].value.get()) if isinstance(self[section][option].value, tk.DoubleVar) \
             else float(self[section][option].value)
 
     class ConfigHeader:
@@ -49,19 +49,19 @@ class ConfigObject:
             self.values[name] = self.ConfigValue(value_type, default=default, description=description, var=var)
 
         def get(self, option):
-            return self[option].value.get() if isinstance(self[option], tk.StringVar) \
+            return self[option].value.get() if isinstance(self[option].value, tk.StringVar) \
                 else self[option].value
 
         def getint(self, option):
-            return self[option].value.get() if isinstance(self[option], tk.IntVar) \
+            return self[option].value.get() if isinstance(self[option].value, tk.IntVar) \
                 else int(self[option].value)
 
         def getboolean(self, option):
-            return self[option].value.get() if isinstance(self[option], tk.BooleanVar) \
+            return self[option].value.get() if isinstance(self[option].value, tk.BooleanVar) \
                 else bool(self[option].value)
 
         def getfloat(self, option):
-            return float(self[option].value.get()) if isinstance(self[option], tk.DoubleVar) \
+            return float(self[option].value.get()) if isinstance(self[option].value, tk.DoubleVar) \
                 else float(self[option].value)
 
         class ConfigValue:

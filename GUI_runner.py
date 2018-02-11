@@ -4,6 +4,8 @@ from tkinter import ttk
 import os
 import importlib
 import inspect
+from bot_code.trainer.utils import custom_config
+import runner as rocketleaguerunner
 
 
 class StartRunnerGUI(tk.Frame):
@@ -36,11 +38,34 @@ class StartRunnerGUI(tk.Frame):
         self.add_agent_frame.grid(row=1, column=1)
         ttk.Label(self.agent_frames, text="").grid(row=1, column=2)
 
-        self.start_button = ttk.Button(self, text="Start running!", command=self.start_running, state="disabled")
+        self.start_button = ttk.Button(self, text="Start running!", command=self.start_running)
         self.start_button.grid(row=1, column=0, padx=(5, 10), pady=(5, 10), sticky="se")
 
     def start_running(self):
-        print("Gotta run that runner")
+        os.system(os.path.dirname(os.path.realpath(__file__)) + os.sep + "RLBot_Injector.exe")
+        num_bots = len(self.agents)
+
+        rlbotcfg = custom_config.ConfigObject()
+        cfg_header = rlbotcfg.add_header_name('RLBot Configuration')
+        cfg_header.add_value("num_participants", int, var=num_bots)
+
+        participiant_header = rlbotcfg.add_header_name('Participant Configuration')
+        for i in range(num_bots):
+            participiant_header.add_value("participant_config_" + str(i), str, var=self.agents[i].looks_path)
+            participiant_header.add_value("participant_team_" + str(i), str, var=self.agents[i].team)
+            participiant_header.add_value("participant_is_bot_" + str(i), bool, var=self.agents[i].is_bot)
+            participiant_header.add_value("participant_is_rlbot_controlled_" + str(i), bool,
+                                          var=self.agents[i].rlbot_controlled)
+            level = self.agents[i].bot_level.get()
+            skill = 0.5 if level == "Pro" else 1.0 if level == "All-Star" else 0
+            participiant_header.add_value("participant_bot_skill_" + str(i), float, var=skill)
+        agent_locations = [self.agents[i].agent_path.get() for i in range(num_bots)]
+
+        self.forget()
+        self.parent.destroy()
+        rocketleaguerunner.main(framework_config=rlbotcfg, bot_location=agent_locations)
+
+
 
     def change_view(self, index):
         for i in [0, 1]:
@@ -70,7 +95,8 @@ class StartRunnerGUI(tk.Frame):
             self.left_button.grid(row=2, column=0)
         if (index > 6 or index == len(self.agents) - 2) and self.right_button.winfo_ismapped():
             self.right_button.grid_forget()
-        elif not (index == 7 or index == len(self.agents) - 2) and len(self.agents) > 3 and not self.right_button.winfo_ismapped():
+        elif not (index == 7 or index == len(self.agents) - 2) and len(
+                self.agents) > 2 and not self.right_button.winfo_ismapped():
             self.right_button.grid(row=2, column=2)
         self.current_agent_frame = index
 
@@ -84,7 +110,7 @@ class StartRunnerGUI(tk.Frame):
     def remove_agent(self, agent):
         agent.destroy()
         self.agents.remove(agent)
-        if len(self.agents) == 0  :
+        if len(self.agents) == 0:
             self.agents.append(self.AgentFrame(self.agent_frames))
         if self.current_agent_frame != 0 and self.current_agent_frame > len(self.agents) - 2:
             self.change_view(self.current_agent_frame - 1)
@@ -106,7 +132,13 @@ class StartRunnerGUI(tk.Frame):
             self.looks_widgets.append(ttk.Button(self, text="Select file", command=self.change_looks_path))
 
             # rlbot.cfg options
-            self.is_bot = tk.BooleanVar()  # row 1
+            self.team = tk.IntVar()  # row 1
+            self.team_widgets = list()
+            self.team_widgets.append(ttk.Label(self, text="Team: ", anchor="e"))
+            self.team_widgets.append(ttk.Combobox(self, textvariable=self.team, values=(0, 1), state="readonly"))
+            self.team_widgets[1].current(0)
+
+            self.is_bot = tk.BooleanVar()  # row 2
             self.is_bot_widgets = list()
             self.is_bot_widgets.append(ttk.Label(self, text="Is bot: ", anchor="e"))
             self.is_bot_widgets.append(
@@ -114,7 +146,7 @@ class StartRunnerGUI(tk.Frame):
             self.is_bot_widgets[1].bind("<<ComboboxSelected>>", self.change_is_bot)
             self.is_bot_widgets[1].current(0)
 
-            self.rlbot_controlled = tk.BooleanVar()  # row 2
+            self.rlbot_controlled = tk.BooleanVar()  # row 3
             self.rlbot_controlled_widgets = list()
             self.rlbot_controlled_widgets.append(ttk.Label(self, text="RLBot controlled: ", anchor="e"))
             self.rlbot_controlled_widgets.append(
@@ -122,13 +154,13 @@ class StartRunnerGUI(tk.Frame):
             self.rlbot_controlled_widgets[1].bind("<<ComboboxSelected>>", self.change_rlbot_controlled)
             self.rlbot_controlled_widgets[1].current(1)
 
-            self.bot_level = tk.StringVar(value="All-Star")  # row 3
+            self.bot_level = tk.StringVar(value="All-Star")  # row 4
             self.bot_level_widgets = list()
             self.bot_level_widgets.append(ttk.Label(self, text="Bot level: ", anchor="e"))
             self.bot_level_widgets.append(ttk.Combobox(self, textvariable=self.bot_level, state="readonly",
                                                        values=("Rookie", "Pro", "All-Star")))
             # Agent path
-            self.agent_path_widgets = list()  # row 4
+            self.agent_path_widgets = list()  # row 5
             self.agent_path_widgets.append(ttk.Label(self, text="Agent path: ", anchor="e"))
             self.agent_path_widgets.append(
                 ttk.Entry(self, textvariable=self.agent_path, state="readonly", takefocus=False))
@@ -136,21 +168,20 @@ class StartRunnerGUI(tk.Frame):
                 ttk.Button(self, text="Select file", command=self.change_bot_path))
 
             # Agent config
-            self.agent_config_widgets = list()  # row 5
+            self.agent_config_widgets = list()  # row 6
             self.agent_config_widgets.append(ttk.Label(self, text="Bot Parameters: ", anchor="e"))
             self.agent_config_widgets.append(ttk.Combobox(self, state="readonly"))
             self.agent_config_widgets[1].bind("<<ComboboxSelected>>", self.change_config)
             self.agent_config_widgets.append(
                 ttk.Button(self, text="Add config", command=self.add_config_option, state="disabled"))
 
-            self.custom_agent_options = tk.Frame(self, borderwidth=2, relief=tk.SUNKEN)  # row 6
+            self.custom_agent_options = tk.Frame(self, borderwidth=2, relief=tk.SUNKEN)  # row 7
 
-            ttk.Button(self, text="Remove", command=lambda: parent.master.remove_agent(self)).grid(row=7, column=2)
+            ttk.Button(self, text="Remove", command=lambda: parent.master.remove_agent(self)).grid(row=8, column=2)
 
-            self.grid_items(0, 0, self.looks_widgets, self.is_bot_widgets)
+            self.grid_items(0, 0, self.looks_widgets, self.team_widgets, self.is_bot_widgets)
             self.change_is_bot()
             self.change_rlbot_controlled()
-
 
         def grid_items(self, start_row=0, start_index=0, *widgets):
             for row, widget_list in enumerate(widgets):
@@ -163,18 +194,18 @@ class StartRunnerGUI(tk.Frame):
             if self.is_bot.get() and not hide:
                 if self.rlbot_controlled_widgets[0].winfo_ismapped():
                     return
-                self.grid_items(2, 0, self.rlbot_controlled_widgets)
+                self.grid_items(3, 0, self.rlbot_controlled_widgets)
                 self.change_rlbot_controlled()
             else:
                 if not self.rlbot_controlled_widgets[0].winfo_ismapped():
                     return
-                for widget in self.grid_slaves(row=2):
+                for widget in self.grid_slaves(row=3):
                     widget.grid_forget()
                 self.change_rlbot_controlled(hide=True)
 
         def change_rlbot_controlled(self, event=None, hide=False):
             if hide:
-                for i in [3, 4, 5, 6]:
+                for i in [4, 5, 6, 7]:
                     for widget in self.grid_slaves(row=i):
                         widget.grid_forget()
                 return
@@ -182,13 +213,13 @@ class StartRunnerGUI(tk.Frame):
                 if self.rlbot_controlled_widgets[0].winfo_ismapped():
                     for widget in self.grid_slaves(row=3):
                         widget.grid_forget()
-                self.grid_items(4, 0, self.agent_path_widgets, self.agent_config_widgets)
-                self.custom_agent_options.grid(row=6, column=0, columnspan=3, sticky="nsew")
+                self.grid_items(5, 0, self.agent_path_widgets, self.agent_config_widgets)
+                self.custom_agent_options.grid(row=7, column=0, columnspan=3, sticky="nsew")
             else:
-                for i in [4, 5, 6]:
+                for i in [5, 6, 7]:
                     for widget in self.grid_slaves(row=i):
                         widget.grid_forget()
-                self.grid_items(3, 0, self.bot_level_widgets)
+                self.grid_items(4, 0, self.bot_level_widgets)
 
         def change_bot_path(self):
             agent_file_path = askopenfilename(
@@ -243,7 +274,7 @@ class StartRunnerGUI(tk.Frame):
             config_name = self.agent_config_widgets[1].get()
             if config_name == "custom":
                 if not self.custom_agent_options.winfo_ismapped():
-                    self.custom_agent_options.grid(row=6, column=0, columnspan=3, sticky="nsew")
+                    self.custom_agent_options.grid(row=7, column=0, columnspan=3, sticky="nsew")
             else:
                 if self.custom_agent_options.winfo_ismapped():
                     self.custom_agent_options.grid_forget()

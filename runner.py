@@ -71,10 +71,11 @@ def run_agent(terminate_event, callback_event, config_file, name, team, index, m
     bm.run()
 
 
-def main():
+def main(framework_config=None, bot_location=None):
     # Set up RLBot.cfg
-    framework_config = configparser.RawConfigParser()
-    framework_config.read(RLBOT_CONFIG_FILE)
+    if framework_config is None:
+        framework_config = configparser.RawConfigParser()
+        framework_config.read(RLBOT_CONFIG_FILE)
 
     # Open anonymous shared memory for entire GameInputPacket and map buffer
     buff = mmap.mmap(-1, ctypes.sizeof(bi.GameInputPacket), INPUT_SHARED_MEMORY_TAG)
@@ -182,7 +183,10 @@ def main():
         bot_names.append(bot_config.get(loadout_header, 'name'))
         bot_teams.append(framework_config.getint(PARTICPANT_CONFIGURATION_HEADER, PARTICPANT_TEAM_PREFIX + str(i)))
         if gameInputPacket.sPlayerConfiguration[i].bRLBotControlled:
-            bot_modules.append(bot_config.get(BOT_CONFIG_MODULE_HEADER, 'agent_module'))
+            if bot_location is not None and bot_location[i] is not None:
+                bot_modules.append(bot_location[i])
+            else:
+                bot_modules.append(bot_config.get(BOT_CONFIG_MODULE_HEADER, 'agent_module'))
         else:
             bot_modules.append('NO_MODULE_FOR_PARTICIPANT')
 
