@@ -1,0 +1,6 @@
+model_checkpoint_path: "D:\\workspace\\Saltie\\bot_code/training/data/tutorial_bot_split_saltie/quick_save/trained_variables9-4999"
+all_model_checkpoint_paths: "D:\\workspace\\Saltie\\bot_code/training/data/tutorial_bot_split_saltie/quick_save/trained_variables5-2999"
+all_model_checkpoint_paths: "D:\\workspace\\Saltie\\bot_code/training/data/tutorial_bot_split_saltie/quick_save/trained_variables6-3499"
+all_model_checkpoint_paths: "D:\\workspace\\Saltie\\bot_code/training/data/tutorial_bot_split_saltie/quick_save/trained_variables7-3999"
+all_model_checkpoint_paths: "D:\\workspace\\Saltie\\bot_code/training/data/tutorial_bot_split_saltie/quick_save/trained_variables8-4499"
+all_model_checkpoint_paths: "D:\\workspace\\Saltie\\bot_code/training/data/tutorial_bot_split_saltie/quick_save/trained_variables9-4999"

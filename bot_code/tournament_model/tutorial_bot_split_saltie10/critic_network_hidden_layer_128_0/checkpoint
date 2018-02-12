@@ -1,0 +1,2 @@
+model_checkpoint_path: "D:\\workspace\\Saltie\\bot_code/training/data/tutorial_bot_split_saltie/critic_network_hidden_layer_128_0/trained_variables"
+all_model_checkpoint_paths: "D:\\workspace\\Saltie\\bot_code/training/data/tutorial_bot_split_saltie/critic_network_hidden_layer_128_0/trained_variables"
