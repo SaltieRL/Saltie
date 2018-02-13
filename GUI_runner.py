@@ -10,6 +10,7 @@ import runner as rocketleaguerunner
 
 class StartRunnerGUI(tk.Frame):
     """Frame widget containing all necessary widgets to run bots."""
+
     def __init__(self, master, *args, **kwargs):
         """Construct a Frame with parent MASTER containing all widgets."""
         tk.Frame.__init__(self, master, *args, **kwargs)
@@ -87,8 +88,25 @@ class StartRunnerGUI(tk.Frame):
         self.update_tabs(blue)
 
     def start_running(self):
-        """Start runner.py with the appropriate configuration after running the injector"""
+        """Run the injector and start runner.py with appropriate settings."""
+        errors = list()
+        for t, team in enumerate([self.blue_agents, self.orange_agents]):
+            t = "Blue" if t else "Orange"
+            for i, agent in enumerate(team):
+                for error in agent.check_for_settings():
+                    errors.append("Missing " + error + " in agent " + str(i + 1) + " of team " + t)
+        if errors:
+            popup = tk.Toplevel()
+            popup.title("Missing some parameters")
+            popup.transient(self)
+            popup.grab_set()
+            message = "\n".join(errors)
+            ttk.Label(popup, text=message).grid(row=0, column=0, sticky="nsew")
+            ttk.Button(popup, text="Close", command=popup.destroy).grid(row=1, column=0, sticky="se")
+            return
+
         os.system(os.path.dirname(os.path.realpath(__file__)) + os.sep + "RLBot_Injector.exe hidden")
+
         num_bots = len(self.blue_agents) + len(self.orange_agents)
 
         rlbotcfg = custom_config.ConfigObject()
@@ -99,7 +117,7 @@ class StartRunnerGUI(tk.Frame):
         i = 0
         agent_locations = []
         for t, team in enumerate([self.blue_agents, self.orange_agents]):
-            for agent in self.blue_agents:
+            for agent in team:
                 participiant_header.add_value("participant_config_" + str(i), str, var=agent.looks_path)
                 participiant_header.add_value("participant_team_" + str(i), str, var=t)
                 participiant_header.add_value("participant_is_bot_" + str(i), bool, var=agent.is_bot)
@@ -110,6 +128,14 @@ class StartRunnerGUI(tk.Frame):
                 participiant_header.add_value("participant_bot_skill_" + str(i), float, var=skill)
                 agent_locations.append(agent.agent_path.get())
                 i += 1
+        while i < 10:
+            t = 0 if i < num_bots + len(self.blue_agents) - 1 else 1
+            participiant_header.add_value("participant_config_" + str(i), str, var="./agents/atba/atba.cfg")
+            participiant_header.add_value("participant_team_" + str(i), str, var=t)
+            participiant_header.add_value("participant_is_bot_" + str(i), bool, var=False)
+            participiant_header.add_value("participant_is_rlbot_controlled_" + str(i), bool, var=False)
+            participiant_header.add_value("participant_bot_skill_" + str(i), float, var=0)
+            i += 1
 
         self.forget()
         self.parent.destroy()
@@ -117,6 +143,7 @@ class StartRunnerGUI(tk.Frame):
 
     class AgentFrame(tk.Frame):
         """Frame widget all necessary widgets for an Agent."""
+
         def __init__(self, parent, *args, **kwargs):
             """Construct a Frame with parent MASTER containing all widgets."""
             tk.Frame.__init__(self, parent, *args, *kwargs)
@@ -294,6 +321,16 @@ class StartRunnerGUI(tk.Frame):
                 self.agent_config_widgets[1]['values'] += (config_name,)
                 self.agent_config_widgets[1].set(config_name)
                 self.change_config()
+
+        def check_for_settings(self):
+            """Return list with items missing, if nothing an empty list."""
+            missing = list()
+            if not self.looks_path.get():
+                missing.append("Loadout Path")
+            if self.rlbot_controlled.get():
+                if not self.agent_path.get():
+                    missing.append("Agent Path")
+            return missing
 
         def initialise_custom_config(self):
             """Create the Custom Config Frame containing all widgets for editing the parameters."""
