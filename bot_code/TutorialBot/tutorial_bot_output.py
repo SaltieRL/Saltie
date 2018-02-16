@@ -58,13 +58,11 @@ class TutorialBotOutput:
 
     def get_output_vector(self, state_object):
         # Controller inputs
-        # throttle = 0 defined in 100
         steer = tf.constant([0.0] * self.batch_size)
         pitch = tf.constant([0.0] * self.batch_size)
         yaw = tf.constant([0.0] * self.batch_size)
         roll = tf.constant([0.0] * self.batch_size)
         throttle = tf.constant([1.0] * self.batch_size)
-        # boost = FalseThey
         jump = tf.constant([0.0] * self.batch_size)
         powerslide = tf.constant([0.0] * self.batch_size)
 
