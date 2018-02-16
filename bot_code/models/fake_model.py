@@ -43,11 +43,12 @@ class FakeModel(BaseModel):
         return self.input_placeholder
 
     def _create_model(self, model_input):
-        output_creator = self.get_class(self.teacher_package, 'TutorialBotOutput')(self.batch_size)
+        teacher_class = self.get_class(self.teacher_package, 'TutorialBotOutput')
+        teacher = teacher_class(self.batch_size)
 
         game_tick_packet = output_formatter.get_advanced_state(tf.transpose(model_input))
 
-        real_output = output_creator.get_output_vector(game_tick_packet)
+        real_output = teacher.get_output_vector(game_tick_packet)
         # real_output[0] = tf.Print(real_output[0], real_output, summarize=1)
         self.actions = self.action_handler.create_action_indexes_graph(tf.stack(real_output, axis=1), batch_size=1)
         return None, None
