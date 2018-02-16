@@ -81,14 +81,14 @@ class TutorialBotOutput:
         throttle = tif( tfand(pcond1,tfand(tf.logical_not(pcond2),pcond4)), one, throttle)
 
         # three point turn
-        tptcond = ( tfand( 95<abs(x), tfand( abs(x)<450, tfand( abs(y)<200, tfand(.35<abs(a), 
+        tptcond = ( tfand( 95<abs(x), tfand( abs(x)<450, tfand( abs(y)<200, tfand(.35<abs(a),
                     tfand( abs(a)<.65, tfand( abs(pyv)<550, abs(yv)<550 )))))) )
 
         throttle = tif(tptcond, -tf.sign(throttle), throttle)
         steer = tif(tptcond, -tf.sign(steer), steer)
 
         # single jump
-        jump = ( tf.cast( tfand(150<z, tfand(z<400 , tfand(d22<300, tf.abs(a-pva)<.03 ))), 
+        jump = ( tf.cast( tfand(150<z, tfand(z<400 , tfand(d22<300, tf.abs(a-pva)<.03 ))),
                  tf.float32) )
 
         # dodge
