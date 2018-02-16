@@ -12,7 +12,7 @@ class TutorialBotOutput:
         zero = tf.zeros(self.batch_size, tf.float32)
         zeros3 = [zero,zero,zero]
 
-    def get_output_vector(self, state_object):
+    def get_output_vector_model(self, state_object):
 
         steer = pitch = yaw = roll = throttle = boost = jump = powerslide = zero
 

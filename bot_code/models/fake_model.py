@@ -48,7 +48,7 @@ class FakeModel(BaseModel):
 
         state_object = output_formatter.get_advanced_state(tf.transpose(model_input))
 
-        real_output = teacher.get_output_vector(state_object)
+        real_output = teacher.get_output_vector_model(state_object)
         # real_output[0] = tf.Print(real_output[0], real_output, summarize=1)
         self.actions = self.action_handler.create_action_indexes_graph(tf.stack(real_output, axis=1), batch_size=1)
         return None, None

@@ -59,7 +59,7 @@ class RandomPacketTrainer(DefaultModelTrainer):
         packet_generator = random_packet_creator.TensorflowPacketGenerator(self.batch_size)
         input_state, state_object = self.get_random_data(packet_generator, self.input_formatter)
 
-        real_output = teacher.get_output_vector(state_object)
+        real_output = teacher.get_output_vector_model(state_object)
         real_indexes = self.action_handler.create_action_indexes_graph(tf.stack(real_output, axis=1))
         self.model.create_model(input_state)
         self.model.create_copy_training_model(model_input=input_state, taken_actions=real_indexes)

@@ -56,7 +56,7 @@ class TutorialBotOutput:
         safe_steer = steer * (1.0 - jump * should_not_dodge)
         return (safe_steer, power_slide, jump)
 
-    def get_output_vector(self, state_object):
+    def get_output_vector_model(self, state_object):
         # Controller inputs
         steer = tf.constant([0.0] * self.batch_size)
         pitch = tf.constant([0.0] * self.batch_size)

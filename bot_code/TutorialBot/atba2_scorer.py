@@ -14,7 +14,7 @@ class TutorialBotOutput:
         zeros3 = [zero,zero,zero]
         one = zero + 1
 
-    def get_output_vector(self, state_object):
+    def get_output_vector_model(self, state_object):
 
         steer = pitch = yaw = roll = throttle = boost = jump = powerslide = zero
 
