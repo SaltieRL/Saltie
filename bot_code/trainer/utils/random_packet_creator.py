@@ -283,27 +283,27 @@ class TensorflowPacketGenerator:
         is_enemy_car_close = tf.greater_equal(tf.random_uniform(shape=[batch_size, ], minval=0, maxval=10,
                                                                  dtype=tf.int32), 4)
 
-        game_tick_packet = self.create_object()
+        state_object = self.create_object()
         # Game info
         with tf.name_scope("Game_Info"):
-            game_tick_packet.gameInfo = self.get_game_info(is_kickoff)
+            state_object.gameInfo = self.get_game_info(is_kickoff)
         # Score info
         # Not used
 
         # Ball info
         with tf.name_scope("Ball_Info"):
-            game_tick_packet.gameball = self.get_ball_info(batch_size, is_ball_on_ground, is_kickoff)
+            state_object.gameball = self.get_ball_info(batch_size, is_ball_on_ground, is_kickoff)
 
         # Player car info
-        game_tick_packet.gamecars = []
+        state_object.gamecars = []
         with tf.name_scope("Player_Car"):
             player_car = self.get_car_info(batch_size, is_player_car_on_ground, self.zero, self.zero,
                                            is_kickoff)
             self.create_close_location(batch_size, is_player_car_close, player_car.Location,
-                                       game_tick_packet.gameball.Location)
-            game_tick_packet.gamecars.append(player_car)
+                                       state_object.gameball.Location)
+            state_object.gamecars.append(player_car)
 
-        game_tick_packet.numCars = len(game_tick_packet.gamecars)
+        state_object.numCars = len(state_object.gamecars)
 
         # Teammates info, 1v1 so empty
         with tf.name_scope("Team_0"):
@@ -315,18 +315,18 @@ class TensorflowPacketGenerator:
             enemy_car = self.get_car_info(batch_size, is_enemy_car_on_ground, self.one, self.one,
                                                                is_kickoff)
             self.create_close_location(batch_size, is_enemy_car_close, enemy_car.Location,
-                                       game_tick_packet.gameball.Location)
-            game_tick_packet.gamecars.append(enemy_car)
+                                       state_object.gameball.Location)
+            state_object.gamecars.append(enemy_car)
         with tf.name_scope("Enemy1"):
             self.get_empty_car_info(is_player_car_on_ground, self.one, self.three)
             self.get_empty_car_info(is_player_car_on_ground, self.one, self.five)
 
         with tf.name_scope("Boost"):
-            game_tick_packet.gameBoosts = self.get_boost_info(batch_size)
+            state_object.gameBoosts = self.get_boost_info(batch_size)
 
-        game_tick_packet.time_diff = tf.random_normal(shape=[batch_size, ], mean=1.0/45.0, dtype=tf.float32)
+        state_object.time_diff = tf.random_normal(shape=[batch_size, ], mean=1.0/45.0, dtype=tf.float32)
 
-        return game_tick_packet
+        return state_object
 
     def get_kickoff_data(self):
         locations = [[-0.0009841920109465718, -4607.98583984375, 17.02585220336914],  # center

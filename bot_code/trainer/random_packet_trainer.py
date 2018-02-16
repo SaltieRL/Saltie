@@ -23,9 +23,9 @@ class RandomPacketTrainer(DefaultModelTrainer):
         super().__init__()
 
     def get_random_data(self, packet_generator, input_formatter):
-        game_tick_packet = packet_generator.get_random_array()
-        output_array = input_formatter.create_input_array(game_tick_packet, game_tick_packet.time_diff)
-        return output_array, game_tick_packet
+        state_object = packet_generator.get_random_array()
+        output_array = input_formatter.create_input_array(state_object, state_object.time_diff)
+        return output_array, state_object
 
     def get_config_name(self):
         return 'randomised_trainer.cfg'
@@ -54,11 +54,12 @@ class RandomPacketTrainer(DefaultModelTrainer):
 
     def setup_model(self):
         super().setup_model()
-        output_creator = self.get_class(self.teacher_package, 'TutorialBotOutput')(self.batch_size)
+        teacher_class = self.get_class(self.teacher_package, 'TutorialBotOutput')
+        teacher = teacher_class(self.batch_size)
         packet_generator = random_packet_creator.TensorflowPacketGenerator(self.batch_size)
-        input_state, game_tick_packet = self.get_random_data(packet_generator, self.input_formatter)
+        input_state, state_object = self.get_random_data(packet_generator, self.input_formatter)
 
-        real_output = output_creator.get_output_vector(game_tick_packet)
+        real_output = teacher.get_output_vector(state_object)
         real_indexes = self.action_handler.create_action_indexes_graph(tf.stack(real_output, axis=1))
         self.model.create_model(input_state)
         self.model.create_copy_training_model(model_input=input_state, taken_actions=real_indexes)
@@ -71,8 +72,8 @@ class RandomPacketTrainer(DefaultModelTrainer):
         # Initialising statistics and printing them before training
         self.controller_stats = controller_statistics.OutputChecks(self.sess, self.action_handler,
                                                                    self.batch_size, self.model.smart_max,
-                                                                   game_tick_packet=game_tick_packet,
-                                                                   bot=output_creator)
+                                                                   state_object=state_object,
+                                                                   bot=teacher)
         self.controller_stats.create_model()
 
     def _run_trainer(self):

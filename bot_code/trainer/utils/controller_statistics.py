@@ -4,7 +4,7 @@ import numpy as np
 
 class OutputChecks:
     model_output = None
-    game_tick_packet = None
+    state_object = None
     accuracy_over_time = None
     bot_data_over_time = None
     requires_input = False
@@ -12,12 +12,12 @@ class OutputChecks:
     controls = None
 
     def __init__(self, tf_session, action_handler, batch_size, model_output,
-                 game_tick_packet=None,
+                 state_object=None,
                  bot=None,
                  model_placeholder=None):
         self.sess = tf_session
         self.batch_size = batch_size
-        self.game_tick_packet = game_tick_packet
+        self.state_object = state_object
         self.tutorial_bot = bot
         self.model_output = model_output
         self.model_input = model_placeholder
@@ -40,7 +40,7 @@ class OutputChecks:
     def get_amounts(self, input_array=None, bot_output=None):
 
         if not self.requires_bot_output:
-            bot_output = self.sess.run(self.tutorial_bot.get_output_vector(self.game_tick_packet))
+            bot_output = self.sess.run(self.tutorial_bot.get_output_vector(self.state_object))
         else:
             if bot_output is None:
                 print("Missing correct output")

@@ -136,27 +136,27 @@ class DataNormalizer:
         return boost_objects
 
     def get_normalization_array(self):
-        game_tick_packet = self.create_object()
+        state_object = self.create_object()
         # Game info
         with tf.name_scope("Game_Info"):
-            game_tick_packet.gameInfo = self.get_game_info()
+            state_object.gameInfo = self.get_game_info()
         # Score info
 
         # Player car info
-        game_tick_packet.gamecars = []
+        state_object.gamecars = []
         car_info = self.get_car_info()
         for i in range(6):
-            game_tick_packet.gamecars.append(car_info)
+            state_object.gamecars.append(car_info)
 
-        game_tick_packet.numCars = len(game_tick_packet.gamecars)
+        state_object.numCars = len(state_object.gamecars)
 
         # Ball info
         with tf.name_scope("Ball_Info"):
-            game_tick_packet.gameball = self.get_ball_info()
+            state_object.gameball = self.get_ball_info()
 
         with tf.name_scope("Boost"):
-            game_tick_packet.gameBoosts = self.get_boost_info()
-        return self.formatter.create_input_array(game_tick_packet)
+            state_object.gameBoosts = self.get_boost_info()
+        return self.formatter.create_input_array(state_object)
 
     def apply_normalization(self, input_array):
         if self.normalization_array is None:
