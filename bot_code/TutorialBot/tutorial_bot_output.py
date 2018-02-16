@@ -56,7 +56,7 @@ class TutorialBotOutput:
         safe_steer = steer * (1.0 - jump * should_not_dodge)
         return (safe_steer, power_slide, jump)
 
-    def get_output_vector(self, values):
+    def get_output_vector(self, state_object):
         # Controller inputs
         # throttle = 0 defined in 100
         steer = tf.constant([0.0] * self.batch_size)
@@ -69,11 +69,11 @@ class TutorialBotOutput:
         powerslide = tf.constant([0.0] * self.batch_size)
 
         # Update game data variables
-        bot_pos = values.gamecars[0].Location
-        bot_rot = values.gamecars[0].Rotation
-        ball_pos = values.gameball.Location
-        is_on_ground = tf.cast(values.gamecars[0].bOnGround, tf.bool)
-        car_boost = values.gamecars[0].Boost
+        bot_pos = state_object.gamecars[0].Location
+        bot_rot = state_object.gamecars[0].Rotation
+        ball_pos = state_object.gameball.Location
+        is_on_ground = tf.cast(state_object.gamecars[0].bOnGround, tf.bool)
+        car_boost = state_object.gamecars[0].Boost
 
         bot_yaw = bot_rot.Yaw
         xy_distance = self.distance(bot_pos.X, bot_pos.Y, ball_pos.X, ball_pos.Y)

@@ -14,11 +14,11 @@ class TutorialBotOutput:
         zeros3 = [zero,zero,zero]
         one = zero + 1
 
-    def get_output_vector(self, values):
+    def get_output_vector(self, state_object):
 
         steer = pitch = yaw = roll = throttle = boost = jump = powerslide = zero
 
-        player, ball = values.gamecars[0], values.gameball
+        player, ball = state_object.gamecars[0], state_object.gameball
 
         pL,pV,pR = a3(player.Location), a3(player.Velocity), a3(player.Rotation)
         paV,pB = a3(player.AngularVelocity), tf.cast(player.Boost,tf.float32)

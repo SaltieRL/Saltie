@@ -32,12 +32,12 @@ def get_basic_state(array):
     has_last_touched_ball = array[GAME_INFO_OFFSET +
                                   SCORE_INFO_OFFSET +
                                   CAR_INFO_OFFSET - 1]
-    result = create_object()
-    result.score_info = score_info
-    result.car_location = car_location
-    result.ball_location = ball_location
-    result.has_last_touched_ball = has_last_touched_ball
-    return result
+    state_object = create_object()
+    state_object.score_info = score_info
+    state_object.car_location = car_location
+    state_object.ball_location = ball_location
+    state_object.has_last_touched_ball = has_last_touched_ball
+    return state_object
 
 
 def get_advanced_state(input_array):
@@ -45,13 +45,13 @@ def get_advanced_state(input_array):
     ball_info = get_ball_info(input_array, GAME_INFO_OFFSET +
                               SCORE_INFO_OFFSET +
                               CAR_INFO_OFFSET)
-    result = create_object()
-    result.car_info = car_info
-    result.ball_info = ball_info
-    result.gamecars = [car_info]
-    result.gameball = ball_info
+    state_object = create_object()
+    state_object.car_info = car_info
+    state_object.ball_info = ball_info
+    state_object.gamecars = [car_info]
+    state_object.gameball = ball_info
 
-    return result
+    return state_object
 
 
 def is_empty_player_array(array, index, offset):
