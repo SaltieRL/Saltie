@@ -3,7 +3,7 @@ import inspect
 import tensorflow as tf
 from bot_code.conversions import output_formatter
 from bot_code.models.base_model import BaseModel
-
+from bot_code.trainer.utils.floating_setup import floating_setup
 
 class FakeModel(BaseModel):
     """
@@ -40,8 +40,11 @@ class FakeModel(BaseModel):
         super().load_config_file()
         self.teacher_package = self.config_file.get('teacher_package')
         self.teacher_class_name = self.config_file.get('teacher_class_name')
+        self.should_float = self.config_file.get('make_player_float')
 
     def sample_action(self, input_state):
+        if self.should_float:
+            floating_setup.make_player_float(self.player_index)
         result = self.sess.run(self.actions, feed_dict={self.input_placeholder: input_state})[0]
         return result
 
