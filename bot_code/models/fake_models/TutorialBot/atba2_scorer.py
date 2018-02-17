@@ -5,7 +5,6 @@ U = 32768.0
 
 tfand = tf.logical_and
 
-
 class TutorialBotOutput:
 
     def __init__(self, batch_size):
@@ -14,7 +13,6 @@ class TutorialBotOutput:
         zero = tf.zeros(self.batch_size, tf.float32)
         zeros3 = [zero,zero,zero]
         one = zero + 1
-
 
     def get_output_vector_model(self, state_object):
 
@@ -105,25 +103,7 @@ class TutorialBotOutput:
         roll = tif( tfand(dgcond, tfand(tf.logical_not(poG),pzv%10<=5 )), zero, roll)
 
 
-        # HAAAAX
-        steer = zero
-        yaw = zero
-        roll = zero
-        jump = zero
-        boost = zero
-        powerslide = zero
-
-        # Boost on kickoff
-        output = [
-            throttle,
-            steer,
-            pitch,
-            yaw,
-            roll,
-            jump,
-            tf.cast(boost, tf.float32),
-            powerslide
-        ]
+        output = [throttle, steer, pitch, yaw, roll, jump, boost, powerslide]
 
         return output
 
