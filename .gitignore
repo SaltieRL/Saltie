@@ -125,6 +125,6 @@ ENV/
 RLBot_Injector.exe
 /config.py
 
-bot_code/TutorialBot/trained_variables
+bot_code/models/TutorialBot/trained_variables
 
 *.py___jb_tmp___
