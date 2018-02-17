@@ -13,6 +13,7 @@ class RandomPacketTrainer(DefaultModelTrainer):
     total_batches = None
     save_step = None
     teacher_package = None
+    teacher_class_name = None
     teacher = None
     controller_stats = None
     start_time = None
@@ -41,6 +42,7 @@ class RandomPacketTrainer(DefaultModelTrainer):
         self.save_step = config.getint('Randomised Trainer Configuration', 'save_step')
         # Over here the model data is obtained
         self.teacher_package = config.get('Randomised Trainer Configuration', 'teacher_package')
+        self.teacher_class_name = config.get('Randomised Trainer Configuration', 'teacher_class_name')
 
     def setup_trainer(self):
         super().setup_trainer()
@@ -54,7 +56,7 @@ class RandomPacketTrainer(DefaultModelTrainer):
 
     def setup_model(self):
         super().setup_model()
-        teacher_class = self.get_class(self.teacher_package, 'TutorialBotOutput')
+        teacher_class = self.get_class(self.teacher_package, self.teacher_class_name)
         teacher = teacher_class(self.batch_size)
         packet_generator = random_packet_creator.TensorflowPacketGenerator(self.batch_size)
         input_state, state_object = self.get_random_data(packet_generator, self.input_formatter)

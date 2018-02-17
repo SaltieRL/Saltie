@@ -7,6 +7,7 @@ from bot_code.models.base_model import BaseModel
 
 class FakeModel(BaseModel):
     teacher_package = None
+    teacher_class_name = None
 
     def __init__(self, session, num_actions,
                  input_formatter_info=[0, 0],
@@ -34,6 +35,7 @@ class FakeModel(BaseModel):
     def load_config_file(self):
         super().load_config_file()
         self.teacher_package = self.config_file.get('teacher_package')
+        self.teacher_class_name = self.config_file.get('teacher_class_name')
 
     def sample_action(self, input_state):
         result = self.sess.run(self.actions, feed_dict={self.input_placeholder: input_state})[0]
@@ -43,7 +45,7 @@ class FakeModel(BaseModel):
         return self.input_placeholder
 
     def _create_model(self, model_input):
-        teacher_class = self.get_class(self.teacher_package, 'TutorialBotOutput')
+        teacher_class = self.get_class(self.teacher_package, self.teacher_class_name)
         teacher = teacher_class(self.batch_size)
 
         state_object = output_formatter.get_advanced_state(tf.transpose(model_input))
