@@ -45,7 +45,7 @@ class FakeModel(BaseModel):
     def sample_action(self, input_state):
         if self.should_float:
             floating_setup.make_player_float(self.player_index)
-            floating_setup.set_random_pitch_and_pitch_vel_periodically(self.player_index, period=1.0)
+            floating_setup.set_random_pitch_and_pitch_vel_periodically(self.player_index, period=2.0 + self.player_index*0.37)
             floating_setup.make_ball_float()
         result = self.sess.run(self.actions, feed_dict={self.input_placeholder: input_state})[0]
         return result

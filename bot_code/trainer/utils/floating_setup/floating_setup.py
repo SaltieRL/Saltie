@@ -8,7 +8,7 @@ from random import random
 
 # Calling bakkesmod too often may cause a crash.
 # Therefore ratelimit it by dropping some calls.
-MIN_DELAY_BETWEEN_BAKKES_CALLS = 2 * 1/60.
+MIN_DELAY_BETWEEN_BAKKES_CALLS = 3 * 1/60.
 last_bakkes_call = {}  # player_index -> time of last call
 def should_call_bakkes(player_index):
     # Note: this function mutates external state: last_bakkes_call.
@@ -48,5 +48,5 @@ def set_random_pitch_and_pitch_vel_periodically(player_index, period=2.0):
 def set_random_pitch_and_pitch_vel(player_index):
     bakkes.rcon(';'.join([
         'player {} rotation {} 0 0'.format(       player_index, (100000 * (random() - 0.5))),
-        'player {} angularvelocity 0 {} 0'.format(player_index, (   100 * (random() - 0.5))),
+        'player {} angularvelocity 0 {} 0'.format(player_index, (   10 * (random() - 0.5))),
     ]))
