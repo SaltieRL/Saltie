@@ -18,14 +18,14 @@ def should_call_bakkes(player_index):
         return True
     return False
 
-def make_player_float(player_index):
+def make_player_float(player_index, location):
     # Call this every frame to reset the players position
     if not should_call_bakkes(player_index):
         return
     height = 250 + 200*player_index
     # Hopefully this dependence onc bakkesmod will be removed with the new RLBot api
     bakkes.rcon(';'.join([
-        'player {} location -300 0 {}'.format(player_index, height),
+        'player {} location {} {} {}'.format(player_index, *location),
         'player {} velocity -0 0 10'.format(player_index),
     ]))
 
@@ -48,5 +48,5 @@ def set_random_pitch_and_pitch_vel_periodically(player_index, period=2.0):
 def set_random_pitch_and_pitch_vel(player_index):
     bakkes.rcon(';'.join([
         'player {} rotation {} 0 0'.format(       player_index, (100000 * (random() - 0.5))),
-        'player {} angularvelocity 0 {} 0'.format(player_index, (   10 * (random() - 0.5))),
+        'player {} angularvelocity 0 {} 0'.format(player_index, (    10 * (random() - 0.5))),
     ]))
