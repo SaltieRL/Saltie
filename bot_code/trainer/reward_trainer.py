@@ -1,3 +1,8 @@
+import sys
+import os
+# Hack to be able to import bot_code.* from here.
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+
 from bot_code.modelHelpers import reward_manager
 import time
 
@@ -19,6 +24,9 @@ class RewardTrainer(DownloadTrainer, DefaultModelTrainer):
     train_time_difference = 0
     action_time_difference = 0
     
+    def get_config_name(self):
+        return 'reward_trainer.cfg'
+
     def get_config_name(self):
         return 'reward_trainer.cfg'
 
@@ -102,6 +110,7 @@ class RewardTrainer(DownloadTrainer, DefaultModelTrainer):
     def end_everything(self):
         self.model.save_model()
 
-
-if __name__ == '__main__':
+def main():
     run_trainer(trainer=RewardTrainer())
+if __name__ == '__main__':
+    main()
