@@ -56,7 +56,9 @@ class SplitLayers(BaseActorCritic):
             return left + right, cut_size
 
     def create_hidden_layers(self, activation_function, input_layer, network_size, network_prefix, variable_list=None,
-                             layers_list=[]):
+                             layers_list=None):
+        if layers_list is None:
+            layers_list = []
         inner_layer = input_layer
         layer_size = self.network_size
         max_layer = self.num_layers - 2 - self.num_split_layers
@@ -75,7 +77,9 @@ class SplitLayers(BaseActorCritic):
         return inner_layer, layer_size
 
     def create_last_layer(self, activation_function, inner_layer, network_size, num_actions, network_prefix,
-                          last_layer_list=None, layers_list=[]):
+                          last_layer_list=None, layers_list=None):
+        if layers_list is None:
+            layers_list = []
         with tf.variable_scope(self.split_hidden_layer_name):
             output_layers, layer_size = self.create_split_layers(tf.nn.relu6, inner_layer, network_size,
                                                                  self.num_split_layers,
@@ -86,7 +90,9 @@ class SplitLayers(BaseActorCritic):
                                          last_layer_list, layers_list=layers_list)
 
     def create_split_layers(self, activation_function, inner_layer, network_size,
-                            num_split_layers, network_prefix, variable_list=None, layers_list=[]):
+                            num_split_layers, network_prefix, variable_list=None, layers_list=None):
+        if layers_list is None:
+            layers_list = []
 
         cut_size = self.network_size // 3
         previous_layer = []

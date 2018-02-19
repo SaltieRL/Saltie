@@ -234,7 +234,9 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
         self.stored_variables[bias_name] = b
         return layer_output, output_size
 
-    def actor_network(self, input_states, variable_list=None, last_layer_list=None, layers_list=[]):
+    def actor_network(self, input_states, variable_list=None, last_layer_list=None, layers_list=None):
+        if layers_list is None:
+            layers_list = []
         if last_layer_list is None:
             last_layer_list = [[] for _ in range(len(self.action_handler.get_action_sizes()))]
         # define policy neural network
@@ -291,7 +293,9 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
                 tf.summary.histogram(variable_name + '_output', self.actor_last_row_layer[i])
 
     def create_hidden_layers(self, activation_function, input_layer, network_size, network_prefix, variable_list=None,
-                             layers_list=[]):
+                             layers_list=None):
+        if layers_list is None:
+            layers_list = []
         with tf.variable_scope(self.hidden_layer_name):
             inner_layer = input_layer
             for i in range(0, self.num_layers - 2):
@@ -301,7 +305,9 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
         return inner_layer, network_size
 
     def create_last_layer(self, activation_function, inner_layer, network_size, num_actions, network_prefix,
-                          last_layer_list=None, layers_list=[]):
+                          last_layer_list=None, layers_list=None):
+        if layers_list is None:
+            layers_list = []
         with tf.variable_scope(self.last_layer_name):
             last_layer_name = 'final'
             if not self.action_handler.is_split_mode():
