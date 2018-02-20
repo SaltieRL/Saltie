@@ -1,16 +1,21 @@
 from bot_code.modelHelpers.actions.dynamic_action_handler import DynamicActionHandler, COMBO
+from
+
 import tensorflow as tf
 
 DODGE = 'dodge'
 
 
-dodge_suppressor = [[('throttle', (-1, 1.5, .5)), ('steer', (-1, 1.5, .5)),
-                     ('yaw', (-1, 1.5, .5)), ('pitch', (-1, 1.5, .5)), ('roll', (-1, 1.5, .5))],
-                    [('jump', (0, 2, 1)), ('boost', (0, 2, 1)), ('handbrake', (0, 2, 1)), (DODGE, (0, 2, 1))],
-                    []]
+dodge_suppressor = ControlScheme(
+    ranges=[('throttle', (-1, 1.5, .5)), ('steer', (-1, 1.5, .5)), ('yaw', (-1, 1.5, .5)), ('pitch', (-1, 1.5, .5)), ('roll', (-1, 1.5, .5))],
+    combo_scheme=[('jump', (0, 2, 1)), ('boost', (0, 2, 1)), ('handbrake', (0, 2, 1)), (DODGE, (0, 2, 1))],
+    copies=[]
+)
 
 
 class DodgeActionHandler(DynamicActionHandler):
+
+    dodge_suppressor_list = [['jump'], ['steer', 'pitch', 'roll', 'yaw']]
 
     def __init__(self, control_scheme):
         super().__init__(control_scheme)
