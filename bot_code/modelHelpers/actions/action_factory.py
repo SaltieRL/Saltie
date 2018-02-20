@@ -102,6 +102,7 @@ regression_everything = ControlScheme(
   copies=[],
 )
 
+
 def get_handler(split_mode=True, control_scheme=default_scheme):
     """
     Creates a handler based on the options given.
