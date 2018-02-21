@@ -8,9 +8,12 @@ from collections import namedtuple
 '''
 ranges:
   A range is a configuration object which holds information about its name, possible values and loss function.
-  Currently represented as a tuple, where the loss function may be omitted. (varying tuple sizes seems like bad design)
+  Currently represented as a tuple:
+  - Name (string)
+  - Arguments to np.arange (tuple of (startInclusive, endExclusive, step))
+  - Optional: The loss function (one of the LOSS_* constants)
 combo_scheme:
-  Seems to be similar to ranges. TODO: figure out how this works in more detail
+  Seems to be similar to ranges. TODO: figure out how this works in more detail. Loss functions seem to never be specified.
 copies:
   A `copy` is a tuple of two names where the actions of the latter (name) is forwarded to the former.
 '''
