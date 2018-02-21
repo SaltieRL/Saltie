@@ -7,9 +7,10 @@ import numpy as np
 
 from bot_code.conversions import binary_converter
 
-parser = argparse.ArgumentParser()
+parser = argparse.ArgumentParser(
+    description='Converts files in training/replays/ into files in training/converted/')
 parser.add_argument('path', type=str,
-                    help='path to convert files from')
+                    help='replay directory to convert files from')
 args = parser.parse_args()
 
 
