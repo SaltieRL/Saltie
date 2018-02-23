@@ -13,7 +13,14 @@ ranges:
   - Arguments to np.arange (tuple of (startInclusive, endExclusive, step))
   - Optional: The loss function (one of the LOSS_* constants)
 combo_scheme:
-  Seems to be similar to ranges. TODO: figure out how this works in more detail. Loss functions seem to never be specified.
+  All given ranges get combined into one action which specifies its own loss function (LOSS_SPARSE_CROSS).
+  The mapping onto the possible values of the combo is like a statistics-combination:
+  For example, for the boolean ranges [Boost, Jump, Handbrake]
+    [False, False, False] = 0
+    [False, False, True ] = 1
+    [False, True,  False] = 2
+    [False, True,  True ] = 3
+    ...
 copies:
   A `copy` is a tuple of two names where the actions of the latter (name) is forwarded to the former.
 '''

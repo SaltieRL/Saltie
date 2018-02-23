@@ -15,12 +15,11 @@ LOSS_ABSOLUTE_DIFFERENCE = 'abs_diff'
 
 
 class DynamicActionHandler(SplitActionHandler):
-    """Very dynamic for controls and splitting.
-        Assumes everything is in tensorflow
+    """
+    Very dynamic for controls and splitting.
+    Assumes everything is in tensorflow.
 
-        Notes:
-         - `index` in the context of this file means an index into the `actions` list
-         - An `action` is a vector of floats representing different possible states this
+    See SplitActionHandler docuementation for what an `action` and `index` is.
     """
 
     control_names_index_map = {}
@@ -31,7 +30,6 @@ class DynamicActionHandler(SplitActionHandler):
     combo_name_index_map = {}
     action_sizes = []
     combo_action_sizes = []
-    actions = []  # Array of actions.
     button_combo = []
     combo_name_list = []
     index_to_loss_type = {}  # index -> one of the LOSS_* constants
