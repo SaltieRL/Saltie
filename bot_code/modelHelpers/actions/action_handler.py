@@ -239,7 +239,7 @@ class ActionHandler:
     def get_action_loss_from_logits(self, logits, labels, index):
         """
         :param logits: A tensorflow logit
-        :param labels: A label of what accured
+        :param labels: A label of what occurred
         :param index: The index of the control in the actions list this maps to
         :return: The loss for this particular action
         """

@@ -3,52 +3,115 @@ from bot_code.modelHelpers.actions.dynamic_action_handler import DynamicActionHa
     LOSS_ABSOLUTE_DIFFERENCE
 from bot_code.modelHelpers.actions.split_action_handler import SplitActionHandler
 
-default_scheme = [[('steer', (-1, 1.5, .5)), ('pitch', (-1, 1.5, .5)), ('roll', (-1, 1.5, .5))],
-                  [('throttle', (-1, 2, 1)), ('jump', (0, 2, 1)), ('boost', (0, 2, 1)), ('handbrake', (0, 2, 1))],
-                  [('yaw', 'steer')]]
+from collections import namedtuple
 
-super_split_scheme = [[('throttle', (-1, 1.5, .5)), ('steer', (-1, 1.5, .5)),
-                       ('yaw', (-1, 1.5, .5)), ('pitch', (-1, 1.5, .5)), ('roll', (-1, 1.5, .5))],
-                      [('jump', (0, 2, 1)), ('boost', (0, 2, 1)), ('handbrake', (0, 2, 1))],
-                      []]
+'''
+ranges:
+  A range is a configuration object which holds information about its name, possible values and loss function.
+  Currently represented as a tuple:
+  - Name (string)
+  - Arguments to np.arange (tuple of (startInclusive, endExclusive, step))
+  - Optional: The loss function (one of the LOSS_* constants)
+combo_scheme:
+  All given ranges get combined into one action which specifies its own loss function (LOSS_SPARSE_CROSS).
+  The mapping onto the possible values of the combo is like a statistics-combination:
+  For example, for the boolean ranges [Boost, Jump, Handbrake]
+    [False, False, False] = 0
+    [False, False, True ] = 1
+    [False, True,  False] = 2
+    [False, True,  True ] = 3
+    ...
+copies:
+  A `copy` is a tuple of two names where the actions of the latter (name) is forwarded to the former.
+'''
+ControlScheme = namedtuple('ControlScheme', 'ranges combo_scheme copies')
 
-super_split_scheme_no_combo = [[('throttle', (-1, 1.25, .25)), ('steer', (-1, 1.25, .25)),
-                                ('yaw', (-1, 1.25, .25)), ('pitch', (-1, 1.25, .25)), ('roll', (-1, 1.25, .25)),
-                                ('jump', (0, 2, 1)), ('boost', (0, 2, 1)), ('handbrake', (0, 2, 1))],
-                               [],
-                               []]
 
-only_steer_split_scheme = [[('steer', (-1, 1.5, .5))],
-                           [('throttle', (-1, 2, 1)), ('jump', (0, 2, 1)), ('boost', (0, 2, 1)),
-                            ('handbrake', (0, 2, 1)), ('yaw', (-1, 2, 1)),
-                            ('pitch', (-1, 2, 1)), ('roll', (-1, 2, 1))],
-                           []]
+THROTTLE = 'throttle'
+STEER = 'steer'
+YAW = 'yaw'
+PITCH = 'pitch'
+ROLL = 'roll'
+JUMP = 'jump'
+BOOST = 'boost'
+HANDBRAKE = 'handbrake'
 
-regression_controls = [[('throttle', (-1, 1.5, .5), LOSS_SQUARE_MEAN), ('steer', (-1, 1.5, .5), LOSS_SQUARE_MEAN),
-                        ('yaw', (-1, 1.5, .5), LOSS_SQUARE_MEAN), ('pitch', (-1, 1.5, .5), LOSS_SQUARE_MEAN),
-                        ('roll', (-1, 1.5, .5), LOSS_SQUARE_MEAN)],
-                       [('jump', (0, 2, 1)), ('boost', (0, 2, 1)), ('handbrake', (0, 2, 1))],
-                       []]
 
-regression_controls_no_combo = [[('throttle', (-1, 1.5, .5), LOSS_SQUARE_MEAN), ('steer', (-1, 1.5, .5), LOSS_SQUARE_MEAN),
-                        ('yaw', (-1, 1.5, .5), LOSS_SQUARE_MEAN), ('pitch', (-1, 1.5, .5), LOSS_SQUARE_MEAN),
-                        ('roll', (-1, 1.5, .5), LOSS_SQUARE_MEAN), ('jump', (0, 2, 1)), ('boost', (0, 2, 1)), ('handbrake', (0, 2, 1))],
-                       [],
-                       []]
+default_scheme = ControlScheme(
+  ranges=[(STEER, (-1, 1.5, .5)), (PITCH, (-1, 1.5, .5)), (ROLL, (-1, 1.5, .5))],
+  combo_scheme=[(THROTTLE, (-1, 2, 1)), (JUMP, (0, 2, 1)), (BOOST, (0, 2, 1)), (HANDBRAKE, (0, 2, 1))],
+  copies=[(YAW, STEER)],
+)
 
-mixed_controls = [[('throttle', (-1, 1.5, .5), LOSS_SPARSE_CROSS), ('steer', (-1, 1.5, .5), LOSS_ABSOLUTE_DIFFERENCE),
-                        ('yaw', (-1, 1.5, .5), LOSS_ABSOLUTE_DIFFERENCE), ('pitch', (-1, 1.5, .5), LOSS_ABSOLUTE_DIFFERENCE),
-                        ('roll', (-1, 1.5, .5), LOSS_ABSOLUTE_DIFFERENCE)],
-                       [('jump', (0, 2, 1)), ('boost', (0, 2, 1)), ('handbrake', (0, 2, 1))],
-                       []]
+super_split_scheme = ControlScheme(
+  ranges=[(THROTTLE, (-1, 1.5, .5)), (STEER, (-1, 1.5, .5)), (YAW, (-1, 1.5, .5)), (PITCH, (-1, 1.5, .5)), (ROLL, (-1, 1.5, .5))],
+  combo_scheme=[(JUMP, (0, 2, 1)), (BOOST, (0, 2, 1)), (HANDBRAKE, (0, 2, 1))],
+  copies=[],
+)
 
-regression_everything = [[('throttle', (-1, 1.5, .5), LOSS_SQUARE_MEAN), ('steer', (-1, 1.5, .5), LOSS_SQUARE_MEAN),
-                        ('yaw', (-1, 1.5, .5), LOSS_SQUARE_MEAN), ('pitch', (-1, 1.5, .5), LOSS_SQUARE_MEAN),
-                        ('roll', (-1, 1.5, .5), LOSS_SQUARE_MEAN), ('jump', (0, 2, 1), LOSS_SQUARE_MEAN),
-                          ('boost', (0, 2, 1), LOSS_SQUARE_MEAN),
-                          ('handbrake', (0, 2, 1), LOSS_SQUARE_MEAN)],
-                       [],
-                       []]
+super_split_scheme_no_combo = ControlScheme(
+  ranges=[(THROTTLE, (-1, 1.25, .25)), (STEER, (-1, 1.25, .25)), (YAW, (-1, 1.25, .25)), (PITCH, (-1, 1.25, .25)), (ROLL, (-1, 1.25, .25)),(JUMP, (0, 2, 1)), (BOOST, (0, 2, 1)), (HANDBRAKE, (0, 2, 1))],
+  combo_scheme=[],
+  copies=[],
+)
+
+only_steer_split_scheme = ControlScheme(
+  ranges=[(STEER, (-1, 1.5, .5))],
+  combo_scheme=[(THROTTLE, (-1, 2, 1)), (JUMP, (0, 2, 1)), (BOOST, (0, 2, 1)), (HANDBRAKE, (0, 2, 1)), (YAW, (-1, 2, 1)), (PITCH, (-1, 2, 1)), (ROLL, (-1, 2, 1))],
+  copies=[],
+)
+
+regression_controls = ControlScheme(
+  ranges=[
+    (THROTTLE,   (-1, 1.5, .5), LOSS_SQUARE_MEAN),
+    (STEER,      (-1, 1.5, .5), LOSS_SQUARE_MEAN),
+    (YAW,        (-1, 1.5, .5), LOSS_SQUARE_MEAN),
+    (PITCH,      (-1, 1.5, .5), LOSS_SQUARE_MEAN),
+    (ROLL,       (-1, 1.5, .5), LOSS_SQUARE_MEAN)],
+  combo_scheme=[(JUMP, (0, 2, 1)), (BOOST, (0, 2, 1)), (HANDBRAKE, (0, 2, 1))],
+  copies=[],
+)
+
+regression_controls_no_combo = ControlScheme(
+  ranges=[
+    (THROTTLE,   (-1, 1.5, .5), LOSS_SQUARE_MEAN),
+    (STEER,      (-1, 1.5, .5), LOSS_SQUARE_MEAN),
+    (YAW,        (-1, 1.5, .5), LOSS_SQUARE_MEAN),
+    (PITCH,      (-1, 1.5, .5), LOSS_SQUARE_MEAN),
+    (ROLL,       (-1, 1.5, .5), LOSS_SQUARE_MEAN),
+    (JUMP, (0, 2, 1)),
+    (BOOST, (0, 2, 1)),
+    (HANDBRAKE, (0, 2, 1))],
+  combo_scheme=[],
+  copies=[],
+)
+
+mixed_controls = ControlScheme(
+  ranges=[
+    (THROTTLE, (-1, 1.5, .5), LOSS_SPARSE_CROSS),
+    (STEER,    (-1, 1.5, .5), LOSS_ABSOLUTE_DIFFERENCE),
+    (YAW,      (-1, 1.5, .5), LOSS_ABSOLUTE_DIFFERENCE),
+    (PITCH,    (-1, 1.5, .5), LOSS_ABSOLUTE_DIFFERENCE),
+    (ROLL,     (-1, 1.5, .5), LOSS_ABSOLUTE_DIFFERENCE)
+  ],
+  combo_scheme=[(JUMP, (0, 2, 1)), (BOOST, (0, 2, 1)), (HANDBRAKE, (0, 2, 1))],
+  copies=[],
+)
+
+regression_everything = ControlScheme(
+  ranges=[
+    (THROTTLE,  (-1, 1.5, .5), LOSS_SQUARE_MEAN),
+    (STEER,     (-1, 1.5, .5), LOSS_SQUARE_MEAN),
+    (YAW,       (-1, 1.5, .5), LOSS_SQUARE_MEAN),
+    (PITCH,     (-1, 1.5, .5), LOSS_SQUARE_MEAN),
+    (ROLL,      (-1, 1.5, .5), LOSS_SQUARE_MEAN),
+    (JUMP,      (0, 2, 1),     LOSS_SQUARE_MEAN),
+    (BOOST,     (0, 2, 1),     LOSS_SQUARE_MEAN),
+    (HANDBRAKE, (0, 2, 1),     LOSS_SQUARE_MEAN)],
+  combo_scheme=[],
+  copies=[],
+)
+
 
 def get_handler(split_mode=True, control_scheme=default_scheme):
     """

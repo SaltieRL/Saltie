@@ -15,8 +15,11 @@ LOSS_ABSOLUTE_DIFFERENCE = 'abs_diff'
 
 
 class DynamicActionHandler(SplitActionHandler):
-    """Very dynamic for controls and splitting.
-        Assumes everything is in tensorflow
+    """
+    Very dynamic for controls and splitting.
+    Assumes everything is in tensorflow.
+
+    See SplitActionHandler docuementation for what an `action` and `index` is.
     """
 
     control_names_index_map = {}
@@ -29,9 +32,10 @@ class DynamicActionHandler(SplitActionHandler):
     combo_action_sizes = []
     button_combo = []
     combo_name_list = []
-    dodge_suppressor_list = [['jump'], ['steer', 'pitch', 'roll', 'yaw']]
+    index_to_loss_type = {}  # index -> one of the LOSS_* constants
+
+    # Used by the DodgeActionHandler subclass.
     should_suppress_dodge = False
-    action_loss_type_map = {}
 
     def __init__(self, control_scheme):
         self.control_scheme = control_scheme
@@ -50,12 +54,13 @@ class DynamicActionHandler(SplitActionHandler):
         self.combo_list = []
         self.button_combo = []
         self.combo_name_list = []
-        self.action_loss_type_map = {}
+        self.index_to_loss_type = {}
 
     def is_classification(self, index):
-        return self.action_loss_type_map[index] == LOSS_SPARSE_CROSS
+        return self.index_to_loss_type[index] == LOSS_SPARSE_CROSS
 
     def create_range_action(self, item):
+        ''' returns an action '''
         if len(item) > 2 and (item[2] == LOSS_SQUARE_MEAN or item[2] == LOSS_ABSOLUTE_DIFFERENCE):
             return np.array([0])
         action_data = np.arange(*item[1])
@@ -74,7 +79,7 @@ class DynamicActionHandler(SplitActionHandler):
         self.button_combo = list(itertools.product(*self.combo_list))
         self.action_sizes.append(len(self.button_combo))
         self.action_name_index_map[COMBO] = len(self.action_list_names)
-        self.action_loss_type_map[len(self.action_list_names)] = LOSS_SPARSE_CROSS
+        self.index_to_loss_type[len(self.action_list_names)] = LOSS_SPARSE_CROSS
         self.action_list_names.append(COMBO)
         self.actions.append(self.button_combo)
 
@@ -84,9 +89,9 @@ class DynamicActionHandler(SplitActionHandler):
             self.action_sizes.append(len(action))
             self.action_name_index_map[item[0]] = len(self.action_list_names)
             if len(item) > 2:
-                self.action_loss_type_map[len(self.action_list_names)] = item[2]
+                self.index_to_loss_type[len(self.action_list_names)] = item[2]
             else:
-                self.action_loss_type_map[len(self.action_list_names)] = LOSS_SPARSE_CROSS
+                self.index_to_loss_type[len(self.action_list_names)] = LOSS_SPARSE_CROSS
             self.action_list_names.append(item[0])
             self.actions.append(action)
 
@@ -98,9 +103,9 @@ class DynamicActionHandler(SplitActionHandler):
         for i, item in enumerate(self.control_names):
             self.control_names_index_map[item] = i
 
-        ranges = self.control_scheme[0]
-        combo_scheme = self.control_scheme[1]
-        copies = self.control_scheme[2]
+        ranges = self.control_scheme.ranges
+        combo_scheme = self.control_scheme.combo_scheme
+        copies = self.control_scheme.copies
 
         if len(ranges) > 0:
             self.create_ranged_actions(ranges)
@@ -297,12 +302,12 @@ class DynamicActionHandler(SplitActionHandler):
         :param index: The index of the control in the actions list this maps to
         :return: The loss for this particular action
         """
-        if self.action_loss_type_map[index] == LOSS_SPARSE_CROSS:
+        if self.index_to_loss_type[index] == LOSS_SPARSE_CROSS:
             loss = tf.nn.sparse_softmax_cross_entropy_with_logits(
                 labels=tf.cast(labels, tf.int32), logits=logits, name=LOSS_SPARSE_CROSS)
-        elif self.action_loss_type_map[index] == LOSS_SQUARE_MEAN:
+        elif self.index_to_loss_type[index] == LOSS_SQUARE_MEAN:
             loss = tf.losses.mean_squared_error(labels, tf.squeeze(logits), reduction=Reduction.NONE)
-        elif self.action_loss_type_map[index] == LOSS_ABSOLUTE_DIFFERENCE:
+        elif self.index_to_loss_type[index] == LOSS_ABSOLUTE_DIFFERENCE:
             loss = tf.losses.absolute_difference(labels, tf.squeeze(logits), reduction=Reduction.NONE)
         else:
             loss = tf.constant(0.0)
@@ -327,4 +332,4 @@ class DynamicActionHandler(SplitActionHandler):
             return layer  # * 2.0 - 1.0
 
     def get_loss_type(self, index):
-        return self.action_loss_type_map[index]
+        return self.index_to_loss_type[index]

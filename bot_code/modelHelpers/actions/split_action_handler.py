@@ -8,6 +8,14 @@ from bot_code.modelHelpers.actions.action_handler import ActionHandler, ActionMa
 
 
 class SplitActionHandler(ActionHandler):
+    """
+    For the different actions, (input axes and their possible values)
+    defines and applies the loss function.
+
+    Notes:
+     - `index` in the context of this class means an index into the `actions` list
+    """
+
     actions = []
     action_sizes = []
     movement_actions = []
