@@ -180,6 +180,7 @@ def main():
             try:
                 bot_parameter_list.append(bot_config[BOT_CONFIG_AGENT_HEADER])
             except Exception as e:
+                bot_parameter_list.append(None)
                 print('failed to load bot parameters')
         else:
             bot_parameter_list.append(None)
