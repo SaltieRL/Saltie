@@ -40,7 +40,7 @@ class OutputChecks:
     def get_amounts(self, input_array=None, bot_output=None):
 
         if not self.requires_bot_output:
-            bot_output = self.sess.run(self.tutorial_bot.get_output_vector_model_model(self.state_object))
+            bot_output = self.sess.run(self.tutorial_bot.get_output_vector_model(self.state_object))
         else:
             if bot_output is None:
                 print("Missing correct output")
