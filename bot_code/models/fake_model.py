@@ -6,6 +6,10 @@ from bot_code.models.base_model import BaseModel
 
 
 class FakeModel(BaseModel):
+    """
+    An adapter to run teachers (like TutorialBot) while
+    implementing the API for BaseModel.
+    """
     teacher_package = None
     teacher_class_name = None
 
