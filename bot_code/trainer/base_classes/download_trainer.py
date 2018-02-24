@@ -10,6 +10,10 @@ from bot_code.trainer.utils.threaded_file_downloader import ThreadedFileDownload
 
 
 class DownloadTrainer(BaseTrainer):
+    """
+    Downloads training data files from the Replay Archive Server.
+    Note: "file" in this context always refers to a replay file.
+    """
     DOWNLOAD_TRAINER_CONFIGURATION_HEADER = 'Download Configuration'
     download_files = None
     max_files = None

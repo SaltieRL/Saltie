@@ -10,7 +10,7 @@ class DefaultModelTrainer(BaseTrainer):
     OPTIMIZER_CONFIG_HEADER = 'Optimizer Config'
     MISC_CONFIG_HEADER = 'Misc Config'
     action_handler = None
-    sess = None
+    sess = None  # The tensorflow session
     input_formatter = None
     optimizer = None
     learning_rate = None

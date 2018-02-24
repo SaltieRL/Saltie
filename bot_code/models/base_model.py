@@ -34,8 +34,9 @@ class BaseModel:
     should_regulate = None
 
     """"
-    This is a base class for all models It has a couple helper methods but is mainly used to provide a standard
-    interface for running and training a model
+    This is a base class for all models.
+    It has a couple helper methods but is mainly used to provide a standard
+    interface for running and training a model.
     """
     def __init__(self, session, num_actions,
                  input_formatter_info=[0, 0],
