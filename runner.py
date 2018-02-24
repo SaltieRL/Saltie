@@ -177,7 +177,10 @@ def main():
                                                                                      'goal_explosion_id')
 
         if bot_config.has_section(BOT_CONFIG_AGENT_HEADER):
-            bot_parameter_list.append(bot_config[BOT_CONFIG_AGENT_HEADER])
+            try:
+                bot_parameter_list.append(bot_config[BOT_CONFIG_AGENT_HEADER])
+            except Exception as e:
+                print('failed to load bot parameters')
         else:
             bot_parameter_list.append(None)
 
