@@ -1,9 +1,8 @@
 import configparser
-import importlib
-import inspect
 
 import os
 
+from bot_code.utils.dynamic_import import get_class
 from bot_code.trainer.utils.ding import ding
 
 
@@ -32,23 +31,6 @@ class BaseTrainer:
         print('training finished')
         self.finish_trainer()
 
-
-    def get_class(self, class_package, class_name):
-        class_package = importlib.import_module('bot_code.' + class_package)
-        module_classes = inspect.getmembers(class_package, inspect.isclass)
-        for class_group in module_classes:
-            if class_group[0] == class_name:
-                return class_group[1]
-        return None
-
-    def get_field(self, class_package, class_name):
-        class_package = importlib.import_module('bot_code.' + class_package)
-        module_classes = inspect.getmembers(class_package)
-        for class_group in module_classes:
-            if class_group[0] == class_name:
-                return class_group[1]
-        return None
-
     def get_config_name(self):
         """
         returns the name of a file in bot_code/trainer/configs/
@@ -74,7 +56,7 @@ class BaseTrainer:
         # Over here the model data is obtained
         model_package = config.get(self.MODEL_CONFIG_HEADER, 'model_package')
         model_name = config.get(self.MODEL_CONFIG_HEADER, 'model_name')
-        self.model_class = self.get_class(model_package, model_name)
+        self.model_class = get_class(model_package, model_name)
 
     def setup_trainer(self):
         """Called to setup the functions of the trainer and anything needed for the creation of the model"""

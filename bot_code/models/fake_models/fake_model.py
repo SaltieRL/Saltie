@@ -4,6 +4,7 @@ import tensorflow as tf
 from bot_code.conversions import output_formatter
 from bot_code.models.base_model import BaseModel
 from bot_code.trainer.utils.floating_setup import floating_setup
+from bot_code.utils.dynamic_import import get_class
 import time
 
 class FakeModel(BaseModel):
@@ -28,14 +29,6 @@ class FakeModel(BaseModel):
                          summary_writer=summary_writer,
                          summary_every=summary_every,
                          config_file=config_file)
-
-    def get_class(self, class_package, class_name):
-        class_package = importlib.import_module('bot_code.' + class_package)
-        module_classes = inspect.getmembers(class_package, inspect.isclass)
-        for class_group in module_classes:
-            if class_group[0] == class_name:
-                return class_group[1]
-        return None
 
     def load_config_file(self):
         super().load_config_file()
@@ -65,7 +58,7 @@ class FakeModel(BaseModel):
         return self.input_placeholder
 
     def _create_model(self, model_input):
-        teacher_class = self.get_class(self.teacher_package, self.teacher_class_name)
+        teacher_class = get_class(self.teacher_package, self.teacher_class_name)
         teacher = teacher_class(self.batch_size)
 
         state_object = output_formatter.get_advanced_state(tf.transpose(model_input))

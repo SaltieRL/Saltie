@@ -32,8 +32,6 @@ class PhysicsPredictorTrainer(BaseTrainer):
             self.learning_rate = 0.001
 
     def setup_trainer(self):
-        controls = self.get_field('modelHelpers.actions.action_factory', self.control_scheme)
-        self.action_handler = action_factory.get_handler(control_scheme=controls)
         session_config = tf.ConfigProto()
         # session_config.gpu_options.visible_device_list = '1'
         self.sess = tf.Session(config=session_config)

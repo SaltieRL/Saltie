@@ -4,7 +4,9 @@ import time
 from bot_code.trainer.base_classes.default_model_trainer import DefaultModelTrainer
 from bot_code.trainer.utils import random_packet_creator
 from bot_code.trainer.utils import controller_statistics
+from bot_code.utils.dynamic_import import get_class
 from tqdm import tqdm
+
 
 
 class RandomPacketTrainer(DefaultModelTrainer):
@@ -54,7 +56,7 @@ class RandomPacketTrainer(DefaultModelTrainer):
 
     def setup_model(self):
         super().setup_model()
-        teacher_class = self.get_class(self.teacher_package, self.teacher_class_name)
+        teacher_class = get_class(self.teacher_package, self.teacher_class_name)
         teacher = teacher_class(self.batch_size)
         packet_generator = random_packet_creator.TensorflowPacketGenerator(self.batch_size)
         input_state, state_object = self.get_random_data(packet_generator, self.input_formatter)
