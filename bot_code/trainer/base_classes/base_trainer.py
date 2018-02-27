@@ -15,8 +15,23 @@ class BaseTrainer:
     model = None
     config = None
 
+
     def __init__(self):
         self.load_config()
+
+    def run(self):
+        '''
+        Main entry point to do training start to finish.
+        '''
+        print('setting up the trainer')
+        self.setup_trainer()
+        print('setting up the model')
+        self.setup_model()
+        print('running the trainer')
+        self._run_trainer()
+        print('training finished')
+        self.finish_trainer()
+
 
     def get_class(self, class_package, class_name):
         class_package = importlib.import_module('bot_code.' + class_package)
@@ -35,7 +50,10 @@ class BaseTrainer:
         return None
 
     def get_config_name(self):
-        return None
+        """
+        returns the name of a file in bot_code/trainer/configs/
+        """
+        raise NotImplementedError('Derived classes must override this.')
 
     def create_config(self):
         if self.config is None:
@@ -60,10 +78,15 @@ class BaseTrainer:
 
     def setup_trainer(self):
         """Called to setup the functions of the trainer and anything needed for the creation of the model"""
-        pass
+        raise NotImplementedError('Derived classes must override this.')
 
     def instantiate_model(self, model_class):
-        return model_class()
+        return model_class(self.sess,
+                           self.action_handler.get_logit_size(),
+                           action_handler=self.action_handler,
+                           is_training=True,
+                           optimizer=self.optimizer,
+                           config_file=self.create_model_config())
 
     def setup_model(self):
         self.model = self.instantiate_model(self.model_class)
@@ -75,9 +98,9 @@ class BaseTrainer:
     def finish_trainer(self):
         ding()
 
-    def run_trainer(self):
-        self._run_trainer()
-        self.finish_trainer()
-
     def _run_trainer(self):
-        pass
+        '''
+        This is where your long process of training neural nets goes.
+        You may asume the trainer and model are set up.
+        '''
+        raise NotImplementedError('Derived classes must override this.')

@@ -6,8 +6,6 @@ from bot_code.trainer.utils import random_packet_creator
 from bot_code.trainer.utils import controller_statistics
 from tqdm import tqdm
 
-from bot_code.trainer.utils.trainer_runner import run_trainer
-
 
 class RandomPacketTrainer(DefaultModelTrainer):
     total_batches = None
@@ -129,4 +127,4 @@ class RandomPacketTrainer(DefaultModelTrainer):
 
 
 if __name__ == '__main__':
-    run_trainer(trainer=RandomPacketTrainer())
+    RandomPacketTrainer().run()

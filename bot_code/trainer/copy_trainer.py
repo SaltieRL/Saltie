@@ -3,8 +3,6 @@ import numpy as np
 from bot_code.trainer.base_classes.default_model_trainer import DefaultModelTrainer
 from bot_code.trainer.base_classes.download_trainer import DownloadTrainer
 from bot_code.trainer.utils import controller_statistics
-from bot_code.trainer.utils.trainer_runner import run_trainer
-
 
 class CopyTrainer(DownloadTrainer, DefaultModelTrainer):
 
@@ -129,4 +127,4 @@ class CopyTrainer(DownloadTrainer, DefaultModelTrainer):
 
 
 if __name__ == '__main__':
-    run_trainer(trainer=CopyTrainer())
+    CopyTrainer().run()
