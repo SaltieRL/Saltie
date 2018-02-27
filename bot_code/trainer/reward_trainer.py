@@ -1,8 +1,3 @@
-import sys
-import os
-# Hack to be able to import bot_code.* from here.
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-
 from bot_code.modelHelpers import reward_manager
 import time
 
