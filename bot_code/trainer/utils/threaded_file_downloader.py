@@ -1,3 +1,4 @@
+import collections
 import queue
 import threading
 
@@ -35,7 +36,11 @@ class ThreadedFileDownloader:
             file_name = self.files_to_download.get()
             if file_name is None:
                 break
-            self.downloaded_files.put(self.file_getter_function(file_name))
+            files = self.file_getter_function(file_name)
+            if not self.is_sequence(files):
+                files = [files]
+            for f in files:
+                self.downloaded_files.put(f)
             self.files_to_download.task_done()
 
     def get_replay_list(self):
@@ -67,3 +72,9 @@ class ThreadedFileDownloader:
         print('ran through all files in ' + str(self.total_time / 60) + ' minutes')
         print('ran through all files in ' + str(self.total_time / 3600) + ' hours')
         print('average time per file: ' + str((self.total_time / max(1, self.total_files))) + ' seconds')
+
+    @staticmethod
+    def is_sequence(obj):
+        if isinstance(obj, str):
+            return False
+        return isinstance(obj, collections.Sequence)

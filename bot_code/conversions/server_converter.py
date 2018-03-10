@@ -1,3 +1,4 @@
+import json
 import os
 import io
 import random
@@ -155,11 +156,17 @@ class ServerConverter:
         replays = r.json()
         print('num replays available', len(replays), ' num requested ', num_replays)
         n = min(num_replays, len(replays))
-        return random.sample(replays, n)
+        return [";".join(random.sample(replays, n))]
 
     def download_file(self, file):
-        response = requests.get(self.server_ip + '/replays/' + file)
-        return io.BytesIO(response.content)
+        if file.contains(';'):
+            file = file.split(';')
+            response = requests.post(self.server_ip + '/replays/download', json=json.dumps({'files': file}))
+            zip = zipfile.ZipFile(response.content)
+            return [zip.read(name) for name in zip.namelist()]
+        else:
+            response = requests.get(self.server_ip + '/replays/' + file)
+            return io.BytesIO(response.content)
 
     def ping_server(self):
         try:
