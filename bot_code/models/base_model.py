@@ -3,7 +3,6 @@ import os
 import tensorflow as tf
 import numpy as np
 
-from bot_code.conversions.input.input_formatter import InputFormatter
 from bot_code.modelHelpers import tensorflow_feature_creator
 from bot_code.modelHelpers.data_normalizer import DataNormalizer
 
@@ -26,21 +25,29 @@ class BaseModel:
     load_from_checkpoints = None
     QUICK_SAVE_KEY = 'quick_save'
     network_size = 128
-    controller_predictions = None
+    controller_predictions = None  # The actual neural net.
     input_formatter = None
     summarize = no_op
-    iterator = None
+    iterator = None  # The iterator over the input (training) data
     reg_param = 0.001
     should_regulate = None
 
     """"
     This is a base class for all models.
+    This class is agnostic to what is being learned but subclasses may be more specific.
+    However, the all models are just try to learn
+    a function that takes some input (eg. game state) to some output (eg. car actions).
+
+    @input_dim and @output_dim speficy the shape of the input/output of the function we are trying the model.
+
     It has a couple helper methods but is mainly used to provide a standard
     interface for running and training a model.
     """
-    def __init__(self, session, num_actions,
-                 input_formatter_info=[0, 0],
-                 player_index=-1, action_handler=None, is_training=False,
+    def __init__(self,
+                 session,
+                 input_dim=None,
+                 output_dim=None,
+                 is_training=False,
                  optimizer=tf.train.GradientDescentOptimizer(learning_rate=0.1), summary_writer=None, summary_every=100,
                  config_file=None):
 
@@ -53,27 +60,19 @@ class BaseModel:
         # debug parameters
         self.summary_every = summary_every
 
-        # for interfacing with the rest of the world
-        self.action_handler = action_handler
+        assert input_dim
+        assert output_dim
+        self.input_dim = input_dim
+        self.output_dim = output_dim
 
-        # player index used for live graphing
-        self.player_index = player_index
-
-        # output space
-        self.num_actions = num_actions
-        self.add_input_formatter(input_formatter_info[0], input_formatter_info[1])
-        # input space
-        self.state_dim = self.input_formatter.get_state_dim()
-        self.state_feature_dim = self.state_dim
+        # create variables
+        self.stored_variables = self._create_variables()
 
         self.is_training = is_training
 
         if config_file is not None:
             self.config_file = config_file
             self.load_config_file()
-
-        # create variables
-        self.stored_variables = self._create_variables()
 
     def printParameters(self):
         """Visually displays all the model parameters"""
@@ -83,13 +82,6 @@ class BaseModel:
         print('using features', (self.feature_creator is not None))
         print('regulation parameter', self.reg_param)
         print('is regulating parameter', self.should_regulate)
-
-    def _create_variables(self):
-        """Creates any variables needed by this model.
-        Variables keep their value across multiple runs"""
-        with tf.name_scope("model_inputs"):
-            self.input_placeholder = tf.placeholder(tf.float32, shape=(None, self.state_dim), name="state_input")
-        return {}
 
     def store_rollout(self, input_state, last_action, reward):
         """
@@ -111,14 +103,6 @@ class BaseModel:
         :return:
         """
         print(' i do nothing!')
-
-    def add_input_formatter(self, team, index):
-        """Creates and adds an input formatter"""
-        self.input_formatter = InputFormatter(team, index)
-
-    def create_input_array(self, game_tick_packet, frame_time):
-        """Creates the input array from the game_tick_packet"""
-        return self.input_formatter.create_input_array(game_tick_packet, frame_time)
 
     def sample_action(self, input_state):
         """
@@ -215,10 +199,6 @@ class BaseModel:
                 self.train_iteration += 1
         return self.train_iteration
 
-    def apply_feature_creation(self, feature_creator):
-        self.state_feature_dim = self.state_dim + tensorflow_feature_creator.get_feature_dim()
-        self.feature_creator = feature_creator
-
     def get_input(self, model_input=None):
         """
         Gets the input for the model.
@@ -284,12 +264,13 @@ class BaseModel:
             print(e)
             try:
                 init = tf.global_variables_initializer()
-                self.sess.run(init, feed_dict={self.input_placeholder: np.zeros((self.batch_size, self.state_dim))})
+                self.sess.run(init, feed_dict={self.input_placeholder: np.zeros((self.batch_size, self.input_dim))})
             except Exception as e2:
                 print('failed to initialize again')
                 print(e2)
                 init = tf.global_variables_initializer()
                 self.sess.run(init, feed_dict={
+                    # TODO: This seems sepcific to agents. Refactor this out of base_model.py
                     self.input_placeholder: np.reshape(np.zeros(206), [1, 206])
                 })
 
@@ -531,10 +512,17 @@ class BaseModel:
     def get_input_placeholder(self):
         """Returns the placeholder for getting inputs"""
         return self.input_placeholder
+    def _create_variables(self):
+        """Creates any variables needed by this model.
+        Variables keep their value across multiple runs"""
+        with tf.name_scope("model_inputs"):
+            self.input_placeholder = tf.placeholder(tf.float32, shape=(None, self.input_dim), name="inputs")
+        return {}
 
     def get_labels_placeholder(self):
         """Returns the placeholder for getting what actions have been taken"""
         return self.no_op
+
 
     def get_variables_activations(self):
         """

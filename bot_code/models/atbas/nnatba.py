@@ -1,8 +1,8 @@
-from bot_code.models import base_model
+from bot_code.models.base_agent_model import BaseAgentModel
 import tensorflow as tf
 
 
-class NNAtba(base_model.BaseModel):
+class NNAtba(BaseAgentModel):
 
     keep_prob = 0.5
     num_hidden_1 = 500 # 1st layer num features

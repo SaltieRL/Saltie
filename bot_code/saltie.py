@@ -4,6 +4,7 @@ from bot_code.modelHelpers import reward_manager
 from bot_code.modelHelpers.tensorflow_feature_creator import TensorflowFeatureCreator
 from bot_code.utils.dynamic_import import get_field, get_class
 import bot_code.livedata.live_data_util as live_data_util
+from bot_code.models.base_agent_model import BaseAgentModel
 
 import numpy as np
 import tensorflow as tf
@@ -35,7 +36,8 @@ class Agent:
         self.actions_handler = action_factory.get_handler(control_scheme=self.control_scheme)
         self.num_actions = self.actions_handler.get_logit_size()
         print('num_actions', self.num_actions)
-        self.model = self.get_model_class()(self.sess,
+
+        self.model = self.model_class(self.sess,
                                             self.num_actions,
                                             input_formatter_info=[team, index],
                                             player_index=self.index,
@@ -93,14 +95,10 @@ class Agent:
         print('getting model from', model_package)
         print('name of model', model_name)
         self.model_class = get_class(model_package, model_name)
+        assert self.model_class is not None
+        assert issubclass(self.model_class, BaseAgentModel)
         self.control_scheme = get_field('modelHelpers.actions.action_factory', control_scheme)
 
-    def get_model_class(self):
-        if self.model_class is None:
-            print('Invalid model using default')
-            return None
-        else:
-            return self.model_class
 
     def get_reward(self, input_state):
         reward = self.reward_manager.get_reward(input_state)

@@ -2,15 +2,15 @@ import importlib
 import inspect
 import tensorflow as tf
 from bot_code.conversions import output_formatter
-from bot_code.models.base_model import BaseModel
+from bot_code.models.base_model import BaseAgentModel
 from bot_code.trainer.utils.floating_setup import floating_setup
 from bot_code.utils.dynamic_import import get_class
 import time
 
-class FakeModel(BaseModel):
+class FakeModel(BaseAgentModel):
     """
     An adapter to run teachers (like TutorialBot) while
-    implementing the API for BaseModel.
+    implementing the API for BaseAgentModel.
     """
     teacher_package = None
     teacher_class_name = None
