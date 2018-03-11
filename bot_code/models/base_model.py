@@ -8,6 +8,8 @@ from bot_code.modelHelpers.data_normalizer import DataNormalizer
 
 
 class BaseModel:
+    model = None  # The actual neural net.
+
     savers_map = {}
     batch_size = 20000
     mini_batch_size = 500
@@ -25,7 +27,6 @@ class BaseModel:
     load_from_checkpoints = None
     QUICK_SAVE_KEY = 'quick_save'
     network_size = 128
-    controller_predictions = None  # The actual neural net.
     input_formatter = None
     summarize = no_op
     iterator = None  # The iterator over the input (training) data
@@ -112,7 +113,7 @@ class BaseModel:
         A sample action that can then be used to get controller output.
         """
         #always return an integer
-        return self.sess.run(self.controller_predictions, feed_dict={self.get_input_placeholder(): input_state})
+        return self.sess.run(self.model, feed_dict={self.get_input_placeholder(): input_state})
 
     def create_copy_training_model(self, model_input=None, taken_actions=None):
         """
@@ -239,7 +240,7 @@ class BaseModel:
         """
         input = self.get_input(model_input)
 
-        self.controller_predictions = self._create_model(input)
+        self.model = self._create_model(input)
 
     def _create_model(self, model_input):
         """
