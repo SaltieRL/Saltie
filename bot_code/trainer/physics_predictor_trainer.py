@@ -47,5 +47,8 @@ class PhysicsPredictorTrainer(BaseTrainer):
     def _run_trainer(self):
         print('Totally training over here')
 
+    def finish_trainer(self):
+        text_to_speech('Training finished.')
+
 if __name__ == '__main__':
     PhysicsPredictorTrainer().run()
