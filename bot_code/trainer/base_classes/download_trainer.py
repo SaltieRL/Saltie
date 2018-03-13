@@ -4,12 +4,12 @@ import time
 
 from bot_code.conversions import binary_converter
 from bot_code.conversions.server_converter import ServerConverter
-from bot_code.trainer.base_classes.base_trainer import BaseTrainer
+from bot_code.trainer.base_classes.base_agent_trainer import BaseAgentTrainer
 from bot_code.trainer.utils.file_download_manager import get_file_get_function, get_file_list_get_function
 from bot_code.trainer.utils.threaded_file_downloader import ThreadedFileDownloader
 
 
-class DownloadTrainer(BaseTrainer):
+class DownloadTrainer(BaseAgentTrainer):
     """
     Downloads training data files from the Replay Archive Server.
     Note: "file" in this context always refers to a replay file.

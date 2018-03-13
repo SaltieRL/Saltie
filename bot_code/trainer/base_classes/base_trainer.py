@@ -5,13 +5,12 @@ import os
 from bot_code.utils.dynamic_import import get_class
 from bot_code.trainer.utils.ding import ding
 
-
 class BaseTrainer:
     model_class = None
     BASE_CONFIG_HEADER = 'Trainer Configuration'
     MODEL_CONFIG_HEADER = 'Model Configuration'
     batch_size = None
-    model = None
+    model = None  # An instance of bot_code.models.base_model.BaseModel
     config = None
 
 
@@ -63,12 +62,11 @@ class BaseTrainer:
         raise NotImplementedError('Derived classes must override this.')
 
     def instantiate_model(self, model_class):
-        return model_class(self.sess,
-                           self.action_handler.get_logit_size(),
-                           action_handler=self.action_handler,
-                           is_training=True,
-                           optimizer=self.optimizer,
-                           config_file=self.create_model_config())
+        '''
+        This is where your long process of training neural nets goes.
+        You may asume the trainer and model are set up.
+        '''
+        raise NotImplementedError('Derived classes must override this.')
 
     def setup_model(self):
         self.model = self.instantiate_model(self.model_class)

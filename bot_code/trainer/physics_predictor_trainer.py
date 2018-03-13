@@ -12,7 +12,6 @@ class PhysicsPredictorTrainer(BaseTrainer):
     '''
 
     OPTIMIZER_CONFIG_HEADER = 'Optimizer Config'
-    MISC_CONFIG_HEADER = 'Misc Config'
     sess = None  # The tensorflow session
     input_formatter = None
     optimizer = None

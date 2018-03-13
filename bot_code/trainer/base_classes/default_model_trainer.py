@@ -3,11 +3,11 @@ import tensorflow as tf
 from bot_code.conversions.input import tensorflow_input_formatter
 from bot_code.modelHelpers.actions import action_factory
 from bot_code.modelHelpers.tensorflow_feature_creator import TensorflowFeatureCreator
-from bot_code.trainer.base_classes.base_trainer import BaseTrainer
+from bot_code.trainer.base_classes.base_agent_trainer import BaseAgentTrainer
 from bot_code.utils.dynamic_import import get_field
 
 
-class DefaultModelTrainer(BaseTrainer):
+class DefaultModelTrainer(BaseAgentTrainer):
     OPTIMIZER_CONFIG_HEADER = 'Optimizer Config'
     MISC_CONFIG_HEADER = 'Misc Config'
     action_handler = None
