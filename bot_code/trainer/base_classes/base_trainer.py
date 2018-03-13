@@ -55,7 +55,9 @@ class BaseTrainer:
         # Over here the model data is obtained
         model_package = config.get(self.MODEL_CONFIG_HEADER, 'model_package')
         model_name = config.get(self.MODEL_CONFIG_HEADER, 'model_name')
-        self.model_class = get_class(model_package, model_name)
+        model_class = get_class(model_package, model_name)
+        assert model_class is not None
+        self.model_class = model_class
 
     def setup_trainer(self):
         """Called to setup the functions of the trainer and anything needed for the creation of the model"""
@@ -63,8 +65,8 @@ class BaseTrainer:
 
     def instantiate_model(self, model_class):
         '''
-        This is where your long process of training neural nets goes.
-        You may asume the trainer and model are set up.
+        calls the @model_class constructor with appropriate arguments.
+        returns an instance of bot_code.models.base_model.BaseModel
         '''
         raise NotImplementedError('Derived classes must override this.')
 

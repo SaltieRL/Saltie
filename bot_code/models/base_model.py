@@ -49,7 +49,8 @@ class BaseModel:
                  input_dim=None,
                  output_dim=None,
                  is_training=False,
-                 optimizer=tf.train.GradientDescentOptimizer(learning_rate=0.1), summary_writer=None, summary_every=100,
+                 optimizer=tf.train.GradientDescentOptimizer(learning_rate=0.1),
+                 summary_writer=None, summary_every=100,
                  config_file=None):
 
         # tensorflow machinery
