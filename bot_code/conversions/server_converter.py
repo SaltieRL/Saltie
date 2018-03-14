@@ -120,7 +120,7 @@ class ServerConverter:
     def _upload_replay_opened_file(self, file):
         payload = {'username': self.username, 'hash': self.model_hash,
                    'num_my_team': self.num_my_team, 'num_players': self.num_players, 'is_eval': self.is_eval}
-        r = requests.post(self.server_ip, files={'file': file}, data=payload, timeout=10)
+        r = requests.post(self.server_ip + '/upload/replay', files={'file': file}, data=payload, timeout=10)
         if r.status_code != 200 and r.status_code != 202:
             print('i=something went wrong in the server ', r.status_code)
             print(r.content)
