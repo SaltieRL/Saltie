@@ -61,7 +61,7 @@ class ServerConverter:
                 print('Error downloading config, reverting to file on disk:', e)
                 self.download_config = False
 
-    def load_model(self):
+    def load_model(self, model_hash):
         """
         Makes a request to download the config from the server.
         Times out after 10 seconds.
@@ -71,9 +71,9 @@ class ServerConverter:
         """
         if self.download_model:
             print('downloading model')
-            folder = 'training/saltie/' + self.model_hash
+            folder = 'training/saltie/' + model_hash
             try:
-                b = requests.get(self.server_ip + '/model/get/' + self.model_hash, timeout=10)
+                b = requests.get(self.server_ip + '/model/get/' + model_hash, timeout=10)
                 print('model downloaded')
                 bytes = io.BytesIO()
                 for chunk in b.iter_content(chunk_size=1024):

@@ -115,7 +115,7 @@ def main():
         print('gameName: ' + game_name + 'in ' + save_path)
 
     gameInputPacket.iNumPlayers = num_participants
-    server_manager.download_files()
+    server_manager.load_config()
 
 
     num_team_0 = 0
@@ -192,6 +192,8 @@ def main():
             bot_modules.append(bot_config.get(BOT_CONFIG_MODULE_HEADER, 'agent_module'))
         else:
             bot_modules.append('NO_MODULE_FOR_PARTICIPANT')
+        # downloads the model based on the hash in the config
+        server_manager.load_model(bot_config[BOT_CONFIG_AGENT_HEADER]['model_hash'])
 
     server_manager.set_player_amount(num_participants, num_team_0)
 
