@@ -230,7 +230,7 @@ class BotManager:
     def maybe_compress_and_upload(self, filename):
         if not os.path.isfile(filename + '.gz'):
             compressed = self.compress(filename)
-            self.server_manager.maybe_upload_replay(compressed)
+            self.server_manager.maybe_upload_replay(compressed, self.bot_parameters['model_hash'])
 
     def compress(self, filename):
         output = filename + '.gz'

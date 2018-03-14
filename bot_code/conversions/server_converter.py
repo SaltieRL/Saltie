@@ -92,20 +92,20 @@ class ServerConverter:
                 print('Error downloading model, not writing it:', e)
                 download_model = False
 
-    def maybe_upload_replay(self, fn):
+    def maybe_upload_replay(self, fn, model_hash):
         if not self.uploading:
             self.add_to_local_files(fn)
             return
 
         try:
-            self._upload_replay(fn)
+            self._upload_replay(fn, model_hash)
         except Exception as e:
             print('catching all errors to keep the program going', e)
 
-    def _upload_replay(self, fn):
+    def _upload_replay(self, fn, model_hash):
         with open(fn, 'rb') as f:
             try:
-                self._upload_replay_opened_file(f)
+                self._upload_replay_opened_file(f, model_hash)
                 self.file_status[fn] = True
             except ConnectionRefusedError as error:
                 print('server is down ', error)
@@ -117,8 +117,8 @@ class ServerConverter:
                 print('server is down, general error', e)
                 self.add_to_local_files(fn)
 
-    def _upload_replay_opened_file(self, file):
-        payload = {'username': self.username, 'hash': self.model_hash,
+    def _upload_replay_opened_file(self, file, model_hash):
+        payload = {'username': self.username, 'hash': model_hash,
                    'num_my_team': self.num_my_team, 'num_players': self.num_players, 'is_eval': self.is_eval}
         r = requests.post(self.server_ip + '/upload/replay', files={'file': file}, data=payload, timeout=10)
         if r.status_code != 200 and r.status_code != 202:
