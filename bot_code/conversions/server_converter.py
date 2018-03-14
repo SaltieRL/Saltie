@@ -71,9 +71,9 @@ class ServerConverter:
         """
         if self.download_model:
             print('downloading model')
-            folder = 'training/saltie/'
+            folder = 'training/saltie/' + self.model_hash
             try:
-                b = requests.get(self.server_ip + '/model/get', timeout=10)
+                b = requests.get(self.server_ip + '/model/get/' + self.model_hash, timeout=10)
                 print('model downloaded')
                 bytes = io.BytesIO()
                 for chunk in b.iter_content(chunk_size=1024):
