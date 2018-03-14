@@ -71,7 +71,7 @@ class ServerConverter:
         """
         if self.download_model:
             print('downloading model')
-            folder = 'training/saltie/' + model_hash
+            folder = os.path.join('training', 'saltie', model_hash)
             try:
                 b = requests.get(self.server_ip + '/model/get/' + model_hash, timeout=10)
                 print('model downloaded')
