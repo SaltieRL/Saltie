@@ -339,7 +339,7 @@ class BaseModel:
         :return: The path of the file
         """
         dir_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-        return dir_path + "/training/data/" + self.get_model_name() + "/" + filename
+        return os.path.join(dir_path, "training", "saltie", self.get_model_name(), filename)
 
     def get_event_path(self, filename, is_replay=False):
         """
@@ -458,7 +458,7 @@ class BaseModel:
             print(e)
 
     def _create_saved_model_path(self, model_path, file_name, key):
-        return model_path + '/' + key + '/' + file_name
+        return os.path.join(model_path, key, file_name)
 
     def save_model(self, model_path=None, global_step=None, quick_save=False):
         if model_path is None:
