@@ -73,14 +73,16 @@ class ServerConverter:
             print('downloading model')
             folder = os.path.join('training', 'saltie', model_hash)
             try:
-                b = requests.get(self.server_ip + '/model/get/' + model_hash, timeout=10)
+                url = self.server_ip + '/model/get/' + model_hash
+                print (url)
+                r = requests.get(url, timeout=10, stream=True)
                 print('model downloaded')
-                bytes = io.BytesIO()
-                for chunk in b.iter_content(chunk_size=1024):
+                in_memory_file = io.BytesIO()
+                for chunk in r.iter_content(chunk_size=1024):
                     if chunk:
-                        bytes.write(chunk)
+                        in_memory_file.write(chunk)
                 print('downloaded model')
-                with zipfile.ZipFile(bytes) as f:
+                with zipfile.ZipFile(in_memory_file) as f:
                     if not os.path.isdir(folder):
                         os.makedirs(folder)
                     for file in f.namelist():
