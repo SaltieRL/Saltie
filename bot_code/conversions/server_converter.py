@@ -74,8 +74,13 @@ class ServerConverter:
             folder = os.path.join('training', 'saltie', model_hash)
             try:
                 url = self.server_ip + '/model/get/' + model_hash
-                print (url)
+                print(url)
                 r = requests.get(url, timeout=10, stream=True)
+                try:
+                    if not r.json():
+                        return
+                except:
+                    pass  # this is a file
                 print('model downloaded')
                 in_memory_file = io.BytesIO()
                 for chunk in r.iter_content(chunk_size=1024):
