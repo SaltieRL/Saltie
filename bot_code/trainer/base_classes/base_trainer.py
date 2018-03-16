@@ -40,9 +40,9 @@ class BaseTrainer:
     def create_config(self):
         if self.config is None:
             self.config = configparser.RawConfigParser()
-            file = 'configs/' + str(self.get_config_name())
+            file = os.path.join('configs', str(self.get_config_name()))
             dir_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-            self.config.read(dir_path + '/' + file)
+            self.config.read(os.path.join(dir_path, file))
         return self.config
 
     def create_model_config(self):

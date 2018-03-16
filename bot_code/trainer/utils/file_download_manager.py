@@ -16,7 +16,7 @@ def get_file_list_get_function(download, input_server):
 
 def get_all_files(max_files, only_eval):
     dir_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
-    training_path = dir_path + '/training/replays'
+    training_path = os.path.join(dir_path,'training', 'replays')
     files = []
     include_extensions = {'gz'}
     exclude_paths = {'data', 'ignore'}
@@ -34,6 +34,6 @@ def get_all_files(max_files, only_eval):
                     break
             if skip_file:
                 continue
-            files.append(dirpath + '/' + file)
+            files.append(os.path.join(dirpath, file))
     random.shuffle(files)
     return files[:max_files]

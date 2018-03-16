@@ -241,7 +241,7 @@ class BotManager:
 
     def maybe_delete(self, file_number):
         if file_number > 0:
-            filename = self.game_name + '\\' + self.name + '-' + str(file_number) + '.bin'
+            filename = os.path.join(self.game_name, self.name + '-' + str(file_number) + '.bin')
             os.remove(filename)
 
     def create_new_file(self, filename):
@@ -251,4 +251,4 @@ class BotManager:
         compressor.write_is_eval(self.game_file, self.is_eval)
 
     def create_file_name(self):
-        return self.game_name + '/' + self.name + '-' + str(self.file_number) + '.bin'
+        return os.path.join(self.game_name, + self.name + '-' + str(self.file_number) + '.bin')

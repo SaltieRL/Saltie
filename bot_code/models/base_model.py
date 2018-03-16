@@ -349,10 +349,10 @@ class BaseModel:
         :return: The path of the file
         """
         dir_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-        base_path = "/training/training_events/"
+        base_path = os.path.join("training", "training_events")
         if is_replay:
-            base_path = "/training/in_game_events/"
-        complete_path = dir_path + base_path + self.get_model_name() + "/" + filename
+            base_path = os.path.join("training", "in_game_events")
+        complete_path = os.path.join(dir_path, base_path, self.get_model_name(), filename)
         modified_path = complete_path
         counter = 0
         while os.path.exists(modified_path):
