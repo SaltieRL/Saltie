@@ -102,20 +102,20 @@ def main():
     name_dict = dict()
 
     save_data = True
-    save_path = os.getcwd() + '/bot_code/training/replays'
+    save_path = os.path.join(os.getcwd(), 'bot_code', 'training', 'replays')
     game_name = str(int(round(time.time() * 1000))) + '-' + str(random.randint(0, 1000))
     if save_data:
         print(save_path)
         if not os.path.exists(save_path):
             print(os.path.dirname(save_path) + ' does not exist creating')
             os.makedirs(save_path)
-        if not os.path.exists(save_path + '\\' + game_name):
-            os.makedirs(save_path + '\\' + game_name)
+        joined_path = os.path.join(save_path, game_name)
+        if not os.path.exists(joined_path):
+            os.makedirs(joined_path)
         print('gameName: ' + game_name + 'in ' + save_path)
 
     gameInputPacket.iNumPlayers = num_participants
     server_manager.load_config()
-
 
     num_team_0 = 0
     # Set configuration values for bots and store name and team
