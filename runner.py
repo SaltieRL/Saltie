@@ -193,8 +193,10 @@ def main():
         else:
             bot_modules.append('NO_MODULE_FOR_PARTICIPANT')
         # downloads the model based on the hash in the config
-        server_manager.load_model(bot_config[BOT_CONFIG_AGENT_HEADER]['model_hash'])
-
+        try:
+            server_manager.load_model(bot_config[BOT_CONFIG_AGENT_HEADER]['model_hash'])
+        except Exception as e:
+            print ("Couldn't get model hash,", e)
     server_manager.set_player_amount(num_participants, num_team_0)
 
     # Create Quit event
