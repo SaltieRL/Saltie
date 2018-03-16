@@ -245,10 +245,10 @@ class BotManager:
             os.remove(filename)
 
     def create_new_file(self, filename):
-        self.game_file = open(filename.replace(" ", ""), 'wb')
+        self.game_file = open(filename, 'wb')
         compressor.write_version_info(self.game_file, compressor.get_latest_file_version())
         compressor.write_bot_hash(self.game_file, self.model_hash)
         compressor.write_is_eval(self.game_file, self.is_eval)
 
     def create_file_name(self):
-        return os.path.join(self.game_name, self.name + '-' + str(self.file_number) + '.bin')
+        return os.path.join(self.game_name, str(self.name).replace(" ", "") + '-' + str(self.file_number) + '.bin')
