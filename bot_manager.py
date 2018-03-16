@@ -205,8 +205,8 @@ class BotManager:
             after = datetime.now()
 
             after2 = time.time()
-            # cant ever drop below 50 frames
-            if after2 - before2 > 0.02:
+            # cant ever drop below 40 frames
+            if after2 - before2 > 0.025:
                 print('Too slow for ' + self.name + ': ' + str(after2 - before2) +
                       ' frames since slowdown ' + str(counter))
                 counter = 0
