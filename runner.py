@@ -34,8 +34,7 @@ BOT_CONFIG_AGENT_HEADER = 'Bot Parameters'
 
 
 try:
-    import config
-    server_manager = ServerConverter(config.UPLOAD_SERVER, True, True, True, username='Sciguymjm')
+    server_manager = ServerConverter('http://saltie.tk:5000', True, True, True, username='unknown')
 except ImportError:
     server_manager = ServerConverter('', False, False, False)
     print('config.py not present, cannot upload replays to collective server')
