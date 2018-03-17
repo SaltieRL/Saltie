@@ -20,7 +20,7 @@ from bot_code.conversions.input import input_formatter
 
 OUTPUT_SHARED_MEMORY_TAG = 'Local\\RLBotOutput'
 INPUT_SHARED_MEMORY_TAG = 'Local\\RLBotInput'
-GAME_TICK_PACKET_REFRESHES_PER_SECOND = 120  # 2*60. https://en.wikipedia.org/wiki/Nyquist_rate
+GAME_TICK_PACKET_REFRESHES_PER_SECOND = 60  # 2*60. https://en.wikipedia.org/wiki/Nyquist_rate
 MAX_AGENT_CALL_PERIOD = timedelta(seconds=1.0/30)  # Minimum call rate when paused.
 REFRESH_IN_PROGRESS = 1
 REFRESH_NOT_IN_PROGRESS = 0
