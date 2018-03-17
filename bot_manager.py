@@ -51,6 +51,7 @@ class BotManager:
         self.output_array = np.array([])
         self.batch_size = 1000
         self.upload_size = 20
+        self.retry_size = 10
 
     def load_agent(self, agent_module):
         try:
@@ -197,6 +198,11 @@ class BotManager:
                     filename = self.create_file_name()
                     self.create_new_file(filename)
                     self.maybe_delete(self.file_number - 3)
+                if self.frames % (self.batch_size * self.upload_size * self.retry_size) == 0 and not self.frames == 0:
+                    try:
+                        self.server_manager.retry_files()
+                    except Exception:
+                        print('failed to retry uploading files')
                 self.frames += 1
 
             old_time = current_time
