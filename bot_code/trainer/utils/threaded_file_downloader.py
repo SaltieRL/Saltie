@@ -5,9 +5,9 @@ import threading
 
 class ThreadedFileDownloader:
     def __init__(self, max_files, num_downloader_threads, num_trainer_threads,
-                 get_file_list_function, file_getter_function, file_processor_function):
-        self.downloaded_files = queue.Queue(maxsize=max_files)
-        self.files_to_download = queue.Queue(maxsize=max_files)
+                 get_file_list_function, file_getter_function, file_processor_function, batches):
+        self.downloaded_files = queue.Queue(maxsize=max_files * batches) # this is in single file form
+        self.files_to_download = queue.Queue(maxsize=batches) # this is in string form, so each string is one batch
         self.processed_counter = 0
         self.max_files = max_files
         self.num_downloader_threads = num_downloader_threads
@@ -15,6 +15,7 @@ class ThreadedFileDownloader:
         self.process_file = file_processor_function
         self.file_getter_function = file_getter_function
         self.get_file_list_function = get_file_list_function
+        self.batches = batches
         self.counter = 0
         self.total_time = 0
         self.total_files = 1
@@ -26,7 +27,7 @@ class ThreadedFileDownloader:
                 break
             if file is None:
                 continue
-            print('running file', self.counter, '/', self.counter + self.downloaded_files.qsize())
+            print('running file', self.counter + 1, '/', self.counter + self.downloaded_files.qsize() + 1)
             self.total_time += self.process_file(file)
             self.counter += 1
             self.downloaded_files.task_done()
@@ -44,9 +45,10 @@ class ThreadedFileDownloader:
             self.files_to_download.task_done()
 
     def get_replay_list(self):
-        files = self.get_file_list_function(self.max_files, False)
+        files = self.get_file_list_function(self.max_files, False, self.batches)
+        print ("Downloading", files)
         self.total_files = len(files)
-        print('training on ' + str(self.total_files) + ' files')
+        print('training on ' + str(self.total_files * self.batches) + ' files')
         for replay in files:
             self.files_to_download.put(replay)
 

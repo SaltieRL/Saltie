@@ -158,13 +158,20 @@ class ServerConverter:
         self.load_config()
         self.load_model()
 
-    def get_replays(self, num_replays, get_eval_only):
-        r = requests.get(self.server_ip + '/replays/list')
+    def get_replays(self, batch_size, get_eval_only, batches):
+        def chunks(l, n):
+            """Yield successive n-sized chunks from l."""
+            for i in range(0, len(l), n):
+                yield l[i:i + n]
+        url = self.server_ip + '/replays/list'
+        if get_eval_only:
+            url += "?is_eval=1"
+        r = requests.get(url)
         replays = r.json()
-        print('num replays available', len(replays), ' num requested ', num_replays)
-        n = min(num_replays, len(replays))
-        print('getting {} replays'.format(n))
-        return [";".join(random.sample(replays, n))]
+        print('num replays available', len(replays), ' num requested ', batch_size * batches)
+        n = min(batch_size * batches, len(replays))
+        replays_to_use = random.sample(replays, n)
+        return [";".join(c) for c in chunks(replays_to_use, batch_size)]
 
     def download_file(self, file):
         if ';' in file:

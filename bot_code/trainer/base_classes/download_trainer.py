@@ -32,7 +32,11 @@ class DownloadTrainer(BaseTrainer):
         try:
             self.max_files = config.getint(self.DOWNLOAD_TRAINER_CONFIGURATION_HEADER, 'max_files')
         except Exception as e:
-            self.max_files = 10000
+            self.max_files = 10
+        try:
+            self.batches = config.getint(self.DOWNLOAD_TRAINER_CONFIGURATION_HEADER, 'batches')
+        except Exception as e:
+            self.batches = 10
         try:
             self.num_downloader_threads = config.getint(self.DOWNLOAD_TRAINER_CONFIGURATION_HEADER,
                                                         'number_download_threads')
@@ -63,7 +67,7 @@ class DownloadTrainer(BaseTrainer):
         self.get_file_list_get_function = get_file_list_get_function(self.download_files, self.input_server)
         self.download_manager = ThreadedFileDownloader(self.max_files, self.num_downloader_threads,
                                                        self.num_trainer_threads, self.get_file_list_get_function,
-                                                       self.get_file_function, self.process_file)
+                                                       self.get_file_function, self.process_file, self.batches)
 
     def _run_trainer(self):
         self.download_manager.create_and_run_workers()
