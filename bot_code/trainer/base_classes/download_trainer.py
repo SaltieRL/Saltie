@@ -50,8 +50,7 @@ class DownloadTrainer(BaseTrainer):
             self.should_batch_process = False
 
     def load_server(self):
-        import config
-        self.input_server = ServerConverter(config.UPLOAD_SERVER, False, False, False)
+        self.input_server = ServerConverter('http://saltie.tk:5000', False, False, False)
 
     def setup_trainer(self):
         """

@@ -166,7 +166,7 @@ class ServerConverter:
         return [";".join(random.sample(replays, n))]
 
     def download_file(self, file):
-        if file.contains(';'):
+        if ';' in file:
             file = file.split(';')
             response = requests.post(self.server_ip + '/replays/download', json=json.dumps({'files': file}))
             zip = zipfile.ZipFile(response.content)
