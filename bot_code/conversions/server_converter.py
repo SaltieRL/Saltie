@@ -163,14 +163,20 @@ class ServerConverter:
         replays = r.json()
         print('num replays available', len(replays), ' num requested ', num_replays)
         n = min(num_replays, len(replays))
+        print('getting {} replays'.format(n))
         return [";".join(random.sample(replays, n))]
 
     def download_file(self, file):
         if ';' in file:
             file = file.split(';')
-            response = requests.post(self.server_ip + '/replays/download', json=json.dumps({'files': file}))
-            zip = zipfile.ZipFile(response.content)
-            return [zip.read(name) for name in zip.namelist()]
+            response = requests.post(self.server_ip + '/replays/download', data={'files': json.dumps(file)})
+            print('status code', response.status_code)
+            in_memory_file = io.BytesIO()
+            for chunk in response.iter_content(chunk_size=1024):
+                if chunk:
+                    in_memory_file.write(chunk)
+            zip = zipfile.ZipFile(in_memory_file)
+            return [io.BytesIO(zip.read(name)) for name in zip.namelist()]
         else:
             response = requests.get(self.server_ip + '/replays/' + file)
             return io.BytesIO(response.content)
