@@ -177,8 +177,10 @@ def read_data(file, process_pair_function, batching=False):
                 pair_number += batch_size
             totalbytes += num_bytes + 4
             counter += 1
+        except ValueError:
+            print('something funky is going on')
         except EOFError:
-            #print('reached end of file')
+            print('reached end of file')
             break
         except Exception as e:
             logging.exception('error occurred but not because of reading but something else')
