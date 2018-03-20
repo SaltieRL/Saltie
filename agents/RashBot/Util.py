@@ -162,14 +162,17 @@ def curve1(x):
     s = x * x * x * 5e5
     return Range(s, 1)
 
+
 def curve3(x):
     s = abs(x)**0.25 * math.copysign(1, x)
     return Range(s, 1)
+
 
 def larg(v, l):
     if abs(v) < l:
         v = math.copysign(l, v)
     return v
+
 
 def mnofst(v, l):
     v = larg(v, l)
