@@ -37,16 +37,19 @@ class ThreadedFileDownloader:
             file_name = self.files_to_download.get()
             if file_name is None:
                 break
-            files = self.file_getter_function(file_name)
-            if not self.is_sequence(files):
-                files = [files]
-            for f in files:
-                self.downloaded_files.put(f)
+            try:
+                files = self.file_getter_function(file_name)
+                if not self.is_sequence(files):
+                    files = [files]
+                for f in files:
+                    self.downloaded_files.put(f)
+            except ConnectionError as e:
+                print(e)
             self.files_to_download.task_done()
 
     def get_replay_list(self):
         files = self.get_file_list_function(self.max_files, False, self.batches)
-        print ("Downloading", files)
+        print("Downloading", str(files).replace(';', '\n'))
         self.total_files = len(files)
         print('training on ' + str(self.total_files * self.batches) + ' files')
         for replay in files:
