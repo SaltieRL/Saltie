@@ -131,7 +131,7 @@ def dodge_hit(s):
         # dodge to shoot
         if (s.offense and (abs(s.glinex) < 650 or Range180(s.gta - s.gpa, 1) < .01)
             # dodge to clear
-            or ((not s.offense or abs(s.a) > .8) and abs(s.oglinex) > 1400) or
+            or ((not s.offense or abs(s.a) > .8) and abs(s.oglinex) > 1400)
             # dodge for
             or s.kickoff):
             s.dodge = 1
