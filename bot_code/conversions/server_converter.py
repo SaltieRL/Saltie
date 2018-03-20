@@ -106,6 +106,7 @@ class ServerConverter:
 
         try:
             self._upload_replay(fn, model_hash)
+            os.remove(os.path.abspath(fn))
         except Exception as e:
             print('catching all errors to keep the program going', e)
 
@@ -117,12 +118,15 @@ class ServerConverter:
             except ConnectionRefusedError as error:
                 print('server is down ', error)
                 self.add_to_local_files(fn)
+                raise error
             except ConnectionError as error:
-                print('server is down', error)
+                print('server has an error', error)
                 self.add_to_local_files(fn)
+                raise error
             except Exception as e:
                 print('server is down, general error', e)
                 self.add_to_local_files(fn)
+                raise e
 
     def _upload_replay_opened_file(self, file, model_hash):
         payload = {'username': self.username, 'hash': model_hash,
@@ -131,6 +135,7 @@ class ServerConverter:
         if r.status_code != 200 and r.status_code != 202:
             print('i=something went wrong in the server ', r.status_code)
             print(r.content)
+            raise ConnectionError()
         else:
             print('Upload:', r.json()['status'])
 
