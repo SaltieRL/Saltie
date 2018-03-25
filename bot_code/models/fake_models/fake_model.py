@@ -2,13 +2,15 @@ import importlib
 import inspect
 import tensorflow as tf
 from bot_code.conversions import output_formatter
-from bot_code.models.base_model import BaseModel
+from bot_code.models.base_model import BaseAgentModel
+from bot_code.trainer.utils.floating_setup import floating_setup
+from bot_code.utils.dynamic_import import get_class
+import time
 
-
-class FakeModel(BaseModel):
+class FakeModel(BaseAgentModel):
     """
     An adapter to run teachers (like TutorialBot) while
-    implementing the API for BaseModel.
+    implementing the API for BaseAgentModel.
     """
     teacher_package = None
     teacher_class_name = None
@@ -28,20 +30,27 @@ class FakeModel(BaseModel):
                          summary_every=summary_every,
                          config_file=config_file)
 
-    def get_class(self, class_package, class_name):
-        class_package = importlib.import_module('bot_code.' + class_package)
-        module_classes = inspect.getmembers(class_package, inspect.isclass)
-        for class_group in module_classes:
-            if class_group[0] == class_name:
-                return class_group[1]
-        return None
-
     def load_config_file(self):
         super().load_config_file()
         self.teacher_package = self.config_file.get('teacher_package')
         self.teacher_class_name = self.config_file.get('teacher_class_name')
+        self.should_float = self.config_file.get('make_player_float')
 
     def sample_action(self, input_state):
+        if self.should_float:
+            # This is kinda a hack due to it being unnatural to make the player float.
+            # Therefore I'm writing it self-contained, rather than putting properties on this class.
+            if not hasattr(self, 'float_location'): self.float_location = [-222, 0, 200 * (1 + self.player_index)]
+            if not hasattr(self, 'last_rotation_modification'): self.last_rotation_modification = {}  # player_index -> time of last change of rotation/angular vel
+            reset_period = 2.0 # seconds
+            now = time.clock()
+            if now - self.last_rotation_modification.get(self.player_index, 0) > reset_period:
+                self.last_rotation_modification[self.player_index] = now
+                floating_setup.set_random_pitch_and_pitch_vel(self.player_index)
+                self.float_location[0] += -400 if self.float_location[0] > -300 else 400  # Change position evertime we reset
+            floating_setup.make_player_float(self.player_index, self.float_location)
+
+            floating_setup.make_ball_float()
         result = self.sess.run(self.actions, feed_dict={self.input_placeholder: input_state})[0]
         return result
 
@@ -49,7 +58,7 @@ class FakeModel(BaseModel):
         return self.input_placeholder
 
     def _create_model(self, model_input):
-        teacher_class = self.get_class(self.teacher_package, self.teacher_class_name)
+        teacher_class = get_class(self.teacher_package, self.teacher_class_name)
         teacher = teacher_class(self.batch_size)
 
         state_object = output_formatter.get_advanced_state(tf.transpose(model_input))

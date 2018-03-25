@@ -1,5 +1,5 @@
 from bot_code.conversions.input.simple_input_formatter import SimpleInputFormatter
-from bot_code.models.base_model import BaseModel
+from bot_code.models.base_model import BaseAgentModel
 from keras.models import Model
 from keras.layers import Input, Dense, Dropout
 from keras import backend as K
@@ -8,7 +8,7 @@ from keras.callbacks import TensorBoard
 import numpy as np
 
 
-class BaseKerasModel(BaseModel):
+class BaseKerasModel(BaseAgentModel):
 
     shared_hidden_layers = 0
     split_hidden_layers = 0

@@ -130,6 +130,8 @@ class BotManager:
             if game_tick_packet.gameInfo.bMatchEnded:
                 print('\n\n\n\n Match has ended so ending bot loop\n\n\n\n\n')
                 break
+            import sys
+            sys.stdout.flush()
 
             controller_input = None
             # Run the Agent only if the gameInfo has updated.
