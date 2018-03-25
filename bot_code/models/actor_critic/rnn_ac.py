@@ -1,6 +1,6 @@
 from bot_code.models.actor_critic.policy_gradient import PolicyGradient
+from bot_code.models.base_agent_model import BaseAgentModel
 import tensorflow as tf
-from bot_code.models import base_model
 
 
 class RnnAC(PolicyGradient):

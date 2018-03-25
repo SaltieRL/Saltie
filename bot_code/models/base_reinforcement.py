@@ -1,10 +1,10 @@
 import numpy as np
 import tensorflow as tf
 
-from bot_code.models import base_model
+from bot_code.models.base_agent_model import BaseAgentModel
 
 
-class BaseReinforcement(base_model.BaseModel):
+class BaseReinforcement(BaseAgentModel):
     """"
     This is the actor critic model.
     """

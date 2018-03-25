@@ -3,7 +3,6 @@ import time
 
 from bot_code.trainer.base_classes.default_model_trainer import DefaultModelTrainer
 from bot_code.trainer.base_classes.download_trainer import DownloadTrainer
-from bot_code.trainer.utils.trainer_runner import run_trainer
 
 
 class RewardTrainer(DownloadTrainer, DefaultModelTrainer):
@@ -19,6 +18,9 @@ class RewardTrainer(DownloadTrainer, DefaultModelTrainer):
     train_time_difference = 0
     action_time_difference = 0
     
+    def get_config_name(self):
+        return 'reward_trainer.cfg'
+
     def get_config_name(self):
         return 'reward_trainer.cfg'
 
@@ -85,8 +87,8 @@ class RewardTrainer(DownloadTrainer, DefaultModelTrainer):
         self.model.update_model()
         self.train_time_difference += time.time() - start
         # Display logs per step
-        # if self.epoch % self.display_step == 0:
-        #     print("File:", '%04d' % self.file_number, "Epoch:", '%04d' % (self.epoch+1))
+        if self.epoch % self.display_step == 0:
+            print("File:", '%04d' % self.file_number, "Epoch:", '%04d' % (self.epoch+1))
         self.epoch += 1
 
     def end_file(self):
@@ -102,6 +104,5 @@ class RewardTrainer(DownloadTrainer, DefaultModelTrainer):
     def end_everything(self):
         self.model.save_model()
 
-
 if __name__ == '__main__':
-    run_trainer(trainer=RewardTrainer())
+    RewardTrainer().run()

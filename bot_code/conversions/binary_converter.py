@@ -229,16 +229,6 @@ def get_array(file, chunk):
     return result, starting_byte
 
 
-def default_process_pair(input_array, output_array, pair_number):
-    """
-    Default method for processing a pair of inputs this does nothing
-    :param input_array:  This is the input state to the bot
-    :param output_array:  This is the output state to the bot
-    :param pair_number:  This is the pair_number.  How many pairs it has gone through.
-    :return: None
-    """
-    pass
-
 def print_values(input_array, output_array, somevalue, anothervalue):
     return
 

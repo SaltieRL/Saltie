@@ -7,9 +7,10 @@ import numpy as np
 
 from bot_code.conversions import binary_converter
 
-parser = argparse.ArgumentParser()
+parser = argparse.ArgumentParser(
+    description='Converts files in training/replays/ into files in training/converted/')
 parser.add_argument('path', type=str,
-                    help='path to convert files from')
+                    help='replay directory to convert files from')
 args = parser.parse_args()
 
 
@@ -33,12 +34,13 @@ class ReplayConverter:
         self.step += 1
 
 
+output_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'training', 'converted')
 fs = glob.glob(os.path.join(args.path, '*.gz'))
-if not os.path.isdir('converted/'):
-    os.makedirs('converted/')
+if not os.path.isdir(output_dir):
+    os.makedirs(output_dir)
 print (fs, args.path)
 for file in fs:
     with gzip.open(file, 'rb') as f:
-        with gzip.open(os.path.join('converted', os.path.basename(file)), 'wb') as new_file:
+        with gzip.open(os.path.join(output_dir, os.path.basename(file)), 'wb') as new_file:
             trainer = ReplayConverter(new_file)
             binary_converter.read_data(f, trainer.process_pair)

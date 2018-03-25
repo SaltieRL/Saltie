@@ -3,14 +3,15 @@ import tensorflow as tf
 from bot_code.conversions.input import tensorflow_input_formatter
 from bot_code.modelHelpers.actions import action_factory
 from bot_code.modelHelpers.tensorflow_feature_creator import TensorflowFeatureCreator
-from bot_code.trainer.base_classes.base_trainer import BaseTrainer
+from bot_code.trainer.base_classes.base_agent_trainer import BaseAgentTrainer
+from bot_code.utils.dynamic_import import get_field
 
 
-class DefaultModelTrainer(BaseTrainer):
+class DefaultModelTrainer(BaseAgentTrainer):
     OPTIMIZER_CONFIG_HEADER = 'Optimizer Config'
     MISC_CONFIG_HEADER = 'Misc Config'
     action_handler = None
-    sess = None
+    sess = None  # The tensorflow session
     input_formatter = None
     optimizer = None
     learning_rate = None
@@ -35,7 +36,7 @@ class DefaultModelTrainer(BaseTrainer):
             self.control_scheme = 'default_scheme'
 
     def setup_trainer(self):
-        controls = self.get_field('modelHelpers.actions.action_factory', self.control_scheme)
+        controls = get_field('modelHelpers.actions.action_factory', self.control_scheme)
         self.action_handler = action_factory.get_handler(control_scheme=controls)
         session_config = tf.ConfigProto()
         # session_config.gpu_options.visible_device_list = '1'
