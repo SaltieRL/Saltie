@@ -9,6 +9,8 @@ class PolicyGradient(SplitLayers):
     max_gradient = 1.0
     total_loss_divider = 1.0
     individual_loss_divider = 1.0
+    split_total_gradients = False
+    split_reg_loss = False
 
     def __init__(self, session,
                  num_actions,
@@ -54,6 +56,18 @@ class PolicyGradient(SplitLayers):
         except:
             print('unable to load individual_loss_divider')
 
+        try:
+            self.split_total_gradients = self.config_file.getboolean('split_total_gradients',
+                                                                   self.individual_loss_divider)
+        except:
+            print('unable to load split_total_gradients')
+
+        try:
+            self.split_reg_loss = self.config_file.getboolean('split_reg_loss',
+                                                              self.split_reg_loss)
+        except:
+            print('unable to load split_reg_loss')
+
     def create_training_op(self, logprobs, taken_actions):
         critic_gradients, critic_loss, critic_reg_loss = self.create_critic_gadients()
         actor_gradients, actor_loss, actor_reg_loss = self.create_actor_gradients(logprobs, taken_actions)
@@ -98,10 +112,14 @@ class PolicyGradient(SplitLayers):
 
         all_but_last_row = self.all_but_last_actor_layer
 
-        # total_loss = tf.Print(total_loss, [total_loss], 'total_loss')
+        actor_gradients = []
 
-        actor_gradients = self.optimizer.compute_gradients(total_loss,
-                                                           all_but_last_row)
+        # total_loss = tf.Print(total_loss, [total_loss], 'total_loss')
+        if self.split_total_gradients:
+            for item in result:
+                actor_gradients += self.optimizer.compute_gradients(item[1] + actor_reg_loss, all_but_last_row)
+        else:
+            actor_gradients = self.optimizer.compute_gradients(total_loss, all_but_last_row)
 
         merged_gradient_list += actor_gradients
 
@@ -135,7 +153,8 @@ class PolicyGradient(SplitLayers):
 
             actor_reg_loss = self.get_regularization_loss(actor_network_variables, prefix="actor")
 
-            actor_loss = actor_loss + actor_reg_loss
+            if self.split_reg_loss:
+                actor_loss = actor_loss + actor_reg_loss
 
             # compute actor gradients
             actor_gradients = self.optimizer.compute_gradients(actor_loss,
@@ -167,12 +186,17 @@ class PolicyGradient(SplitLayers):
         critic_gradients = self.optimizer.compute_gradients(critic_loss, self.critic_network_variables)
         return (critic_gradients, critic_loss, critic_reg_loss)
 
-    def add_histograms(self, gradients):
+    def add_histograms(self, gradients, nan_count_list=None):
         # summarize gradients
         for grad, var in gradients:
             tf.summary.histogram(var.name, var)
             if grad is not None:
                 tf.summary.histogram(var.name + '/gradients', grad)
+
+        if nan_count_list is not None:
+            for var, nan_count in nan_count_list:
+                if nan_count is not None:
+                    tf.summary.histogram(var.name + '/nans', nan_count)
 
         # emit summaries
         tf.summary.histogram("estimated_values", self.estimated_values)
@@ -181,15 +205,18 @@ class PolicyGradient(SplitLayers):
         # collect all gradients
         gradients = actor_gradients + critic_gradients
 
+        nan_count = []
         # clip gradients
         for i, (grad, var) in enumerate(gradients):
             # clip gradients by norm
             if grad is not None:
-                post_nanning = tf.where(tf.is_nan(grad), tf.zeros_like(grad), grad)
+                nanned_elements = tf.is_nan(grad)
+                nan_count += [(var, tf.reduce_sum(tf.cast(nanned_elements, tf.float32)))]
+                post_nanning = tf.where(nanned_elements, tf.zeros_like(grad), grad)
                 gradients[i] = (post_nanning, var)
 
         # graph before we clip gradients
-        self.add_histograms(gradients)
+        self.add_histograms(gradients, nan_count)
 
         for i, (grad, var) in enumerate(gradients):
             # clip gradients by norm
@@ -218,4 +245,3 @@ class PolicyGradient(SplitLayers):
         :return: The calculated_tensor, If the result is a scalar.
         """
         return self.action_handler.get_action_loss_from_logits(logprobs, taken_actions, index), 1.0, True
-
