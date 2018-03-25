@@ -89,8 +89,10 @@ class TutorialModel(PolicyGradient):
         argmax = tf.argmax(logprobs, axis=1)
         if self.action_handler.action_list_names[index] != 'combo':
             if self.action_handler.is_classification(index):
-                wrongness += tf.cast(tf.abs(tf.cast(argmax, tf.float32) - taken_actions), tf.float32)
+                wrongness += (tf.cast(tf.abs(tf.cast(argmax, tf.float32) - taken_actions), tf.float32) /
+                              (self.action_handler.action_sizes[index] // 2.0))
                 if self.action_handler.action_sizes[index] == 2:
+                    wrongness *= 2.0
                     wrongness *= 1.0 + tf.cast(tf.not_equal(argmax, 0), tf.float32)
             else:
                 wrongness += tf.abs(tf.round(taken_actions * 2.0) / 2.0 - tf.round(logprobs * 2.0) / 2.0)
