@@ -14,11 +14,3 @@ class Agent:
 
     def get_output_vector(self, game):
         return Process(self, game)
-
-
-class agent:
-    def __init__(self, index):
-        self.index = index
-
-    def get_output_vector(self, game):
-        return Process(self, game.GameTickPacket, 2)

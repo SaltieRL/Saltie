@@ -51,11 +51,6 @@ def controls(s):
             (s.z < s.jcount * 250 + s.pB * 10 and s.d2pv < 100 and s.vd2 < 150))):
         s.jumper = 1
 
-    # # takeoff
-    # if (s.z>250 and ang_dif(s.a,s.pva,1)<.1 and s.yv > -350 and
-    #     s.z*1.05<s.d2<s.z*(1.08+s.pB/55) and s.z<s.jcount*250+s.pB*12):
-    #     s.jumper = 1
-
     # jumping off walls
     if ((s.z > 1350 or ((s.d < s.z * 1.5 or s.vd < 400) and s.pL[2] < 500
                         and abs(s.a) < .15 and s.bL[2] < 500)) and s.poG and
@@ -67,9 +62,9 @@ def controls(s):
     if (s.flip and s.d > 400 and ang_dif(s.a, s.pva, 1) < .06 and s.pB < 80 and
         s.pvd < 2200 and s.jcount > 0 and (s.gtime > 0.05 or not s.poG) and
         not s.jumper and abs(s.i) < .2 and ((s.pyv > 1640 and s.ty - s.yv / 4 > 3500)
-                                            or (abs(s.a) > 0.75 and abs(s.ty - s.yv / 6) > 850 and s.pyv < -140)
-                                            or (s.pyv > 1120 and s.ty - s.yv / 4 > 3000 and s.pB < 16)
-                                            or (2000 > s.pyv > 970 and s.ty - s.pyv / 4 > 1650 and s.pB < 6))):
+        or (abs(s.a) > 0.75 and abs(s.ty - s.yv / 6) > 850 and s.pyv < -140)
+        or (s.pyv > 1120 and s.ty - s.yv / 4 > 3000 and s.pB < 16)
+        or (2000 > s.pyv > 970 and s.ty - s.pyv / 4 > 1650 and s.pB < 6))):
         s.dodge = 1
         s.djL = 's.tL'
 
@@ -138,7 +133,7 @@ def dodge_hit(s):
             # dodge to clear
             or ((not s.offense or abs(s.a) > .8) and abs(s.oglinex) > 1400)
             # dodge for
-                or s.kickoff):
+            or s.kickoff):
             s.dodge = 1
             s.djL = 's.bL + s.bV/60'
 

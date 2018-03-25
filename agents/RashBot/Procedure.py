@@ -151,32 +151,14 @@ def gather_info(s):
     s.gaimdx = abs(s.goal[0] - s.glinex)
     s.gaimdz = abs(s.goal[2] - s.glinez)
 
-    s.gx,s.gy,s.gz = local(s.goal,s.pL,s.pR)
-    s.gd,s.ga,s.gi = spherical(s.gx,s.gy,s.gz)
+    s.gx, s.gy, s.gz = local(s.goal, s.pL, s.pR)
+    s.gd, s.ga, s.gi = spherical(s.gx, s.gy, s.gz)
 
-    s.ogx,s.ogy,s.ogz = local(s.ogoal,s.pL,s.pR)
-    s.ogd,s.oga,s.ogi = spherical(s.ogx,s.ogy,s.ogz)
+    s.ogx, s.ogy, s.ogz = local(s.ogoal, s.pL, s.pR)
+    s.ogd, s.oga, s.ogi = spherical(s.ogx, s.ogy, s.ogz)
 
     s.ogtd = d3(s.ogoal, s.tL)
     s.ogpd = d3(s.ogoal, s.pL)
-
-    near_post = (gx / 2 * sign(s.bL[0]), wy / 2 * s.color)
-
-    far_post = ((gx / 2 - R) * -sign(s.bL[0]), wy / 2 * s.color)
-
-    near_post_distance = d2(near_post, [s.bL[0], s.bL[1]])
-
-    post_angle = math.acos(R / near_post_distance)
-
-    ball_angle = math.atan2(s.bL[1] - near_post[1], s.bL[0] - near_post[0])
-
-    tangent_angle = (ball_angle - post_angle * s.color * sign(s.bL[0]))
-
-    tangent_x = math.cos(tangent_angle) * R + near_post[0]
-    tangent_y = math.sin(tangent_angle) * R + near_post[1]
-
-    s.xpoint = line_intersect([(1, near_post[1]), (-1, near_post[1])],
-                              [(s.bL[0], s.bL[1]), (tangent_x, tangent_y)])[0]
 
 
 def feedback(s):

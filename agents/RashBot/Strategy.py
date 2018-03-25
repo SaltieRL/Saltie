@@ -6,7 +6,7 @@ def strategy(s):
 
     s.aerialing = not s.poG and s.pL[2] > 150 and s.airtime > .25
     s.kickoff = not s.bH and d3(s.bL) < 99
-    s.offense = s.ogtd + 70 > s.ogpd  # or abs(s.oglinex)>1400
+    s.offense = s.ogtd + 70 > s.ogpd
 
     s.flip = True
     s.wavedash = True
@@ -22,9 +22,9 @@ def strategy(s):
             cbL = closest_boost(s, s.tL * .75 + (s.pL + s.pV * s.dT) * .25)
             cbdT = Range(d3(s.pL, cbL) / 2400, 3)
 
-            if s.pB < 33 and cbdT < s.dT * .5: #or abs(s.xpoint)>900:
+            if s.pB < 33 and cbdT < s.dT * .5:
                 GoTo(s, cbL, brakes=0)
-        #         s.pB = 0
+                s.pB = 0
 
     s.r = s.pR[2] / U
 
@@ -39,7 +39,7 @@ def ChaseBallBias(s):
 
     # dt search
     s.dT = Range(d3(s.pL, s.bL) / 1850, 3.5)
-    tps = Range(50 / (s.dT +1/90), 90)
+    tps = Range(50 / (s.dT + 1 / 90), 90)
     prediction = predict_sim(s.bL, s.bV, s.baV, s.dT, 1 / tps)
 
     intercept_state = prediction[0]
@@ -59,20 +59,9 @@ def ChaseBallBias(s):
 
     s.tL, s.tV, s.taV, s.dT = intercept_state
 
-    # if s.aerialing:
-    #     s.dT = Range( s.dT + d3(s.tL, step(s.pL,s.pV,z3,s.dT)[0])/6000, 4)
-
     s.tx, s.ty, s.tz = local(s.tL, s.pL, s.pR)
     s.td, s.ta, s.ti = spherical(s.tx, s.ty, s.tz)
     s.td2 = d2([s.tx, s.ty])
-
-    # if s.tz>s.jcount*250+s.pB*9 and s.tL[2]>99+s.jcount*150 and CollisionFree(s.tL) :
-    #     dt = time_solve_z(s.tL[2], s.tV[2], 99+s.jcount*150)
-    #     s.tL = step(s.tL, s.tV, s.taV, dt )[0]
-    #     s.dT += dt
-    #     s.shoot = False
-    #     s.tojump = False
-
 
     if s.aerialing:
         s.tL = s.tL - step(z3, s.pV, z3, s.dT)[0]
