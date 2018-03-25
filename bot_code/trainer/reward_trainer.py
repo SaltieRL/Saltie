@@ -18,6 +18,9 @@ class RewardTrainer(DownloadTrainer, DefaultModelTrainer):
     last_pair_number = 0
     train_time_difference = 0
     action_time_difference = 0
+    
+    def get_config_name(self):
+        return 'reward_trainer.cfg'
 
     def load_config(self):
         super().load_config()
