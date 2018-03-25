@@ -11,6 +11,10 @@ class PolicyGradient(SplitLayers):
     individual_loss_divider = 1.0
     split_total_gradients = False
     split_reg_loss = False
+    log_variables = False
+    log_nans = False
+    log_smoll_variables = True
+    log_gradients = True
 
     def __init__(self, session,
                  num_actions,
@@ -189,16 +193,17 @@ class PolicyGradient(SplitLayers):
     def add_histograms(self, gradients, nan_count_list=None, tiny_gradients=None):
         # summarize gradients
         for grad, var in gradients:
-            tf.summary.histogram(var.name, var)
-            if grad is not None:
+            if self.log_variables:
+                tf.summary.histogram(var.name, var)
+            if grad is not None and self.log_gradients:
                 tf.summary.histogram('gradients/' + var.name, grad)
 
-        if nan_count_list is not None:
+        if nan_count_list is not None and self.log_nans:
             for var, nan_count in nan_count_list:
                 if nan_count is not None:
                     tf.summary.scalar('nans/' + var.name, nan_count)
 
-        if tiny_gradients is not None:
+        if tiny_gradients is not None and self.log_smoll_variables:
             for var, tiny_count in tiny_gradients:
                 if tiny_count is not None:
                     tf.summary.scalar('smoll/' + var.name, tiny_count)
