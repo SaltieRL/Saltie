@@ -110,10 +110,20 @@ class TutorialModel(PolicyGradient):
     def get_model_name(self):
         return 'tutorial_bot' + ('_split' if self.action_handler.is_split_mode else '') + self.teacher
 
-    def add_histograms(self, gradients):
+    def add_histograms(self, gradients, nan_count_list=None, tiny_gradients=None):
         # summarize gradients
         for grad, var in gradients:
             # we do not need to see variables
             # tf.summary.histogram(var.name, var)
             if grad is not None:
-                tf.summary.histogram(var.name + '/gradients', grad)
+                tf.summary.histogram('gradients/' + var.name, grad)
+
+        if nan_count_list is not None:
+            for var, nan_count in nan_count_list:
+                if nan_count is not None:
+                    tf.summary.scalar('nans/' + var.name, nan_count)
+
+        if tiny_gradients is not None:
+            for var, tiny_count in tiny_gradients:
+                if tiny_count is not None:
+                    tf.summary.scalar('smoll/' + var.name, tiny_count)

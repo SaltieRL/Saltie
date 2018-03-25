@@ -186,17 +186,22 @@ class PolicyGradient(SplitLayers):
         critic_gradients = self.optimizer.compute_gradients(critic_loss, self.critic_network_variables)
         return (critic_gradients, critic_loss, critic_reg_loss)
 
-    def add_histograms(self, gradients, nan_count_list=None):
+    def add_histograms(self, gradients, nan_count_list=None, tiny_gradients=None):
         # summarize gradients
         for grad, var in gradients:
             tf.summary.histogram(var.name, var)
             if grad is not None:
-                tf.summary.histogram(var.name + '/gradients', grad)
+                tf.summary.histogram('gradients/' + var.name, grad)
 
         if nan_count_list is not None:
             for var, nan_count in nan_count_list:
                 if nan_count is not None:
-                    tf.summary.histogram(var.name + '/nans', nan_count)
+                    tf.summary.scalar('nans/' + var.name, nan_count)
+
+        if tiny_gradients is not None:
+            for var, tiny_count in tiny_gradients:
+                if tiny_count is not None:
+                    tf.summary.scalar('smoll/' + var.name, tiny_count)
 
         # emit summaries
         tf.summary.histogram("estimated_values", self.estimated_values)
@@ -206,17 +211,20 @@ class PolicyGradient(SplitLayers):
         gradients = actor_gradients + critic_gradients
 
         nan_count = []
+        tiny_count = []
         # clip gradients
         for i, (grad, var) in enumerate(gradients):
             # clip gradients by norm
             if grad is not None:
                 nanned_elements = tf.is_nan(grad)
+                tiny_elements = tf.less(grad, 1.0)
                 nan_count += [(var, tf.reduce_sum(tf.cast(nanned_elements, tf.float32)))]
+                tiny_count += [(var, tf.reduce_sum(tf.cast(tiny_elements, tf.float32)))]
                 post_nanning = tf.where(nanned_elements, tf.zeros_like(grad), grad)
                 gradients[i] = (post_nanning, var)
 
         # graph before we clip gradients
-        self.add_histograms(gradients, nan_count)
+        self.add_histograms(gradients, nan_count_list=nan_count, tiny_gradients=tiny_count)
 
         for i, (grad, var) in enumerate(gradients):
             # clip gradients by norm
