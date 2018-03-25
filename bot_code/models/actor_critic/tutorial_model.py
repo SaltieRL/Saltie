@@ -4,7 +4,7 @@ import tensorflow as tf
 
 class TutorialModel(PolicyGradient):
     max_gradient = 10.0
-    total_loss_divider = 2.0
+    total_loss_divider = 1.0
     combo_wrongness_multiplier = 2.0
     # hidden_layer_activation = tf.nn.relu6
     # hidden_layer_activation = tf.tanh
@@ -91,9 +91,10 @@ class TutorialModel(PolicyGradient):
             if self.action_handler.is_classification(index):
                 wrongness += tf.cast(tf.abs(tf.cast(argmax, tf.float32) - taken_actions), tf.float32)
                 if self.action_handler.action_sizes[index] == 2:
+                    wrongness *= 3.0
                     wrongness *= 1.0 + tf.cast(tf.not_equal(argmax, 0), tf.float32)
             else:
-                wrongness += tf.abs(tf.round(taken_actions * 2.0) / 2.0 - tf.round(logprobs * 2.0) / 2.0)
+                wrongness += tf.abs(tf.round(taken_actions * 4.0) / 4.0 - tf.round(logprobs * 4.0) / 4.0) * 3.0
         else:
             # use temporarily
             # wrongness += tf.log(1.0 + tf.cast(tf.abs(tf.cast(argmax, tf.float32) - taken_actions), tf.float32))
@@ -107,11 +108,3 @@ class TutorialModel(PolicyGradient):
 
     def get_model_name(self):
         return 'tutorial_bot' + ('_split' if self.action_handler.is_split_mode else '') + self.teacher
-
-    def add_histograms(self, gradients):
-        # summarize gradients
-        for grad, var in gradients:
-            # we do not need to see variables
-            # tf.summary.histogram(var.name, var)
-            if grad is not None:
-                tf.summary.histogram(var.name + '/gradients', grad)

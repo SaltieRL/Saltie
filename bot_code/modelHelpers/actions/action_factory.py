@@ -49,7 +49,7 @@ super_split_scheme = ControlScheme(
   copies=[],
 )
 
-super_split_scheme_no_combo = ControlScheme(
+super_split_scheme_no_combo_7 = ControlScheme(
   ranges=[(THROTTLE, (-1, 1.25, .25)), (STEER, (-1, 1.25, .25)), (YAW, (-1, 1.25, .25)), (PITCH, (-1, 1.25, .25)), (ROLL, (-1, 1.25, .25)),(JUMP, (0, 2, 1)), (BOOST, (0, 2, 1)), (HANDBRAKE, (0, 2, 1))],
   combo_scheme=[],
   copies=[],
