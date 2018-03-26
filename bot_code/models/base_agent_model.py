@@ -1,6 +1,6 @@
 import tensorflow as tf
 
-
+from bot_code.modelHelpers import tensorflow_feature_creator
 from bot_code.models.base_model import BaseModel
 from bot_code.conversions.input.input_formatter import InputFormatter
 
