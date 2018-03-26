@@ -21,9 +21,6 @@ class RewardTrainer(DownloadTrainer, DefaultModelTrainer):
     def get_config_name(self):
         return 'reward_trainer.cfg'
 
-    def get_config_name(self):
-        return 'reward_trainer.cfg'
-
     def load_config(self):
         super().load_config()
 
