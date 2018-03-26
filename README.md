@@ -2,13 +2,13 @@
 
 Saltie is a deep reinforcement learning bot and framework. It learns how to play Rocket League by receiving rewards for certain actions.
 
-Its backend framework for communicating with the game is [RLBot](https://github.com/drssoccer55/RLBot).
+Its backend framework for communicating with the game is [RLBot](https://github.com/RLBot/RLBot).
 RLBot is a framework to create bots to play Rocket League that reads values from the game and outputs button presses. RLBot works for up to 10 bots.
 
 ### Requirements
 Windows (7+), Rocket League, Python 3, Tensorflow.
 <p align="center">
-  <img width="512" height="158" src="https://github.com/drssoccer55/RLBot/blob/master/images/RLBot.png">
+  <img width="512" height="158" src="https://github.com/RLBot/RLBot/blob/master/images/RLBot.png">
 </p>
 
 ### Short Description
@@ -17,7 +17,7 @@ It also has tools for training bots and collecting the replays from a lot of dis
 
 ### Setup
 
-For setup instructions, [check out the wiki.](https://github.com/RLBots/Saltie/wiki/Setup-instructions)
+For setup instructions, [check out the wiki.](https://github.com/SaltieRL/Saltie/wiki/Setup)
 
 ### Contributing
 
