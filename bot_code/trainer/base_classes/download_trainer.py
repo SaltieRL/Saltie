@@ -64,7 +64,7 @@ class DownloadTrainer(BaseAgentTrainer):
         """
         Sets up the downloader
         """
-        super().setup_trainer()
+        # super().setup_trainer()
         if self.download_files:
             self.load_server()
         self.get_file_function = get_file_get_function(self.download_files, self.input_server)
@@ -150,6 +150,8 @@ class DownloadTrainer(BaseAgentTrainer):
             print(e.filename)
             print(input_file)
         except Exception as e:
+            import traceback
+            traceback.print_exc()
             print('error training on file going to next one ', e)
 
         end = time.time()

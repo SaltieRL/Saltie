@@ -6,7 +6,7 @@ import os
 def ding():
     try:
         import winsound
-        duration = 1000  # millisecond
+        duration = 500  # millisecond
         freq = 440  # Hz
         winsound.Beep(freq, duration)
     except Exception as e:
