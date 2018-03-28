@@ -18,7 +18,10 @@ class AirTrainer(DownloadTrainer):
     learning_rate = 0.1
     input_dim = None
     output_dim = None
+    eval_file = False
+    eval_number = 1
 
+    epoch = 0
 
     def get_config_name(self):
         return 'air_trainer.cfg'
@@ -59,7 +62,8 @@ class AirTrainer(DownloadTrainer):
         session_config = tf.ConfigProto()
         self.sess = tf.Session(config=session_config)
         self.optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
-        # self.input_formatter = TensorflowInputFormatter(0, 0, self.batch_size, None)
+
+        self.input_formatter = TensorflowInputFormatter(0, 0, self.batch_size, None)
         # self.optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
 
     def instantiate_model(self, model_class):
@@ -70,20 +74,26 @@ class AirTrainer(DownloadTrainer):
                            optimizer=self.optimizer,
                            config_file=self.create_model_config())
 
+
     def start_new_file(self):
 
         self.input_batch = []
         self.label_batch = []
         self.input_game_tick = []
-
+        if self.file_number % self.eval_number == 0:
+            self.eval_file = True
+        else:
+            self.eval_file = False
         self.file_number += 1
 
     def add_pair(self, input_array, output_array):
         self.input_batch.append(input_array)
 
-
-        label = output_array
-
+        if self.eval_file:
+            label = output_array
+        else:
+            pass
+            label = self.action_handler.create_action_index(output_array)
         # print(output_array)
         # print(label)
         self.label_batch.append(label)
@@ -107,7 +117,7 @@ class AirTrainer(DownloadTrainer):
             return
 
         input_batch = np.array(self.input_batch)
-        # input_batch = self.model.input_formatter.format_array(input_batch)
+        input_batch = self.input_formatter.format_array(input_batch)
 
         output = np.argwhere(np.isnan(input_batch))
         if len(output) > 0:
@@ -117,8 +127,12 @@ class AirTrainer(DownloadTrainer):
 
         self.label_batch = np.array(self.label_batch, dtype=np.float32)
 
-        feed_dict = self.model.create_feed_dict(input_batch, self.label_batch)
-        self.model.run_train_step(True, feed_dict=feed_dict)
+        if self.eval_file:
+            pass
+            # self.controller_stats.get_amounts(input_array=self.input_batch, bot_output=np.transpose(self.label_batch))
+        else:
+            feed_dict = self.model.create_feed_dict(input_batch, self.label_batch)
+            self.model.run_train_step(True, feed_dict=feed_dict)
 
         self.epoch += 1
 
