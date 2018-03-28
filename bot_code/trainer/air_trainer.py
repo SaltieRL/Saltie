@@ -93,7 +93,7 @@ class AirTrainer(DownloadTrainer):
             label = output_array
         else:
             pass
-            label = self.action_handler.create_action_index(output_array)
+            # label = self.action_handler.create_action_index(output_array)
         # print(output_array)
         # print(label)
         self.label_batch.append(label)
