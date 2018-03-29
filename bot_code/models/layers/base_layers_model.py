@@ -16,7 +16,7 @@ class BaseLayersModel(BaseModel):
         self.output_dim = output_dim
         super().__init__(session, input_dim=input_dim, output_dim=output_dim, **kwargs)
 
-    def _create_model(self, model_input):
+    def _create_model(self, model_input, _):
         all_layers = [model_input]
         layer_count = 5
         units = 64
@@ -36,11 +36,22 @@ class BaseLayersModel(BaseModel):
         output_layer = tf.layers.dense(all_layers[-1], self.output_dim, activation=output_activation,
                         kernel_regularizer=regularizer)
         self.output_layer = output_layer
-        return output_layer
+        return output_layer, output_layer
 
-    def create_train_step(self):
-        self.labels = tf.placeholder(tf.int64, shape=(None, self.output_dim))
-        cost = tf.losses.mean_squared_error(self.labels, self.output_layer)
+    def _create_training_op(self, predictions, logits, raw_model_input, labels):
+        # self.labels = tf.placeholder(tf.int64, shape=(None, self.output_dim))
+        cost = tf.losses.mean_squared_error(labels, predictions)
+        self.summarize = tf.summary.scalar('hi', cost)
         loss = tf.reduce_mean(cost, name='xentropy_mean')
 
         self.train_op = self.optimizer.minimize(loss)
+
+        return self.train_op
+
+
+    def _create_variables(self):
+        super()._create_variables()
+        self.labels = tf.placeholder(tf.int64, shape=(None, self.output_dim))
+
+    def get_labels_placeholder(self):
+        return self.labels

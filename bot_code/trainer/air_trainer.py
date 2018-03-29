@@ -18,7 +18,7 @@ class AirTrainer(DownloadTrainer):
     learning_rate = 0.1
     input_dim = None
     output_dim = None
-    eval_file = False
+    eval_file = True
     eval_number = 1
 
     epoch = 0
@@ -52,7 +52,7 @@ class AirTrainer(DownloadTrainer):
     def setup_model(self):
         super().setup_model()
         self.model.create_model()
-        self.model.create_train_step()
+        self.model.create_training_op()
         # self.model.create_reinforcement_training_model()
         self.model.create_savers()
         self.model.initialize_model()
@@ -124,14 +124,10 @@ class AirTrainer(DownloadTrainer):
             for index in output:
                 input_batch[index[0]][index[1]] = 0
 
-        self.label_batch = np.array(self.label_batch, dtype=np.float32)
-
-        if self.eval_file:
-            pass
-            # self.controller_stats.get_amounts(input_array=self.input_batch, bot_output=np.transpose(self.label_batch))
-        else:
-            feed_dict = self.model.create_feed_dict(input_batch, self.label_batch)
-            self.model.run_train_step(True, feed_dict=feed_dict)
+        _label_batch = np.array(self.label_batch, dtype=np.float32)
+        self.label_batch = []
+        feed_dict = self.model.create_training_feed_dict(input_batch, _label_batch)
+        self.model.run_train_step(True, feed_dict=feed_dict)
 
         self.epoch += 1
 
