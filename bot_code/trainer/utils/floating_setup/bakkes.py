@@ -9,7 +9,7 @@ import atexit
 ###### Public interface ######
 
 def rcon(command):
-    ''' Sends the given command to BakkesMod via bakkes_repl websocket '''
+    """ Sends the given command to BakkesMod via bakkes_repl websocket """
     global repl_process
     message = (command + '\n').encode('utf-8')
     try:
