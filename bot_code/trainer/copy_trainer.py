@@ -49,7 +49,7 @@ class CopyTrainer(DownloadTrainer, DefaultModelTrainer):
         self.model.create_savers()
         self.model.initialize_model()
         self.controller_stats = controller_statistics.OutputChecks(self.sess, self.action_handler,
-                                                                   self.batch_size, self.model.smart_max,
+                                                                   self.batch_size, self.model.get_agent_output(),
                                                                    model_placeholder=self.model.input_placeholder)
         self.controller_stats.create_model()
 

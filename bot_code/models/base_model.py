@@ -106,16 +106,6 @@ class BaseModel:
         """
         print(' i do nothing!')
 
-    def sample_action(self, input_state):
-        """
-        Runs the model to get a single action that can be returned.
-        :param input_state: This is the current state of the model at this point in time.
-        :return:
-        A sample action that can then be used to get controller output.
-        """
-        #always return an integer
-        return self.sess.run(self.model, feed_dict={self.get_input_placeholder(): input_state})
-
     def create_copy_training_model(self, model_input=None, taken_actions=None):
         """
         Creates a model used for training a bot that will copy the labeled data

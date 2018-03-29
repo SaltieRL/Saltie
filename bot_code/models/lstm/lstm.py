@@ -79,8 +79,7 @@ class BaseLSTMModel(BaseAgentModel):
         return self.sess.run(self.model, feed_dict={self.input: input_state})[0]
 
     def get_model_name(self):
-        return 'nnatba' + ('_split' if self.action_handler.is_split_mode else '')
+        return 'rnn' + ('_split' if self.action_handler.is_split_mode else '')
 
     def get_labels_placeholder(self):
         return self.labels
-

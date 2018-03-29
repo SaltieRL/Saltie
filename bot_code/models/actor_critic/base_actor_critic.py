@@ -190,6 +190,12 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
                                                                             labels=taken_actions)
         return self.optimizer.minimize(cross_entropy_loss)
 
+    def get_agent_output(self):
+        """
+        :return: A tensor representing the output of the agent
+        """
+        return self.smart_max
+
     def sample_action(self, input_state):
         # TODO: use tf.multinomial when it gets better
 

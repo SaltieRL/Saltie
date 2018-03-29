@@ -1,13 +1,12 @@
-import tensorflow as tf
-
 from bot_code.modelHelpers import tensorflow_feature_creator
 from bot_code.models.base_model import BaseModel
 from bot_code.conversions.input.input_formatter import InputFormatter
 
+
 class BaseAgentModel(BaseModel):
-    '''
+    """
     A base class for any model that outputs car actions given the the current state (+features).
-    '''
+    """
     def __init__(self,
                  session,
                  num_actions,
@@ -39,3 +38,18 @@ class BaseAgentModel(BaseModel):
         self.state_feature_dim = self.state_dim + tensorflow_feature_creator.get_feature_dim()
         self.feature_creator = feature_creator
 
+    def sample_action(self, input_state):
+        """
+        Runs the model to get a single action that can be returned.
+        :param input_state: This is the current state of the model at this point in time.
+        :return:
+        A sample action that can then be used to get controller output.
+        """
+        #always return an integer
+        return self.sess.run(self.get_agent_output(), feed_dict={self.get_input_placeholder(): input_state})
+
+    def get_agent_output(self):
+        """
+        :return: A tensor representing the output of the agent
+        """
+        return self.model
