@@ -14,7 +14,7 @@ class RNNAtba(nnatba.NNAtba):
     hidden_size = 300
     rnn_mode = CUDNN
     num_steps = 10
-    batch_size = 1
+    total_batch_size = 1
     keep_prob = 0.5
     init_scale = .99
 
@@ -88,9 +88,9 @@ class RNNAtba(nnatba.NNAtba):
             initializer=tf.random_uniform(
                 [params_size_t], -self.init_scale, self.init_scale),
             validate_shape=False)
-        c = tf.zeros([self.num_layers, self.batch_size, self.hidden_size],
+        c = tf.zeros([self.num_layers, self.batch_size_placeholder, self.hidden_size],
                      tf.float32)
-        h = tf.zeros([self.num_layers, self.batch_size, self.hidden_size],
+        h = tf.zeros([self.num_layers, self.batch_size_placeholder, self.hidden_size],
                      tf.float32)
         self._initial_state = (tf.contrib.rnn.LSTMStateTuple(h=h, c=c),)
         outputs, h, c = self._cell(inputs, h, c, self._rnn_params, is_training)
@@ -123,7 +123,7 @@ class RNNAtba(nnatba.NNAtba):
         cell = tf.contrib.rnn.MultiRNNCell(
             [make_cell() for _ in range(self.num_layers)], state_is_tuple=True)
 
-        self._initial_state = cell.zero_state(self.batch_size, data_type())
+        self._initial_state = cell.zero_state(self.batch_size_placeholder, data_type())
         state = self._initial_state
         # Simplified version of tensorflow_models/tutorials/rnn/rnn.py's rnn().
         # This builds an unrolled LSTM for tutorial purposes only.

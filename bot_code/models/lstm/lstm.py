@@ -10,8 +10,6 @@ class BaseLSTMModel(BaseAgentModel):
     total_series_length = 50000
     truncated_backprop_length = 15
     echo_step = 3
-    batch_size = 1
-    num_batches = total_series_length // batch_size // truncated_backprop_length
     hidden_size = 219
 
     def __init__(self,
@@ -40,23 +38,23 @@ class BaseLSTMModel(BaseAgentModel):
                          summary_every=summary_every,
                          config_file=config_file)
 
-    def _create_model(self, model_input):
+    def _create_model(self, model_input, batch_size):
         self.create_weights()
         input_ = self.input_encoder(model_input)
         input_ = tf.expand_dims(input_, 1)
         # Forward passes
         cell = tf.nn.rnn_cell.BasicLSTMCell(self.state_dim)
         # defining initial state
-        initial_state = cell.zero_state(self.batch_size, dtype=tf.float32)
-
-        output, state = tf.nn.dynamic_rnn(cell, input_, initial_state=initial_state, dtype=tf.float32)
+        initial_state = cell.zero_state(batch_size, dtype=tf.float32)
+        with tf.variable_scope('recurrent_layer', reuse=tf.AUTO_REUSE):
+            output, state = tf.nn.dynamic_rnn(cell, input_, initial_state=initial_state, dtype=tf.float32)
         output = tf.reshape(output, [-1, self.hidden_size])
-        with tf.variable_scope('RNN'):
+        with tf.variable_scope('output', reuse=tf.AUTO_REUSE):
             output_w = tf.get_variable('output_w', [self.hidden_size, output.get_shape()[1]])
             output_b = tf.get_variable('output_b', [output.get_shape()[1]])
         output = tf.nn.xw_plus_b(output, output_w, output_b)
         self.logits = self.rnn_decoder(output)
-        return self.action_handler.create_model_output(self.logits)
+        return self.action_handler.create_model_output(self.logits), self.logits
 
     def create_weights(self):
         self.weights = {
@@ -70,6 +68,12 @@ class BaseLSTMModel(BaseAgentModel):
             'out': tf.Variable(np.zeros((1, self.num_actions)), dtype=tf.float32)
         }
 
+    def _create_variables(self):
+        super()._create_variables()
+        self.labels = tf.placeholder(tf.float32,
+                                     (None, self.action_handler.get_number_actions()),
+                                     name="taken_actions_phd")
+
     def input_encoder(self, input):
         inputs = tf.nn.relu(tf.add(tf.matmul(input, self.weights['h1']), self.biases['b1']), name='input_layer')
         return inputs
@@ -81,19 +85,12 @@ class BaseLSTMModel(BaseAgentModel):
         # Encoder Hidden layer with sigmoid activation #3
         return tf.nn.sigmoid(tf.add(tf.matmul(hidden_layer_1, self.weights['out']), self.biases['out']), name='logits')
 
-    def create_copy_training_model(self, model_input=None, taken_actions=None):
-        self.labels = tf.placeholder(tf.int64, shape=(None, self.num_actions))
-
+    def _create_training_op(self, predictions, logits, raw_model_input, labels):
         cross_entropy = self.action_handler.get_action_loss_from_logits(
-            labels=tf.reshape(self.labels, [-1]), logits=self.logits, index=0)
+            labels=labels, logits=logits, index=0)
         loss = tf.reduce_mean(cross_entropy, name='xentropy_mean')
 
-        self.train_op = self.optimizer.minimize(loss)
-
-        # return loss, self.input, self.labels
-
-    def sample_action(self, input_state):
-        return self.sess.run(self.model, feed_dict={self.input: input_state})[0]
+        return self.optimizer.minimize(loss)
 
     def get_model_name(self):
         return 'rnn' + ('_split' if self.action_handler.is_split_mode else '')

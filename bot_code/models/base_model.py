@@ -11,7 +11,7 @@ class BaseModel:
     model = None  # The actual neural net.
 
     savers_map = {}
-    batch_size = 20000
+    total_batch_size = 20000
     mini_batch_size = 500
     config_file = None
     is_initialized = False
@@ -32,6 +32,8 @@ class BaseModel:
     iterator = None  # The iterator over the input (training) data
     reg_param = 0.001
     should_regulate = None
+    batch_size_placeholder = None
+    batch_size_variable = None
 
     """"
     This is a base class for all models.
@@ -80,7 +82,7 @@ class BaseModel:
     def printParameters(self):
         """Visually displays all the model parameters"""
         print('model parameters:')
-        print('batch size:', self.batch_size)
+        print('batch size:', self.total_batch_size)
         print('mini batch size:', self.mini_batch_size)
         print('using features', (self.feature_creator is not None))
         print('regulation parameter', self.reg_param)
@@ -122,12 +124,15 @@ class BaseModel:
         else:
             labels_input = labels
 
-        batched_input, batched_taken_actions = self.create_batched_inputs([safe_input, labels_input])
+        batched_input, batched_labels = self.create_batched_inputs([safe_input, labels_input])
         batched_converted_input = self.get_input(batched_input)
         with tf.name_scope("training_network"):
             predictions, logits = self.create_model(model_input=batched_converted_input, set_to_object=False, modify_input=False)
 
-        self.set_train_op(self._create_training_op(predictions, logits, batched_input, batched_taken_actions))
+        train_op = self._create_training_op(predictions, logits, batched_input, batched_labels)
+        if train_op is None:
+            raise ValueError("_create_training_op can not return None")
+        self.set_train_op(train_op)
 
     def _create_training_op(self, predictions, logits, raw_model_input, labels):
         """
@@ -157,14 +162,19 @@ class BaseModel:
         :return: The outputs converted to their batch form.
         """
         outputs = tuple(inputs)
-        if self.batch_size > self.mini_batch_size:
+        if self.total_batch_size > self.mini_batch_size:
             ds = tf.data.Dataset.from_tensor_slices(tuple(inputs)).batch(self.mini_batch_size)
-            self.iterator = ds.make_initializable_iterator()
+            self.iterator = ds.make_initializable_iterator(shared_name="model_iterator")
             outputs = self.iterator.get_next()
+            self.batch_size_variable = tf.shape(outputs[0])[0]
+        else:
+            self.batch_size_variable = self.batch_size_placeholder
         return outputs
 
-    def create_feed_dict(self, input_array, label_array):
-        return {self.get_input_placeholder(): input_array, self.get_labels_placeholder(): label_array}
+    def create_training_feed_dict(self, input_array, label_array):
+        return {self.get_input_placeholder(): input_array,
+                self.get_labels_placeholder(): label_array,
+                self.batch_size_placeholder: [min(self.total_batch_size, self.mini_batch_size)]}
 
     def run_train_step(self, should_calculate_summaries, feed_dict=None, epoch=-1):
         """
@@ -182,10 +192,10 @@ class BaseModel:
         should_summarize = should_calculate_summaries and self.summarize is not None and self.summary_writer is not None
 
         # perform one update of training
-        if self.batch_size > self.mini_batch_size:
+        if self.total_batch_size > self.mini_batch_size:
             _, = self.sess.run([self.iterator.initializer],
                           feed_dict=feed_dict)
-            num_batches = math.ceil(float(self.batch_size) / float(self.mini_batch_size))
+            num_batches = math.ceil(float(self.total_batch_size) / float(self.mini_batch_size))
             # print('num batches', num_batches)
             counter = 0
             while counter < num_batches:
@@ -206,9 +216,9 @@ class BaseModel:
             print('batch amount:', counter)
         else:
             result, summary_str = self.sess.run([
-                self.train_op,
-                self.summarize if should_summarize else self.no_op
-            ],
+                    self.train_op,
+                    self.summarize if should_summarize else self.no_op
+                ],
                 feed_dict=feed_dict)
             # emit summaries
             if should_summarize:
@@ -267,7 +277,7 @@ class BaseModel:
         else:
             input = model_input
 
-        model, logits = self._create_model(input)
+        model, logits = self._create_model(input, self.get_batch_size())
         if logits is None:
             raise NotImplementedError("Logits must be set after create model is called")
         if set_to_object:
@@ -275,11 +285,13 @@ class BaseModel:
             self.logits = logits
         return model, logits
 
-    def _create_model(self, model_input):
+    def _create_model(self, model_input, batch_size):
         """
         Called to create the model, this is not called in the constructor.
         :param model_input:
             A placeholder for the input data into the model.
+        :param batch_size:
+            The batch size for this run as a tensor
         :return:
             A tensorflow object representing the output of the model
             This output should be able to be run and create an action that is parsed by the action handler
@@ -298,7 +310,7 @@ class BaseModel:
             print(e)
             try:
                 init = tf.global_variables_initializer()
-                self.sess.run(init, feed_dict={self.input_placeholder: np.zeros((self.batch_size, self.input_dim))})
+                self.sess.run(init, feed_dict={self.input_placeholder: np.zeros((self.total_batch_size, self.input_dim))})
             except Exception as e2:
                 print('failed to initialize again')
                 print(e2)
@@ -394,7 +406,7 @@ class BaseModel:
             print('model directory is not in config', e)
 
         try:
-            self.batch_size = self.config_file.getint('batch_size', self.batch_size)
+            self.total_batch_size = self.config_file.getint('batch_size', self.total_batch_size)
         except Exception:
             print('batch size is not in config')
 
@@ -552,11 +564,20 @@ class BaseModel:
         Variables keep their value across multiple runs"""
         with tf.name_scope("model_inputs"):
             self.input_placeholder = tf.placeholder(tf.float32, shape=(None, self.input_dim), name="inputs")
+            self.batch_size_placeholder = tf.placeholder(tf.int32, shape=[1])
+            self.batch_size_variable = self.batch_size_placeholder
+
         return {}
 
     def get_labels_placeholder(self):
         """Returns the placeholder for getting what actions have been taken"""
         return self.no_op
+
+    def get_batch_size(self):
+        """
+        Returns the batch size as a tensor.
+        """
+        return self.batch_size_variable
 
     def get_variables_activations(self):
         """

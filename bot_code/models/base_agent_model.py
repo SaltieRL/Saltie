@@ -58,8 +58,15 @@ class BaseAgentModel(BaseModel):
         :return:
         A sample action that can then be used to get controller output.
         """
-        #always return an integer
-        return self.sess.run(self.get_agent_output(), feed_dict={self.get_input_placeholder(): input_state})
+        return self.sess.run(self.get_agent_output(), feed_dict=self.create_sampling_feed_dict(input_state))
+
+    def create_sampling_feed_dict(self, input_array):
+        """
+        :param input_array: The array that goes into the input.
+        :return:
+        """
+        return {self.get_input_placeholder(): input_array,
+                self.batch_size_placeholder: [len(input_array)]}
 
     def get_agent_output(self):
         """

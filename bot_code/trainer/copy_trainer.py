@@ -45,7 +45,7 @@ class CopyTrainer(DownloadTrainer, DefaultModelTrainer):
     def setup_model(self):
         super().setup_model()
         self.model.create_model()
-        self.model.create_copy_training_model()
+        self.model.create_training_op()
         self.model.create_savers()
         self.model.initialize_model()
         self.controller_stats = controller_statistics.OutputChecks(self.sess, self.action_handler,
@@ -112,7 +112,7 @@ class CopyTrainer(DownloadTrainer, DefaultModelTrainer):
         if self.eval_file:
             self.controller_stats.get_amounts(input_array=self.input_batch, bot_output=np.transpose(self.label_batch))
         else:
-            feed_dict = self.model.create_feed_dict(input_batch, self.label_batch)
+            feed_dict = self.model.create_training_feed_dict(input_batch, self.label_batch)
             self.model.run_train_step(True, feed_dict=feed_dict)
 
         self.epoch += 1
