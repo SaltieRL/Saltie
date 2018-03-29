@@ -56,8 +56,8 @@ class TutorialModel(PolicyGradient):
 
         self.num_split_layers = min(self.num_split_layers, self.num_layers - 2)
 
-    def create_training_op(self, logprobs, labels):
-        actor_gradients, actor_loss, actor_reg_loss = self.create_actor_gradients(logprobs, labels)
+    def create_copy_training_model(self, predictions, logits, raw_model_input, labels):
+        actor_gradients, actor_loss, actor_reg_loss = self.create_actor_gradients(logits, labels)
 
         tf.summary.scalar("total_reg_loss", actor_reg_loss)
 

@@ -1,12 +1,11 @@
 # -*- coding: utf-8 -*-
 """
-    Animated 3D sinc function
-"""
-'''
-Install pyopengl with "pip install PyOpenGL PyOpenGL_accelerate"
-Install PyQt5 with "pip install PyQt5"
+Visualizes a given game_tick_packet.
+
+Install pyopengl  with "pip install PyOpenGL PyOpenGL_accelerate"
+Install PyQt5     with "pip install PyQt5"
 Install pyqtgraph with "pip install pyqtgraph"
-'''
+"""
 import os
 
 os.environ['PYQTGRAPH_QT_LIB'] = 'PyQt5'

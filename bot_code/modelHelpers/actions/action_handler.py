@@ -158,8 +158,14 @@ class ActionHandler:
         return array
 
     def create_model_output(self, logits):
+        """
+        Runs a simple argmax on the logits and returns the result as a list of tensors
+        :param logits: The normal output of a model.
+        :return: A list of tensors that can be used for getting output
+        """
         return self.run_func_on_split_tensors(logits,
-                                              lambda input_tensor: tf.argmax(input_tensor, 1))
+                                              lambda input_tensor: tf.argmax(input_tensor, 1),
+                                              return_as_list=True)
 
     def get_random_action(self):
         pass

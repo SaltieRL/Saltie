@@ -5,7 +5,7 @@ from bot_code.modelHelpers.actions.split_action_handler import SplitActionHandle
 
 from collections import namedtuple
 
-'''
+"""
 ranges:
   A range is a configuration object which holds information about its name, possible values and loss function.
   Currently represented as a tuple:
@@ -23,7 +23,7 @@ combo_scheme:
     ...
 copies:
   A `copy` is a tuple of two names where the actions of the latter (name) is forwarded to the former.
-'''
+"""
 ControlScheme = namedtuple('ControlScheme', 'ranges combo_scheme copies')
 
 
