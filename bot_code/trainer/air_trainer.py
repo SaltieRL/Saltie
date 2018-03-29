@@ -52,6 +52,7 @@ class AirTrainer(DownloadTrainer):
     def setup_model(self):
         super().setup_model()
         self.model.create_model()
+        self.model.create_train_step()
         # self.model.create_reinforcement_training_model()
         self.model.create_savers()
         self.model.initialize_model()

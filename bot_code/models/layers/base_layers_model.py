@@ -10,7 +10,10 @@ class BaseLayersModel(BaseModel):
     A base class for any model that is based on tf layers.
     '''
 
+
     def __init__(self, session, input_dim, output_dim, **kwargs):
+        self.input_dim = input_dim
+        self.output_dim = output_dim
         super().__init__(session, input_dim=input_dim, output_dim=output_dim, **kwargs)
 
     def _create_model(self, model_input):
@@ -30,7 +33,14 @@ class BaseLayersModel(BaseModel):
             all_layers.append(_layer)
             all_layers.append(_dropout)
 
-        output_layer = tf.layers.dense(all_layers[-1], units, activation=output_activation,
+        output_layer = tf.layers.dense(all_layers[-1], self.output_dim, activation=output_activation,
                         kernel_regularizer=regularizer)
-
+        self.output_layer = output_layer
         return output_layer
+
+    def create_train_step(self):
+        self.labels = tf.placeholder(tf.int64, shape=(None, self.output_dim))
+        cost = tf.losses.mean_squared_error(self.labels, self.output_layer)
+        loss = tf.reduce_mean(cost, name='xentropy_mean')
+
+        self.train_op = self.optimizer.minimize(loss)
