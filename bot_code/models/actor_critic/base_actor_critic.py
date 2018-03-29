@@ -140,52 +140,12 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
                                                                        return_as_list=True)
         return self.predicted_actions, self.action_scores
 
-    def create_copy_training_model(self, model_input=None, taken_actions=None):
-        converted_input = self.get_input(model_input)
+    def create_reinforcement_training_model(self, predictions, logits, raw_model_input, labels):
+        self.discounted_rewards = self.discount_rewards(self.input_rewards, raw_model_input)
 
-        if taken_actions is None:
-            actions_input = self.get_labels_placeholder()
-        else:
-            actions_input = taken_actions
+        return self._create_training_op(self.logprobs, taken_actions)
 
-        batched_input, batched_taken_actions = self.create_batched_inputs([converted_input, actions_input])
-
-        with tf.name_scope("training_network"):
-            self.discounted_rewards = tf.constant(0.0)
-            with tf.variable_scope("actor_network", reuse=True):
-                self.logprobs = self.actor_network(batched_input)
-
-            with tf.variable_scope("critic_network", reuse=True):
-                self.estimated_values = tf.constant(1.0)
-
-            taken_actions = self.parse_actions(batched_taken_actions)
-
-        self.log_output_data()
-
-        self.train_op = self.create_training_op(self.logprobs, taken_actions)
-
-    def create_reinforcement_training_model(self, model_input=None):
-        converted_input = self.get_input(model_input)
-        if self.batch_size > self.mini_batch_size:
-            ds = tf.data.Dataset.from_tensor_slices((converted_input, self.taken_actions)).batch(self.mini_batch_size)
-            self.iterator = ds.make_initializable_iterator()
-            batched_input, batched_taken_actions = self.iterator.get_next()
-        else:
-            batched_input = converted_input
-            batched_taken_actions = self.taken_actions
-        with tf.name_scope("training_network"):
-            self.discounted_rewards = self.discount_rewards(self.input_rewards, batched_input)
-            with tf.variable_scope("actor_network", reuse=True):
-                self.logprobs = self.actor_network(batched_input)
-
-            with tf.variable_scope("critic_network", reuse=True):
-                self.estimated_values = self.critic_network(batched_input)
-
-            taken_actions = self.parse_actions(batched_taken_actions)
-
-        self.train_op = self.create_training_op(self.logprobs, taken_actions)
-
-    def create_training_op(self, logprobs, taken_actions):
+    def _create_training_op(self, logprobs, taken_actions):
         cross_entropy_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logprobs,
                                                                             labels=taken_actions)
         return self.optimizer.minimize(cross_entropy_loss)
@@ -287,9 +247,6 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
 
     def get_model_name(self):
         return 'base_actor_critic-' + str(self.num_layers) + '-layers'
-
-    def parse_actions(self, taken_actions):
-        return taken_actions
 
     def log_output_data(self):
         """Logs the output of the last layer of the model"""

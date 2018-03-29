@@ -50,7 +50,8 @@ class BaseModel:
                  output_dim=None,
                  is_training=False,
                  optimizer=tf.train.GradientDescentOptimizer(learning_rate=0.1),
-                 summary_writer=None, summary_every=100,
+                 summary_writer=None,
+                 summary_every=100,
                  config_file=None):
 
         # tensorflow machinery
@@ -106,24 +107,48 @@ class BaseModel:
         """
         print(' i do nothing!')
 
-    def create_copy_training_model(self, model_input=None, taken_actions=None):
+    def create_training_op(self, model_input=None, labels=None):
         """
-        Creates a model used for training a bot that will copy the labeled data
+        Creates the training operation that is run by the trainers.
+        This will also call #create_model in the process of creation.
 
-        :param batch_size: The number of batches per a run of the model.
-        :return:
-            a loss function
-            a placeholder for input states
-            a placeholder for labels
+        :param model_input:  The input to the model this is optional
+        :param labels: This should be used for creating the loss of the model
         """
+        safe_input = self.get_input(model_input, raw_input=True)
 
-        #return a loss function in tensorflow
-        loss = None
-        #return a placeholder for input data
-        input = None
-        #return a placeholder for labeled data
-        labels = None
-        return loss, input, labels
+        if labels is None:
+            labels_input = self.get_labels_placeholder()
+        else:
+            labels_input = labels
+
+        batched_input, batched_taken_actions = self.create_batched_inputs([safe_input, labels_input])
+        batched_converted_input = self.get_input(batched_input)
+        with tf.name_scope("training_network"):
+            predictions, logits = self.create_model(model_input=batched_converted_input, set_to_object=False, modify_input=False)
+
+        self.set_train_op(self._create_training_op(predictions, logits, batched_input, batched_taken_actions))
+
+    def _create_training_op(self, predictions, logits, raw_model_input, labels):
+        """
+        Called to create a specific training operation for this one model.
+        This should be overwritten by subclasses.
+        :param predictions: This is the part of the model that can be used externally to produce predictions
+        :param logits: The last layer of the model itself, this is typically the layer before argmax is applied.
+        :param raw_model_input: This is an unmodified input that can be used for training uses. (it is batched)
+        :param labels: These are the labels that can be used to generate loss
+        :return: A tensorflow operation that is used in the training step
+        """
+        raise NotImplementedError('Derived classes must override this.')
+
+    def set_train_op(self, train_operation):
+        """
+        Sets the train operation for the model
+        :param train_operation:
+        """
+        if train_operation is None:
+            raise ValueError("can not set the training operation to a null value")
+        self.train_op = train_operation
 
     def create_batched_inputs(self, inputs):
         """
@@ -191,13 +216,14 @@ class BaseModel:
                 self.train_iteration += 1
         return self.train_iteration
 
-    def get_input(self, model_input=None):
+    def get_input(self, model_input=None, raw_input=False):
         """
         Gets the input for the model.
         Also applies normalization
         And feature creation
         :param model_input: input to be used if another input is not None
-        :return:
+        :param raw_input: used in some cases this will not perform feature creation or normalization
+        :return: An input that is not None and will apply transformations based on the configs
         """
         # use default in case
         if model_input is None:
@@ -206,6 +232,9 @@ class BaseModel:
             safe_input = model_input
 
         safe_input = tf.check_numerics(safe_input, 'game tick packet data')
+
+        if raw_input:
+            return safe_input
 
         if self.feature_creator is not None:
             safe_input = self.feature_creator.apply_features(safe_input)
@@ -217,21 +246,34 @@ class BaseModel:
 
         return safe_input
 
-    def create_model(self, model_input=None):
+    def create_model(self, model_input=None, set_to_object=True, modify_input=True):
         """
         Called to create the model, this is called in the constructor
         :param model_input:
             A Tensor for the input data into the model.
             if None then a default input is used instead
+        :param set_to_object:
+            This is true if the values should be internally set
+            If true #model and #logits will be set to the values returned in this method
+        :param modify_input:
+            If true this will modify the input based on other configs.
+            If false model_input is passed straight to the subclasses even if it is null.
         :return:
             A tensorflow object representing the output of the model
-            This output should be able to be run and create an action
-            And a tensorflow object representing the logits of the model
-            This output should be able to be used in training
+            This output should be able to be run and create a prediction
         """
-        input = self.get_input(model_input)
+        if modify_input:
+            input = self.get_input(model_input)
+        else:
+            input = model_input
 
-        self.model = self._create_model(input)
+        model, logits = self._create_model(input)
+        if logits is None:
+            raise NotImplementedError("Logits must be set after create model is called")
+        if set_to_object:
+            self.model = model
+            self.logits = logits
+        return model, logits
 
     def _create_model(self, model_input):
         """
@@ -242,7 +284,7 @@ class BaseModel:
             A tensorflow object representing the output of the model
             This output should be able to be run and create an action that is parsed by the action handler
         """
-        return None
+        raise NotImplementedError('Derived classes must override this.')
 
     def _initialize_variables(self):
         """
@@ -504,6 +546,7 @@ class BaseModel:
     def get_input_placeholder(self):
         """Returns the placeholder for getting inputs"""
         return self.input_placeholder
+
     def _create_variables(self):
         """Creates any variables needed by this model.
         Variables keep their value across multiple runs"""
@@ -514,7 +557,6 @@ class BaseModel:
     def get_labels_placeholder(self):
         """Returns the placeholder for getting what actions have been taken"""
         return self.no_op
-
 
     def get_variables_activations(self):
         """

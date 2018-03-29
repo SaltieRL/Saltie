@@ -14,19 +14,36 @@ class BaseLSTMModel(BaseAgentModel):
     num_batches = total_series_length // batch_size // truncated_backprop_length
     hidden_size = 219
 
-    def __init__(self, session, num_actions, input_formatter_info=None, player_index=-1, action_handler=None,
-                 is_training=False, optimizer=tf.train.GradientDescentOptimizer(learning_rate=0.1), summary_writer=None,
-                 summary_every=100, config_file=None):
+    def __init__(self,
+                 session,
+                 num_actions,
+                 input_formatter_info=[0, 0],
+                 player_index=-1,
+                 action_handler=None,
+                 is_training=False,
+                 optimizer=tf.train.GradientDescentOptimizer(learning_rate=0.1),
+                 summary_writer=None,
+                 summary_every=100,
+                 config_file=None):
+
         self.num_actions = num_actions
         print ('lstm', 'num_actions', num_actions)
         if input_formatter_info is None:
             input_formatter_info = [0, 0]
-        super().__init__(session, num_actions, input_formatter_info, player_index, action_handler)
+        super().__init__(session, num_actions,
+                         input_formatter_info=input_formatter_info,
+                         player_index=player_index,
+                         action_handler=action_handler,
+                         is_training=is_training,
+                         optimizer=optimizer,
+                         summary_writer=summary_writer,
+                         summary_every=summary_every,
+                         config_file=config_file)
 
     def _create_model(self, model_input):
         self.create_weights()
         input_ = self.input_encoder(model_input)
-        input_ = tf.expand_dims(input_, 0)
+        input_ = tf.expand_dims(input_, 1)
         # Forward passes
         cell = tf.nn.rnn_cell.BasicLSTMCell(self.state_dim)
         # defining initial state

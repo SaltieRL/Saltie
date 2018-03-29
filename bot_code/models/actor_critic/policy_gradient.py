@@ -72,9 +72,9 @@ class PolicyGradient(SplitLayers):
         except:
             print('unable to load split_reg_loss')
 
-    def create_training_op(self, logprobs, taken_actions):
+    def create_copy_training_model(self, predictions, logits, raw_model_input, labels):
         critic_gradients, critic_loss, critic_reg_loss = self.create_critic_gadients()
-        actor_gradients, actor_loss, actor_reg_loss = self.create_actor_gradients(logprobs, taken_actions)
+        actor_gradients, actor_loss, actor_reg_loss = self.create_actor_gradients(logits, labels)
 
         tf.summary.scalar("total_reg_loss", critic_reg_loss + actor_reg_loss)
 

@@ -1,3 +1,5 @@
+import tensorflow as tf
+
 from bot_code.modelHelpers import tensorflow_feature_creator
 from bot_code.models.base_model import BaseModel
 from bot_code.conversions.input.input_formatter import InputFormatter
@@ -13,7 +15,11 @@ class BaseAgentModel(BaseModel):
                  input_formatter_info=[0, 0],
                  player_index=-1,
                  action_handler=None,
-                 **kwargs):
+                 is_training=False,
+                 optimizer=tf.train.GradientDescentOptimizer(learning_rate=0.1),
+                 summary_writer=None,
+                 summary_every=100,
+                 config_file=None):
         # TODO: Should index here always == player_index?
         (team, index) = input_formatter_info[0], input_formatter_info[1]
 
@@ -28,7 +34,14 @@ class BaseAgentModel(BaseModel):
         # for interfacing with the rest of the world
         self.action_handler = action_handler
 
-        super().__init__(session, input_dim=self.state_dim, output_dim=num_actions, **kwargs)
+        super().__init__(session,
+                         input_dim=self.state_dim,
+                         output_dim=self.num_actions,
+                         is_training=is_training,
+                         optimizer=optimizer,
+                         summary_writer=summary_writer,
+                         summary_every=summary_every,
+                         config_file=config_file)
 
     def create_input_array(self, game_tick_packet, frame_time):
         """Creates the input array from the game_tick_packet"""
