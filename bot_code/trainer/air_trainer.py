@@ -63,9 +63,7 @@ class AirTrainer(DownloadTrainer):
         session_config = tf.ConfigProto()
         self.sess = tf.Session(config=session_config)
         self.optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
-
         self.input_formatter = TensorflowInputFormatter(0, 0, self.batch_size, None)
-        # self.optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
 
     def instantiate_model(self, model_class):
         return model_class(self.sess,
