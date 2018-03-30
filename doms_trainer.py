@@ -1,2 +1,2 @@
-from bot_code.trainer.reward_trainer import main
+from bot_code.trainer.physics_predictor_trainer import main
 main()

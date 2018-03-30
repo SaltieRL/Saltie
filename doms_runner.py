@@ -10,7 +10,8 @@ import datetime
 import psutil
 import os
 
-SUBPROCESS_COMMAND = 'python runner.py'
+# SUBPROCESS_COMMAND = 'python runner.py'
+SUBPROCESS_COMMAND = 'python -m bot_code.conversions.integration_test'
 SUBPROCESS_CWD = os.path.realpath(os.path.dirname(__file__))
 
 child_process = None
@@ -43,7 +44,10 @@ def KILL(process):
     except psutil._exceptions.NoSuchProcess as e:
         return
 def kill_proc_tree(pid):
-    parent = psutil.Process(pid)
+    try:
+        parent = psutil.Process(pid)
+    except psutil._exceptions.NoSuchProcess as e:
+        return
     children = parent.children(recursive=True)
     KILL(parent) # THIS CAN NOT CONTINUE THIS CAN NOT CONTINUE THIS CAN NOT CONTINUE THIS CAN NOT CONTINUE
     for child in children: # THIS CAN NOT CONTINUE THIS CAN NOT CONTINUE THIS CAN NOT CONTINUE THIS CAN NOT CONTINUE
