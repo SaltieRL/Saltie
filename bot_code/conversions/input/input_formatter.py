@@ -47,8 +47,14 @@ class InputFormatter:
         self.last_total_score = total_score
         # extra_features = feature_creator.get_extra_features(game_tick_packet, self.index)
 
-        return self.create_result_array(game_info + score_info + player_car + ball_data +
+        out = self.create_result_array(game_info + score_info + player_car + ball_data +
                         self.flattenArrays(team_members) + self.flattenArrays(enemies) + boost_info)
+
+        # We should not be mutating external state here. But since we do, at least rotate it back.
+        if self.team == 1:
+            game_data_struct.rotate_game_tick_packet_boost_omitted(game_tick_packet)
+
+        return out
 
     def split_teams(self, game_tick_packet):
         team_members = []
