@@ -15,7 +15,7 @@ import rate_limiter
 import sys
 import traceback
 
-from bot_code.conversions import binary_converter as compressor
+from bot_code.conversions import binary_converter
 from bot_code.conversions.input import input_formatter
 
 OUTPUT_SHARED_MEMORY_TAG = 'Local\\RLBotOutput'
@@ -187,8 +187,8 @@ class BotManager:
                 self.output_array = np.append(self.output_array, np_output)
                 if self.frames % self.batch_size == 0 and not self.frames == 0:
                     print('writing big array', self.frames % (self.batch_size * self.upload_size))
-                    compressor.write_array_to_file(self.game_file, self.input_array)
-                    compressor.write_array_to_file(self.game_file, self.output_array)
+                    binary_converter.write_array_to_file(self.game_file, self.input_array)
+                    binary_converter.write_array_to_file(self.game_file, self.output_array)
                     self.input_array = np.array([])
                     self.output_array = np.array([])
                 if self.frames % (self.batch_size * self.upload_size) == 0 and not self.frames == 0:
@@ -254,9 +254,9 @@ class BotManager:
 
     def create_new_file(self, filename):
         self.game_file = open(filename, 'wb')
-        compressor.write_version_info(self.game_file, compressor.get_latest_file_version())
-        compressor.write_bot_hash(self.game_file, self.model_hash)
-        compressor.write_is_eval(self.game_file, self.is_eval)
+        binary_converter.write_version_info(self.game_file, binary_converter.get_latest_file_version())
+        binary_converter.write_bot_hash(self.game_file, self.model_hash)
+        binary_converter.write_is_eval(self.game_file, self.is_eval)
 
     def create_file_name(self):
         return os.path.join(self.game_name, str(self.name).replace(" ", "") + '-' + str(self.file_number) + '.bin')
