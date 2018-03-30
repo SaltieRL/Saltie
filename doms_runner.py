@@ -11,7 +11,7 @@ import psutil
 import os
 
 # SUBPROCESS_COMMAND = 'python runner.py'
-SUBPROCESS_COMMAND = 'python -m bot_code.conversions.integration_test'
+SUBPROCESS_COMMAND = 'python -m bot_code.conversions.conversion_tests'
 SUBPROCESS_CWD = os.path.realpath(os.path.dirname(__file__))
 
 child_process = None
