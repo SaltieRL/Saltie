@@ -33,8 +33,8 @@ def write_test_data_to_file(replay_file):
     bot_hash = 41
     is_eval = False
     game_tick_packet = GameTickPacket()
-    game_tick_packet.gamecars[player_index].team = 1
-    game_tick_packet.gamecars[player_index].boost = 30
+    game_tick_packet.gamecars[player_index].Team = 1
+    game_tick_packet.gamecars[player_index].Boost = 30
     game_tick_packet.gamecars[player_index].Location.X = 31.
     input_formatter = InputFormatter(team, player_index)
     test_data_pairs = [
@@ -64,8 +64,8 @@ def read_from_file_and_assert(replay_file):
     tuples = list(binary_converter.iterate_data(replay_file))
     # print([len(x) for x in tuples])
     for i, (state_array, output_vector_array, pair_number) in enumerate(tuples):
-        # state = output_formatter.get_advanced_state(state_array)
-        state = output_formatter.get_basic_state(state_array)
+        state = output_formatter.get_advanced_state(state_array)
+        # state = output_formatter.get_basic_state(state_array)
 
         # Test things that should be the same between the ticks
         # print (state_array)
