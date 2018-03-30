@@ -10,7 +10,10 @@ class InputFormatter:
     last_total_score = 0
 
     """
-    This is a class that takes in a game_tick_packet and will return an array of that value
+    This is a class that takes in a game_tick_packet and will return a flat float array
+    representing the same data.
+
+    The data format should be docuemented here: https://github.com/SaltieRL/Saltie/wiki/Core_Inputs
     """
 
     def __init__(self, team, index):

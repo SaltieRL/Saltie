@@ -1,3 +1,9 @@
+"""
+Functions to convert from a game_tick_packet_array (see input_formatter)
+to tensorflow objects.
+"""
+
+
 # the length each of these takes in the array
 GAME_INFO_OFFSET = 2
 SCORE_INFO_OFFSET = 8
