@@ -124,14 +124,41 @@ def get_file_size(f):
 
 def read_data(file, process_pair_function, batching=False):
     """
-    Reads a file.  Quits if anything breaks.
+    Reads a file and does a callback to process_pair_function.
+    Quits if anything breaks.
+
     :param file: A simple python file object that will be read
     :param process_pair_function: A function that takes in an input array and an output array.
-    There is also an optional number saying how many times this has been called for a single file.
-    It always starts at 0
+    The following may be out of date:
+        There is also an optional number saying how many times this has been called for a single file.
+        It always starts at 0
     :param batching: If more than one item in an array is read at the same time then we will batch
     them instead of doing them one at a time
-    :return: None
+    """
+    file_version, hashed_name, is_eval = get_file_version(file)
+    file.seek(0)
+    for state_array, output_vector_array, pair_number in iterate_data(file, batching=batching):
+        process_pair_function(state_array, output_vector_array, pair_number, hashed_name)
+
+def iterate_data(file, batching=False):
+    """
+    Reads a file and returns the data as an iterator.
+    Quits if anything breaks.
+    :param file: A simple python file object that will be read
+    :param batching: If more than one item in an array is read at the same time then we will batch
+    them instead of doing them one at a time
+
+    :return: Iterator<(state_array, output_vector_array, pair_number)>
+        state_array:
+            A list of floats representing the game state. (game_tick_packet)
+            Produced by input_formatter.py.
+            Can be read with
+        output_vector_array:
+            A list of floats representing the controller.
+            Should be analogous to what a RLBot agent returns in get_output_vector().
+        pair_number:
+            The index of the state_array/output_vector_array pair.
+            Increments by 1 if not batching, may increment in larger strides when batching.
     """
 
     file_version, hashed_name, is_eval = get_file_version(file)
@@ -152,38 +179,37 @@ def read_data(file, process_pair_function, batching=False):
             if chunk == '':
                 totalbytes += 4
                 break
-            input_array, num_bytes = get_array(file, chunk)
+            state_array, num_bytes = get_array(file, chunk)
             totalbytes += num_bytes + 4
             chunk = file.read(4)
             if chunk == '':
                 totalbytes += 4
                 break
-            output_array, num_bytes = get_array(file, chunk)
-            total_time += time.time() - start
-            batch_size = int(len(input_array) / get_state_dim(file_version))
-            input_array = np.reshape(input_array, (batch_size, int(get_state_dim(file_version))))
-            output_array = np.reshape(output_array, (batch_size, 8))
-            if not batching:
-                for i in range(len(input_array)):
-                    input_ = input_array[i]
-                    if file_version is 4:
-                        input_ = v4tov5(input_)
-                    process_pair_function(input_, output_array[i], pair_number, hashed_name)
-                    pair_number += 1
-            else:
-                if file_version is 4:
-                    input_array = v4tov5(input_array)
-                process_pair_function(input_array, output_array, pair_number, hashed_name)
-                pair_number += batch_size
-            totalbytes += num_bytes + 4
-            counter += 1
-        except ValueError:
-            print('something funky is going on')
         except EOFError:
             print('reached end of file')
             break
-        except Exception as e:
-            logging.exception('error occurred but not because of reading but something else')
+
+        output_vector_array, num_bytes = get_array(file, chunk)
+        total_time += time.time() - start
+        batch_size = int(len(state_array) / get_state_dim(file_version))
+        state_array = np.reshape(state_array, (batch_size, int(get_state_dim(file_version))))
+        output_vector_array = np.reshape(output_vector_array, (batch_size, 8))
+        print ('reading................')
+        if not batching:
+            for i in range(len(state_array)):
+                input_ = state_array[i]
+                if file_version is 4:
+                    input_ = v4tov5(input_)
+                yield (input_, output_vector_array[i], pair_number)
+                pair_number += 1
+        else:
+            if file_version is 4:
+                state_array = v4tov5(state_array)
+            yield (state_array, output_vector_array, pair_number)
+            pair_number += batch_size
+        totalbytes += num_bytes + 4
+        counter += 1
+
     print('total batches [', counter, '] total pairs [', pair_number, ']')
     print('time reading', total_time)
     file_size = get_file_size(file)
@@ -194,14 +220,14 @@ def read_data(file, process_pair_function, batching=False):
         print('read: ' + str(totalbytes) + '/' + str(file_size) + ' bytes')
 
 
-def v4tov5(input_array):
+def v4tov5(state_array):
     # Passed time (after game_info) 1
-    input_array = np.insert(input_array, 1, 0.0, axis=1)
+    state_array = np.insert(state_array, 1, 0.0, axis=1)
     for i in range(6):
         i = 22 if i is 0 else 43 + 20 * i
-        input_array = np.insert(input_array, i, 0, axis=1)
-        input_array = np.insert(input_array, i + 1, np.greater(np.hypot(np.hypot(input_array[:, i - 6], input_array[:, i - 5]), input_array[:, i - 4]), 2200), axis=1)
-    return input_array
+        state_array = np.insert(state_array, i, 0, axis=1)
+        state_array = np.insert(state_array, i + 1, np.greater(np.hypot(np.hypot(state_array[:, i - 6], state_array[:, i - 5]), state_array[:, i - 4]), 2200), axis=1)
+    return state_array
 
 
 def get_array(file, chunk):
@@ -229,7 +255,7 @@ def get_array(file, chunk):
     return result, starting_byte
 
 
-def print_values(input_array, output_array, somevalue, anothervalue):
+def print_values(state_array, output_vector_array, somevalue, anothervalue):
     return
 
 if __name__ ==  '__main__':
