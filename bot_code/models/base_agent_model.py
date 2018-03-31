@@ -94,7 +94,6 @@ class BaseAgentModel(BaseModel):
 
         indexes = np.arange(0, len(self.action_handler.get_action_sizes()), 1).tolist()
 
-
         parameters = [indexes,
                       split_logits,
                       labels]

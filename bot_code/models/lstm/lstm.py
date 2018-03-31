@@ -85,12 +85,23 @@ class BaseLSTMModel(BaseAgentModel):
         # Encoder Hidden layer with sigmoid activation #3
         return tf.nn.sigmoid(tf.add(tf.matmul(hidden_layer_1, self.weights['out']), self.biases['out']), name='logits')
 
-    def _create_training_op(self, predictions, logits, raw_model_input, labels):
+    def _create_split_training_op(self, indexes, logits, labels, *args):
+        if len(labels.get_shape()) == 2:
+            labels = tf.squeeze(labels, axis=[1])
         cross_entropy = self.action_handler.get_action_loss_from_logits(
-            labels=labels, logits=logits, index=0)
-        loss = tf.reduce_mean(cross_entropy, name='xentropy_mean')
+            labels=labels, logits=logits, index=indexes)
+        loss = tf.reduce_mean(cross_entropy, name='xentropy_mean' + str(indexes))
 
-        return self.optimizer.minimize(loss)
+        return loss
+
+    def _process_results(self, central_result, split_result):
+        total_loss = 0.0
+        for loss in split_result:
+            total_loss += loss
+        return self.optimizer.minimize(total_loss)
+
+    def _create_central_training_op(self, predictions, logits, raw_model_input, labels):
+        return None
 
     def get_model_name(self):
         return 'rnn' + ('_split' if self.action_handler.is_split_mode else '')
