@@ -143,11 +143,8 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
     def create_reinforcement_training_model(self, predictions, logits, raw_model_input, labels):
         self.discounted_rewards = self.discount_rewards(self.input_rewards, raw_model_input)
 
-        return self._create_training_op(self.logprobs, taken_actions)
-
-    def _create_training_op(self, logprobs, taken_actions):
-        cross_entropy_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logprobs,
-                                                                            labels=taken_actions)
+        cross_entropy_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits,
+                                                                            labels=labels)
         return self.optimizer.minimize(cross_entropy_loss)
 
     def get_agent_output(self):
