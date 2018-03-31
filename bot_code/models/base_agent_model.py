@@ -1,3 +1,4 @@
+import numpy as np
 import tensorflow as tf
 
 from bot_code.modelHelpers import tensorflow_feature_creator
@@ -73,3 +74,68 @@ class BaseAgentModel(BaseModel):
         :return: A tensor representing the output of the agent
         """
         return self.model
+
+    def split_logits(self, logits):
+        """
+        :param logits: The logits that are passed into #_create_training_op (returned from #_create_model)
+        :return: A version of the logits that can be passed into #_create_split_training_op
+        """
+        return logits
+
+    def get_split_training_parameters(self):
+        """
+        Any extra parameters that are wanting to be passed into #_create_split_training_op
+        :return: A list of any other parameters that should be passed.
+        """
+        return []
+
+    def _create_training_op(self, predictions, logits, raw_model_input, labels):
+        split_logits = self.split_logits(logits)
+
+        indexes = np.arange(0, len(self.action_handler.get_action_sizes()), 1).tolist()
+
+
+        parameters = [indexes,
+                      split_logits,
+                      labels]
+        parameters += self.get_split_training_parameters()
+
+        central_result = self._create_central_training_op(predictions, logits, raw_model_input, labels)
+
+        split_result = self.action_handler.run_func_on_split_tensors(parameters,
+                                                               self._create_split_training_op,
+                                                               return_as_list=True)
+
+        return self._process_results(central_result, split_result)
+
+    def _create_central_training_op(self, predictions, logits, raw_model_input, labels):
+        """
+        Called to create a specific training operation for this one model.
+        This should be overwritten by subclasses.
+        :param predictions: This is the part of the model that can be used externally to produce predictions
+        :param logits: The last layer of the model itself, this is typically the layer before argmax is applied.
+        :param raw_model_input: This is an unmodified input that can be used for training uses. (it is batched)
+        :param labels: These are the labels that can be used to generate loss
+        :return: Something that will be passed into #_process_results
+        """
+        raise NotImplementedError('Derived classes must override this.')
+
+    def _create_split_training_op(self, indexes, logits, labels, *args):
+        """
+        Called for each individual action.
+        :param indexes: This is the action index in the list of actions, can be used with the action handler.
+        :param logits: A split version of the logits, this only applies to one particular action set
+        :param labels: A split version of the labels this only applies to one particular action set
+        :param args: A list of custom actions
+        :return: Something that will be passed into #_process_results as part of a list
+        """
+        raise NotImplementedError('Derived classes must override this.')
+
+    def _process_results(self, central_result, split_result):
+        """
+        Processes the results of the central and split training operations
+        :param central_result: This is the central result it is a single item.
+        :param split_result: This is a list of items with length equal to the number of actions
+        :return: A tensorflow operation that is used in the training step
+        """
+        raise NotImplementedError('Derived classes must override this.')
