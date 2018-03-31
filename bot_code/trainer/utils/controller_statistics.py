@@ -14,7 +14,8 @@ class OutputChecks:
     def __init__(self, tf_session, action_handler, batch_size, model_output,
                  state_object=None,
                  bot=None,
-                 model_placeholder=None):
+                 model_placeholder=None,
+                 batch_size_placeholder=None):
         self.sess = tf_session
         self.batch_size = batch_size
         self.state_object = state_object
@@ -22,6 +23,7 @@ class OutputChecks:
         self.model_output = model_output
         self.model_input = model_placeholder
         self.actionHandler = action_handler
+        self.batch_size_placeholder = batch_size_placeholder
 
         if self.tutorial_bot is None:
             self.requires_bot_output = True
@@ -49,7 +51,8 @@ class OutputChecks:
         if not self.requires_input:
             output = self.sess.run(self.controls)
         else:
-            output = self.sess.run(self.controls, feed_dict={self.model_input: input_array})
+            output = self.sess.run(self.controls, feed_dict={self.model_input: input_array,
+                                                             self.batch_size_placeholder: np.array([self.batch_size])})
 
         accuracy = np.sum(np.isclose(output, bot_output, 0.2), 1) / np.size(output[1])
         self.accuracy_over_time.append(accuracy)

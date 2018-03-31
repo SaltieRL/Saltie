@@ -50,7 +50,8 @@ class CopyTrainer(DownloadTrainer, DefaultModelTrainer):
         self.model.initialize_model()
         self.controller_stats = controller_statistics.OutputChecks(self.sess, self.action_handler,
                                                                    self.batch_size, self.model.get_agent_output(),
-                                                                   model_placeholder=self.model.input_placeholder)
+                                                                   model_placeholder=self.model.input_placeholder,
+                                                                   batch_size_placeholder=self.model.get_batch_size())
         self.controller_stats.create_model()
 
     def start_new_file(self):
