@@ -92,12 +92,16 @@ class BaseLSTMModel(BaseAgentModel):
             labels=labels, logits=logits, index=indexes)
         loss = tf.reduce_mean(cross_entropy, name='xentropy_mean' + str(indexes))
 
+        tf.summary.scalar("loss", tf.reduce_mean(loss))
+
         return loss
 
     def _process_results(self, central_result, split_result):
         total_loss = 0.0
         for loss in split_result:
             total_loss += loss
+
+        tf.summary.scalar("total_loss", total_loss)
         return self.optimizer.minimize(total_loss)
 
     def _create_central_training_op(self, predictions, logits, raw_model_input, labels):
