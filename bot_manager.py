@@ -238,7 +238,12 @@ class BotManager:
     def maybe_compress_and_upload(self, filename):
         if not os.path.isfile(filename + '.gz'):
             compressed = self.compress(filename)
-            self.server_manager.maybe_upload_replay(compressed, self.bot_parameters['model_hash'])
+            model_hash = "NO_HASH"
+            if self.bot_parameters is None:
+                print('BOT PARAMETERS DO NOT EXIST', file=sys.stderr)
+            else:
+                model_hash = self.bot_parameters['model_hash']
+            self.server_manager.maybe_upload_replay(compressed, model_hash)
 
     def compress(self, filename):
         output = filename + '.gz'
