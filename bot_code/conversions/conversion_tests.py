@@ -1,13 +1,4 @@
-"""
-Tests that the following chain produces the same data as originally provided:
-game_tick_packet
-    input_formatter
-        binary_converter
-            .bin file
-        binary_converter
-    output_formatter
-tensorflow_object (lambda: None)
-"""
+
 
 import tempfile
 
@@ -84,6 +75,16 @@ def read_from_file_and_assert(replay_file):
 
 
 def test_read_write_preserves_data():
+    """
+    Tests that the following chain produces the same data as originally provided:
+    game_tick_packet
+        input_formatter
+            binary_converter
+                .bin file
+            binary_converter
+        output_formatter
+    tensorflow_object (lambda: None)
+    """
     with tempfile.TemporaryFile() as replay_file:
         write_test_data_to_file(replay_file)
         replay_file.seek(0)
