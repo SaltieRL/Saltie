@@ -254,9 +254,7 @@ class BotManager:
 
     def create_new_file(self, filename):
         self.game_file = open(filename, 'wb')
-        binary_converter.write_version_info(self.game_file, binary_converter.get_latest_file_version())
-        binary_converter.write_bot_hash(self.game_file, self.model_hash)
-        binary_converter.write_is_eval(self.game_file, self.is_eval)
+        binary_converter.write_header_to_file(self.game_file, self.model_hash, self.is_eval)
 
     def create_file_name(self):
         return os.path.join(self.game_name, str(self.name).replace(" ", "") + '-' + str(self.file_number) + '.bin')

@@ -28,6 +28,12 @@ def get_state_dim(file_version):
     elif file_version is get_latest_file_version():
         return input_formatter.get_state_dim()
 
+def write_header_to_file(game_file, bot_hash, is_eval):
+    write_version_info(game_file, get_latest_file_version())
+    write_bot_hash(game_file, bot_hash)
+    write_is_eval(game_file, is_eval)
+
+
 def write_array_to_file(game_file, array):
     """
     :param game_file: This is the file that the array will be written to.

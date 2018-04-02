@@ -51,9 +51,7 @@ def write_test_data_to_file(replay_file):
     # Note: This is API is fragile. Any mistake in ordering or ommission will throw things out of whack.
 
     # Write header
-    binary_converter.write_version_info(replay_file, binary_converter.get_latest_file_version())
-    binary_converter.write_bot_hash(replay_file, bot_hash)
-    binary_converter.write_is_eval(replay_file, is_eval)
+    binary_converter.write_header_to_file(replay_file, bot_hash, is_eval)
 
     # Write body
     for state_array, output_vector_array in test_data_pairs:
