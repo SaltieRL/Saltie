@@ -230,15 +230,17 @@ def v4tov5(state_array):
 def as_non_overlapping_pairs(iterable):
     """
     [1,2,3,4,5,6] -> [(1,2), (3,4), (5,6)]
-    The given iterable must be of even length
+    The given iterable must be of even length.
     """
     first = None  # the first item in the tuple
+    i = -1
     for i, item in enumerate(iterable):
         if i % 2 == 0:
             first = item
         else:
             yield (first, item)
-    assert i % 2 != 0, 'Missing the second item of the pair'
+    if i % 2 == 0:
+        raise Exception('Missing the second item of the pair. i=' + str(i))
 
 def iterate_chunks(file):
     """
