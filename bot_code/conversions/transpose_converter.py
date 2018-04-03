@@ -19,22 +19,22 @@ def transpose_file_with_header(input_file, output_file, header_length, row_lengt
 def transpose_file(input_file, output_file, row_length):
     '''
     :param input_file: is the binary-file object we'll read.
-        It's contents should look like [struct][struct][struct]... until the end of the file.
-        Where the structs are of length @struct_bytes.
+        It's contents should look like [row][row][row]... until the end of the file.
         If your file has a header, you may seek to the start of this repeated-struct block.
     :param output_file: is the file-like object that we'll write to
+    :param row_length: is the length of rows in the input file, measures in bytes.
     :param row_length: is the number of bytes each row / chunk-pair / tick takes up.
         Rows are assumed to come after the header until the end of the file.
     '''
-    structs = []
+    rows = []
     while True:
         struct = input_file.read(row_length)
         if len(struct) == 0:
             break
         # TODO: Throw nicer exceptions if we want to reuse this.
         assert len(struct) == row_length, "File seems corrupted. It ended with a partial row."
-        structs.append(struct)
+        rows.append(struct)
 
-    for col in zip(*structs):
+    for col in zip(*rows):
         output_file.write(bytes(col))
 
