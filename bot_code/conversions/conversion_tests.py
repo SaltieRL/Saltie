@@ -94,6 +94,16 @@ def test_read_write_preserves_data():
 def test_as_non_overlapping_pairs():
     assert list(binary_converter.as_non_overlapping_pairs([1,2,3,4,5,6])) == [(1,2), (3,4), (5,6)]
 
+    # Should iterate properly until the end and then raise an exception.
+    try:
+        for x,y in binary_converter.as_non_overlapping_pairs([1,2,3]):
+            pass
+        assert False, 'expected failure'
+    except Exception:
+        pass
+    assert x == 1
+    assert y == 2
+
 test_create_input_array_is_idempodent()
 test_read_write_preserves_data()
 test_as_non_overlapping_pairs()
