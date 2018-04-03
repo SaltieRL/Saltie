@@ -68,7 +68,7 @@ def write_is_eval(game_file, is_eval):
     game_file.write(struct.pack('?', is_eval))
 
 
-def get_file_version(file):
+def read_header(file):
     """
     Gets file info from the file
     :param file:
@@ -141,16 +141,17 @@ def read_data(file, process_pair_function, batching=False):
     :param batching: If more than one item in an array is read at the same time then we will batch
     them instead of doing them one at a time
     """
-    file_version, hashed_name, is_eval = get_file_version(file)
+    file_version, hashed_name, is_eval = read_header(file)
     file.seek(0)
     for state_array, output_vector_array, pair_number in iterate_data(file, batching=batching):
         process_pair_function(state_array, output_vector_array, pair_number, hashed_name)
 
-def iterate_data(file, batching=False):
+
+def iterate_data(file, batching=False, verbose=True):
     """
-    Reads a file and returns the data as an iterator.
+    Reads a saltie replay file and returns its data as an iterator.
     Quits if anything breaks.
-    :param file: A simple python file object that will be read
+    :param file: A binary python file object that will be read
     :param batching: If more than one item in an array is read at the same time then we will batch
     them instead of doing them one at a time
 
@@ -167,64 +168,55 @@ def iterate_data(file, batching=False):
             Increments by 1 if not batching, may increment in larger strides when batching.
     """
 
-    file_version, hashed_name, is_eval = get_file_version(file)
+    file_version, hashed_name, is_eval = read_header(file)
     if file_version == EMPTY_FILE:
         return
 
-    print('replay version:', file_version)
-    # print('hashed name:', hashed_name)
+    if verbose:
+        print('Reading replay with version:', file_version)
+        # print('hashed name:', hashed_name)
+
+    if file_version is 4:
+        upgrade_state_array = v4tov5
+    else:
+        upgrade_state_array = lambda x: x
 
     pair_number = 0
-    totalbytes = 0
-    total_time = 0
-    counter = 0
-    while True:
-        try:
-            start = time.time()
-            chunk = file.read(4)
-            if chunk == '':
-                totalbytes += 4
-                break
-            state_array, num_bytes = get_array(file, chunk)
-            totalbytes += num_bytes + 4
-            chunk = file.read(4)
-            if chunk == '':
-                totalbytes += 4
-                break
-        except EOFError:
-            print('reached end of file')
-            break
+    total_external_time = 0
+    total_numpy_conversion_time = 0
+    start_time = time.clock()
+    for state_bytes, output_vector_bytes in as_non_overlapping_pairs(iterate_chunks(file)):
+        pair_start_time = time.clock()
 
-        output_vector_array, num_bytes = get_array(file, chunk)
-        total_time += time.time() - start
+        # Convert to numpy arrays
+        state_array = to_numpy_array(state_bytes)
+        output_vector_array = to_numpy_array(output_vector_bytes)
+        chunk_start_time = time.clock()
         batch_size = int(len(state_array) / get_state_dim(file_version))
         state_array = np.reshape(state_array, (batch_size, int(get_state_dim(file_version))))
         output_vector_array = np.reshape(output_vector_array, (batch_size, 8))
-        print ('reading................')
+        numpy_end_time = time.clock()
+
+        # External processing
         if not batching:
             for i in range(len(state_array)):
-                input_ = state_array[i]
-                if file_version is 4:
-                    input_ = v4tov5(input_)
-                yield (input_, output_vector_array[i], pair_number)
+                yield (upgrade_state_array(state_array[i]), output_vector_array[i], pair_number)
                 pair_number += 1
         else:
-            if file_version is 4:
-                state_array = v4tov5(state_array)
-            yield (state_array, output_vector_array, pair_number)
+            yield (upgrade_state_array(state_array), output_vector_array, pair_number)
             pair_number += batch_size
-        totalbytes += num_bytes + 4
-        counter += 1
 
-    print('total batches [', counter, '] total pairs [', pair_number, ']')
-    print('time reading', total_time)
-    file_size = get_file_size(file)
-    if file_size - totalbytes <= 4 + 4 + 8 + 1:
-        pass
-        # print('read: 100% of file')
-    else:
-        print('read: ' + str(totalbytes) + '/' + str(file_size) + ' bytes')
+        pair_end_time = time.clock()
+        total_numpy_conversion_time = numpy_end_time - pair_start_time
+        total_external_time += pair_end_time - numpy_end_time
 
+    # Print some stats
+    if verbose:
+        total_time = time.clock() - start_time
+        print('total pairs: {}'.format(pair_number))
+        print('time reading chunks:        {:.05f}s'.format(total_time - (total_numpy_conversion_time + total_external_time)))
+        print('time converting to numpy:   {:.05f}s'.format(total_numpy_conversion_time))
+        print('time externally processing: {:.05f}s'.format(total_external_time))
 
 def v4tov5(state_array):
     # Passed time (after game_info) 1
@@ -234,6 +226,68 @@ def v4tov5(state_array):
         state_array = np.insert(state_array, i, 0, axis=1)
         state_array = np.insert(state_array, i + 1, np.greater(np.hypot(np.hypot(state_array[:, i - 6], state_array[:, i - 5]), state_array[:, i - 4]), 2200), axis=1)
     return state_array
+
+def as_non_overlapping_pairs(iterable):
+    """
+    [1,2,3,4,5,6] -> [(1,2), (3,4), (5,6)]
+    The given iterable must be of even length
+    """
+    first = None  # the first item in the tuple
+    for i, item in enumerate(iterable):
+        if i % 2 == 0:
+            first = item
+        else:
+            yield (first, item)
+    assert i % 2 != 0, 'Missing the second item of the pair'
+
+def iterate_chunks(file):
+    """
+    Reads chunks until the end of the file, yielding them one by one
+    :param file: A binary python file object that will be read.
+        The file from the current position needs to have the following format:
+        [chunk_size][chunk][chunk_size][chunk]...
+        where chunk_size is a signed int32 representing the number of bytes in the following chunk.
+
+    :return: Iterator<bytes>
+    """
+    while True:
+        try:
+            chunk_size_byte_string = file.read(4)
+        except EOFError:
+            # print('reached end of file')
+            break
+
+
+        if len(chunk_size_byte_string) == 0:
+            break
+        elif len(chunk_size_byte_string) == 4:
+            chunk_size = to_int(chunk_size_byte_string)
+        else:
+            raise EOFError('chunk_size was truncated')
+
+        def raise_bad_chunk_size(actual_size):
+            raise EOFError('The file promised there were {} bytes in the chunk but there were {}'.format(chunk_size, actual_size))
+        try:
+            chunk = file.read(chunk_size)
+        except EOFError:
+            raise_bad_chunk_size(0)
+        if len(chunk) != chunk_size:
+            raise_bad_chunk_size(len(chunk))
+
+        yield chunk
+
+def to_int(byte_string):
+    assert len(byte_string) == 4
+    return struct.unpack('i', byte_string)[0]
+
+def to_numpy_array(chunk):
+    fake_file = io.BytesIO(chunk)
+    try:
+        result = np.load(fake_file, fix_imports=False)
+    except OSError:
+        print('numpy parse error')
+        raise EOFError
+    return result
 
 
 def get_array(file, chunk):
@@ -252,13 +306,7 @@ def get_array(file, chunk):
         #print('struct error')
         raise EOFError
     numpy_bytes = file.read(starting_byte)
-    fake_file = io.BytesIO(numpy_bytes)
-    try:
-        result = np.load(fake_file, fix_imports=False)
-    except OSError:
-        print('numpy parse error')
-        raise EOFError
-    return result, starting_byte
+    return to_numpy_array(numpy_bytes), starting_byte
 
 
 def print_values(state_array, output_vector_array, somevalue, anothervalue):

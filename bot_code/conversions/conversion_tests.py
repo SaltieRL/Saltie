@@ -5,10 +5,11 @@ import tempfile
 from bot_code.conversions.input.input_formatter import InputFormatter
 from bot_code.conversions import output_formatter
 from bot_code.conversions import binary_converter
+from bot_code.conversions import transpose_converter
 from game_data_struct import GameTickPacket
 
 
-def test_create_input_array_is_idemodent():
+def test_create_input_array_is_idempodent():
     # pre-test: This used to fail due to mutated external state in conversion functions.
     game_tick_packet = GameTickPacket()
     input_formatter = InputFormatter(1,0)
@@ -50,7 +51,7 @@ def write_test_data_to_file(replay_file):
         binary_converter.write_array_to_file(replay_file, output_vector_array)
 
 def read_from_file_and_assert(replay_file):
-    tuples = list(binary_converter.iterate_data(replay_file))
+    tuples = list(binary_converter.iterate_data(replay_file, verbose=False))
     # print([len(x) for x in tuples])
     for i, (state_array, output_vector_array, pair_number) in enumerate(tuples):
         state = output_formatter.get_advanced_state(state_array)
@@ -90,7 +91,10 @@ def test_read_write_preserves_data():
         replay_file.seek(0)
         read_from_file_and_assert(replay_file)
 
+def test_as_non_overlapping_pairs():
+    assert list(binary_converter.as_non_overlapping_pairs([1,2,3,4,5,6])) == [(1,2), (3,4), (5,6)]
 
-test_create_input_array_is_idemodent()
+test_create_input_array_is_idempodent()
 test_read_write_preserves_data()
+test_as_non_overlapping_pairs()
 print (' === ALL TESTS PASSED === ')
