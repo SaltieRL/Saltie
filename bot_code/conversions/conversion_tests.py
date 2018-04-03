@@ -7,7 +7,7 @@ from bot_code.conversions import output_formatter
 from bot_code.conversions import binary_converter
 from bot_code.conversions import transpose_converter
 from game_data_struct import GameTickPacket
-
+import struct
 
 def test_create_input_array_is_idempodent():
     # pre-test: This used to fail due to mutated external state in conversion functions.
@@ -104,7 +104,66 @@ def test_as_non_overlapping_pairs():
     assert x == 1
     assert y == 2
 
+
+def test_transpose_file():
+    with tempfile.TemporaryFile() as original_file:
+        original_file.write(bytes([3,4,5]))
+        original_file.write(bytes([6,7,8]))
+
+        original_file.seek(0)
+        assert original_file.read(3) == bytes([3,4,5])
+        assert original_file.read(3) == bytes([6,7,8])
+
+        original_file.seek(0)
+        with tempfile.TemporaryFile() as transposed:
+            transpose_converter.transpose_file(original_file, transposed, 3)
+
+            transposed.seek(0)
+            assert transposed.read(2) == bytes([3,6])
+            assert transposed.read(2) == bytes([4,7])
+            assert transposed.read(2) == bytes([5,8])
+
+            # Transpose back (note: requires different row length)
+            transposed.seek(0)
+            with tempfile.TemporaryFile() as back_again:
+                transpose_converter.transpose_file(transposed, back_again, 2)
+                original_file.seek(0)
+                back_again.seek(0)
+                assert original_file.read() == back_again.read()
+
+def test_transpose_file_with_header():
+    with tempfile.TemporaryFile() as original_file:
+        original_file.write(bytes([1,2]))    # header
+        original_file.write(bytes([3,4,5]))  # tick 1
+        original_file.write(bytes([6,7,8]))  # tick 2
+
+        original_file.seek(0)
+        assert original_file.read(2) == bytes([1,2])
+        assert original_file.read(3) == bytes([3,4,5])
+        assert original_file.read(3) == bytes([6,7,8])
+
+        original_file.seek(0)
+        with tempfile.TemporaryFile() as transposed:
+            transpose_converter.transpose_file_with_header(original_file, transposed, 2, 3)
+
+            transposed.seek(0)
+            assert transposed.read(2) == bytes([1,2])
+            assert transposed.read(2) == bytes([3,6])
+            assert transposed.read(2) == bytes([4,7])
+            assert transposed.read(2) == bytes([5,8])
+
+            # Transpose back (note: requires different row length)
+            transposed.seek(0)
+            with tempfile.TemporaryFile() as back_again:
+                transpose_converter.transpose_file_with_header(transposed, back_again, 2, 2)
+                original_file.seek(0)
+                back_again.seek(0)
+                assert original_file.read() == back_again.read()
+
+
 test_create_input_array_is_idempodent()
 test_read_write_preserves_data()
 test_as_non_overlapping_pairs()
+test_transpose_file()
+test_transpose_file_with_header()
 print (' === ALL TESTS PASSED === ')
