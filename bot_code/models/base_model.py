@@ -327,8 +327,7 @@ class BaseModel:
         """
         self._initialize_variables()
 
-        #file does not exist too lazy to add check
-        if self.model_file is None:
+        if self.model_file is None or not os.path.isfile(self.model_file):
             model_file = self.get_model_path(self.get_default_file_name())
             self.model_file = model_file
         else:

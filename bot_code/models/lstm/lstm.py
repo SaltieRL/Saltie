@@ -67,6 +67,8 @@ class BaseLSTMModel(BaseAgentModel):
             'b2': tf.Variable(np.zeros((1, self.hidden_size)), dtype=tf.float32),
             'out': tf.Variable(np.zeros((1, self.num_actions)), dtype=tf.float32)
         }
+        self.add_saver('vars',
+                       tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES))
 
     def _create_variables(self):
         super()._create_variables()
