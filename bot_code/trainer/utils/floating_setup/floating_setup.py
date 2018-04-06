@@ -1,6 +1,6 @@
-'''
+"""
 A utility function such that you can test/train in-air controls without ever landing.
-'''
+"""
 
 import time
 from bot_code.trainer.utils.floating_setup import bakkes

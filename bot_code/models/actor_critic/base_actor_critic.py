@@ -87,7 +87,7 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
             # input_tensor = tf.Print(input_tensor, [input_tensor], str(index))
             return tf.squeeze(input_tensor, axis=1)
         argmax_index = tf.cast(tf.argmax(input_tensor, axis=1), tf.int32)
-        indexer = tf.range(0, self.batch_size)
+        indexer = tf.range(0, self.total_batch_size)
         slicer_data = tf.stack([indexer, argmax_index], axis=1)
         sliced_tensor = tf.gather_nd(input_tensor, slicer_data)
         condition = tf.greater(sliced_tensor, self.action_threshold)
@@ -98,7 +98,7 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
 
         return argmax_index * true + false * tf.cast(random_action, tf.int32)
 
-    def _create_model(self, model_input):
+    def _create_model(self, model_input, batch_size):
         model_input = tf.check_numerics(model_input, 'model inputs')
         all_variable_list = []
         last_layer_list = [[] for _ in range(len(self.action_handler.get_action_sizes()))]
@@ -140,55 +140,18 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
                                                                        return_as_list=True)
         return self.predicted_actions, self.action_scores
 
-    def create_copy_training_model(self, model_input=None, taken_actions=None):
-        converted_input = self.get_input(model_input)
+    def create_reinforcement_training_model(self, predictions, logits, raw_model_input, labels):
+        self.discounted_rewards = self.discount_rewards(self.input_rewards, raw_model_input)
 
-        if taken_actions is None:
-            actions_input = self.get_labels_placeholder()
-        else:
-            actions_input = taken_actions
-
-        batched_input, batched_taken_actions = self.create_batched_inputs([converted_input, actions_input])
-
-        with tf.name_scope("training_network"):
-            self.discounted_rewards = tf.constant(0.0)
-            with tf.variable_scope("actor_network", reuse=True):
-                self.logprobs = self.actor_network(batched_input)
-
-            with tf.variable_scope("critic_network", reuse=True):
-                self.estimated_values = tf.constant(1.0)
-
-            taken_actions = self.parse_actions(batched_taken_actions)
-
-        self.log_output_data()
-
-        self.train_op = self.create_training_op(self.logprobs, taken_actions)
-
-    def create_reinforcement_training_model(self, model_input=None):
-        converted_input = self.get_input(model_input)
-        if self.batch_size > self.mini_batch_size:
-            ds = tf.data.Dataset.from_tensor_slices((converted_input, self.taken_actions)).batch(self.mini_batch_size)
-            self.iterator = ds.make_initializable_iterator()
-            batched_input, batched_taken_actions = self.iterator.get_next()
-        else:
-            batched_input = converted_input
-            batched_taken_actions = self.taken_actions
-        with tf.name_scope("training_network"):
-            self.discounted_rewards = self.discount_rewards(self.input_rewards, batched_input)
-            with tf.variable_scope("actor_network", reuse=True):
-                self.logprobs = self.actor_network(batched_input)
-
-            with tf.variable_scope("critic_network", reuse=True):
-                self.estimated_values = self.critic_network(batched_input)
-
-            taken_actions = self.parse_actions(batched_taken_actions)
-
-        self.train_op = self.create_training_op(self.logprobs, taken_actions)
-
-    def create_training_op(self, logprobs, taken_actions):
-        cross_entropy_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logprobs,
-                                                                            labels=taken_actions)
+        cross_entropy_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits,
+                                                                            labels=labels)
         return self.optimizer.minimize(cross_entropy_loss)
+
+    def get_agent_output(self):
+        """
+        :return: A tensor representing the output of the agent
+        """
+        return self.smart_max
 
     def sample_action(self, input_state):
         # TODO: use tf.multinomial when it gets better
@@ -281,9 +244,6 @@ class BaseActorCritic(base_reinforcement.BaseReinforcement):
 
     def get_model_name(self):
         return 'base_actor_critic-' + str(self.num_layers) + '-layers'
-
-    def parse_actions(self, taken_actions):
-        return taken_actions
 
     def log_output_data(self):
         """Logs the output of the last layer of the model"""

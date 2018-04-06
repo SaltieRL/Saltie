@@ -11,6 +11,7 @@ class BaseReinforcement(BaseAgentModel):
 
     action_threshold = 0.1
     taken_actions = None
+    in_reinforcement_mode = False
 
     def __init__(self, session,
                  num_actions,
@@ -69,10 +70,10 @@ class BaseReinforcement(BaseAgentModel):
             try:
                 init = tf.global_variables_initializer()
                 if self.action_handler.is_split_mode():
-                    actions_null = np.zeros((self.batch_size, self.action_handler.get_number_actions()))
+                    actions_null = np.zeros((self.total_batch_size, self.action_handler.get_number_actions()))
                 else:
-                    actions_null = np.zeros((self.batch_size,))
-                self.sess.run(init, feed_dict={self.get_input_placeholder(): np.zeros((self.batch_size, self.state_dim)),
+                    actions_null = np.zeros((self.total_batch_size,))
+                self.sess.run(init, feed_dict={self.get_input_placeholder(): np.zeros((self.total_batch_size, self.state_dim)),
                                                self.taken_actions_placeholder: actions_null})
             except Exception as e2:
                 print('failed to initialize again')
@@ -82,12 +83,26 @@ class BaseReinforcement(BaseAgentModel):
                     self.input_placeholder: np.reshape(np.zeros(self.state_dim), [1, self.state_dim])
                 })
 
-    def create_reinforcement_training_model(self):
+    def _create_training_op(self, predictions, logits, raw_model_input, labels):
+        if self.in_reinforcement_mode:
+            train_op = self.create_reinforcement_training_model(predictions, logits, raw_model_input, labels)
+        else:
+            train_op = self.create_copy_training_model(predictions, logits, raw_model_input, labels)
+        self.set_train_op(train_op)
+
+    def create_copy_training_model(self, predictions, logits, raw_model_input, labels):
+        """
+        Creates a model used for training a bot that will learn through copying
+        returns a tensorflow step
+        """
+
+    def create_reinforcement_training_model(self, predictions, logits, raw_model_input, labels):
         """
         Creates a model used for training a bot that will learn through reinforcement
+        returns a tensorflow step
         """
         # this does not create a real valid model
-        self.train_op = self.no_op
+        return self.no_op
 
     def _create_variables(self):
         super()._create_variables()
@@ -116,10 +131,10 @@ class BaseReinforcement(BaseAgentModel):
             self.reward_buffer.append(reward)
             self.state_buffer.append(input_state)
 
-        if len(self.action_buffer) >= self.batch_size and self.is_online_training and not self.is_evaluating:
+        if len(self.action_buffer) >= self.total_batch_size and self.is_online_training and not self.is_evaluating:
             print('running online trainer!')
             self.update_model()
-        if self.action_buffer is not None and len(self.action_buffer) >= self.batch_size * 10:
+        if self.action_buffer is not None and len(self.action_buffer) >= self.total_batch_size * 10:
             self.clean_up()
 
     def store_rollout_batch(self, input_state, last_action):
@@ -158,7 +173,7 @@ class BaseReinforcement(BaseAgentModel):
         input_states = np.array(self.state_buffer)
         actions = np.array(self.action_buffer)
         rewards = None
-        self.run_train_step(True, feed_dict=self.create_feed_dict(input_states, actions))
+        self.run_train_step(True, feed_dict=self.create_training_feed_dict(input_states, actions))
 
         self.anneal_exploration()
         self.train_iteration += 1
