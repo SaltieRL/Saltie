@@ -270,7 +270,8 @@ class BaseModel:
             If false model_input is passed straight to the subclasses even if it is null.
         :return:
             A tensorflow object representing the output of the model
-            This output should be able to be run and create a prediction
+            This output should be able to be run and create a prediction. (Typically argmax)
+            A second tensorflow object representing the raw output layer (Run before argmax)
         """
         if modify_input:
             input = self.get_input(model_input)
