@@ -40,19 +40,16 @@ class BaseLSTMModel(BaseAgentModel):
 
     def _create_model(self, model_input, batch_size):
         self.create_weights()
-        input_ = self.input_encoder(model_input)
-        input_ = tf.expand_dims(input_, 1)
+        # input_ = self.input_encoder(model_input)
+        input_ = tf.nn.xw_plus_b(model_input, self.weights['h1'], self.biases['b1'])
+        input_ = [input_]
         # Forward passes
         cell = tf.nn.rnn_cell.BasicLSTMCell(self.state_dim)
         # defining initial state
-        initial_state = cell.zero_state(batch_size, dtype=tf.float32)
+        # initial_state = cell.zero_state(batch_size, dtype=tf.float32)
         with tf.variable_scope('recurrent_layer', reuse=tf.AUTO_REUSE):
-            output, state = tf.nn.dynamic_rnn(cell, input_, initial_state=initial_state, dtype=tf.float32)
-        output = tf.reshape(output, [-1, self.hidden_size])
-        with tf.variable_scope('output', reuse=tf.AUTO_REUSE):
-            output_w = tf.get_variable('output_w', [self.hidden_size, output.get_shape()[1]])
-            output_b = tf.get_variable('output_b', [output.get_shape()[1]])
-        output = tf.nn.xw_plus_b(output, output_w, output_b)
+            outputs, states = tf.nn.static_rnn(cell, input_, dtype=tf.float32)
+        output = tf.reshape(outputs, [-1, self.hidden_size])
         self.logits = self.rnn_decoder(output)
         return self.action_handler.create_model_output(self.logits), self.logits
 
@@ -63,9 +60,9 @@ class BaseLSTMModel(BaseAgentModel):
             'out': tf.Variable(np.random.rand(self.hidden_size, self.num_actions), dtype=tf.float32),
         }
         self.biases = {
-            'b1': tf.Variable(np.zeros((1, self.hidden_size)), dtype=tf.float32),
-            'b2': tf.Variable(np.zeros((1, self.hidden_size)), dtype=tf.float32),
-            'out': tf.Variable(np.zeros((1, self.num_actions)), dtype=tf.float32)
+            'b1': tf.Variable(np.random.rand(self.hidden_size), dtype=tf.float32, name='b1'),
+            'b2': tf.Variable(np.random.rand(self.hidden_size), dtype=tf.float32, name='b2'),
+            'out': tf.Variable(np.random.rand(self.num_actions), dtype=tf.float32, name='out')
         }
         self.add_saver('vars',
                        tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES))

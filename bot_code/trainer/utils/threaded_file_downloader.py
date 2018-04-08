@@ -49,7 +49,7 @@ class ThreadedFileDownloader:
 
     def get_replay_list(self):
         files = self.get_file_list_function(self.max_files, False, self.batches)
-        print("Downloading", str(files).replace(';', '\n'))
+        # print("Downloading", str(files).replace(';', '\n'))
         self.total_files = len(files)
         print('training on ' + str(self.total_files * self.batches) + ' files')
         for replay in files:
