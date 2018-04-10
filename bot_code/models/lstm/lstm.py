@@ -11,6 +11,8 @@ class BaseLSTMModel(BaseAgentModel):
     truncated_backprop_length = 15
     echo_step = 3
     hidden_size = 219
+    stored_data = []
+    stored_data_length = 3 * 60
 
     def __init__(self,
                  session,
@@ -40,9 +42,10 @@ class BaseLSTMModel(BaseAgentModel):
 
     def _create_model(self, model_input, batch_size):
         self.create_weights()
+        input_ = tf.split(model_input, 200, 0)
         # input_ = self.input_encoder(model_input)
-        input_ = tf.nn.xw_plus_b(model_input, self.weights['h1'], self.biases['b1'])
-        input_ = [input_]
+        # input_ = tf.nn.xw_plus_b(model_input, self.weights['h1'], self.biases['b1'])
+        # input_ = tf.unstack(model_input, self.stored_data_length, 0)
         # Forward passes
         cell = tf.nn.rnn_cell.BasicLSTMCell(self.state_dim)
         # defining initial state
@@ -52,6 +55,23 @@ class BaseLSTMModel(BaseAgentModel):
         output = tf.reshape(outputs, [-1, self.hidden_size])
         self.logits = self.rnn_decoder(output)
         return self.action_handler.create_model_output(self.logits), self.logits
+
+    def create_input_array(self, game_tick_packet, frame_time):
+        data = self.input_formatter.create_input_array(game_tick_packet, frame_time)
+        if len(self.stored_data) == self.stored_data_length:
+            del self.stored_data[0]
+        self.stored_data.append(data)
+        return self.stored_data
+
+    def acreate_batched_inputs(self, inputs):
+        def chunks(l, n, offset):
+            """Yield successive n-sized chunks from l."""
+            for i in range(0, len(l), offset):
+                yield l[i:i + n]
+
+        safe = chunks(inputs[0], self.stored_data_length, int(self.stored_data_length / 2))
+        labels = chunks(inputs[1], self.stored_data_length, int(self.stored_data_length / 2))
+        return safe, labels
 
     def create_weights(self):
         self.weights = {
