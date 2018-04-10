@@ -12,8 +12,8 @@ class BaseLSTMModel(BaseAgentModel):
     echo_step = 3
     hidden_size = 219
     stored_data = []
-    stored_data_length = 3 * 60
-
+    stored_data_length = 200
+    static_state_dim = 0
     def __init__(self,
                  session,
                  num_actions,
@@ -40,9 +40,14 @@ class BaseLSTMModel(BaseAgentModel):
                          summary_every=summary_every,
                          config_file=config_file)
 
+        self.static_state_dim = self.state_dim
+
     def _create_model(self, model_input, batch_size):
         self.create_weights()
-        input_ = tf.split(model_input, 200, 0)
+        if self.is_training:
+            input_ = tf.split(model_input, 200, 0)
+        else:
+            input_ = tf.split(model_input, 1, 0)
         # input_ = self.input_encoder(model_input)
         # input_ = tf.nn.xw_plus_b(model_input, self.weights['h1'], self.biases['b1'])
         # input_ = tf.unstack(model_input, self.stored_data_length, 0)
@@ -61,6 +66,7 @@ class BaseLSTMModel(BaseAgentModel):
         if len(self.stored_data) == self.stored_data_length:
             del self.stored_data[0]
         self.stored_data.append(data)
+        self.state_dim = len(self.stored_data)
         return self.stored_data
 
     def acreate_batched_inputs(self, inputs):
@@ -92,6 +98,18 @@ class BaseLSTMModel(BaseAgentModel):
         self.labels = tf.placeholder(tf.float32,
                                      (None, self.action_handler.get_number_actions()),
                                      name="taken_actions_phd")
+
+    def sample_action(self, input_state):
+        """
+        Runs the model to get a single action that can be returned.
+        :param input_state: This is the current state of the model at this point in time.
+        :return:
+        A sample action that can then be used to get controller output.
+        """
+        action = self.sess.run(self.get_agent_output(), feed_dict=self.create_sampling_feed_dict(input_state))
+        print (np.array(action)[:, -1], self.stored_data[0][7])
+        return np.array(action)[:, -1]
+
 
     def input_encoder(self, input):
         inputs = tf.nn.relu(tf.add(tf.matmul(input, self.weights['h1']), self.biases['b1']), name='input_layer')
