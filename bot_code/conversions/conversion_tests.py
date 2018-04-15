@@ -1,13 +1,19 @@
-
-
-import tempfile
-
-from bot_code.conversions.input.input_formatter import InputFormatter
-from bot_code.conversions import output_formatter
-from bot_code.conversions import binary_converter
-from bot_code.conversions import transpose_converter
-from game_data_struct import GameTickPacket
+import gzip
+import io
+import numpy as np
+import shutil
 import struct
+import tempfile
+import glob
+import os
+import random
+
+from bot_code.conversions import binary_converter
+from bot_code.conversions import output_formatter
+from bot_code.conversions import transpose_converter
+from bot_code.conversions.input.input_formatter import InputFormatter
+from game_data_struct import GameTickPacket
+
 
 def test_create_input_array_is_idempodent():
     # pre-test: This used to fail due to mutated external state in conversion functions.
@@ -161,10 +167,73 @@ def test_transpose_file_with_header():
                 back_again.seek(0)
                 assert original_file.read() == back_again.read()
 
+def test_read_write_header_only():
+    with tempfile.TemporaryFile() as f:
+        binary_converter.write_header_to_file(f, 45, True)
+        f.seek(0)
+        file_version, hashed_name, is_eval = binary_converter.read_header(f)
+        assert file_version == binary_converter.get_latest_file_version()
+        assert hashed_name == 45
+        assert is_eval == True
+
+def get_random_replay_file():
+    bot_code_dir = os.path.dirname(os.path.dirname(__file__))
+    replays_dir = os.path.join(bot_code_dir + '/training/replays/')
+    all_replay_files = glob.glob(replays_dir + '/*/*.bin')
+    if not len(all_replay_files):
+        print ('oops: We need you to have at least one replay here {}'.format(all_replay_files))
+        return None
+    random.seed(1)
+    replay_file = random.choice(all_replay_files)
+
+def test_transpose_replay():
+    replay_file = get_random_replay_file()
+    if not replay_file:
+        return
+    # print(replay_file)
+
+    with open(replay_file, 'rb') as original_file:
+        with tempfile.TemporaryFile() as transposed:
+            transpose_converter.transpose_replay_file(original_file, transposed)
+
+            # Check that it compresses better
+            transposed.seek(0)
+            original_file.seek(0)
+            len_original = get_compressed_file_length(original_file)
+            len_transposed = get_compressed_file_length(transposed)
+            # print ('{} -> {}  ==> reduction to {:.1f}%'.format(len_original, len_transposed, 100 * (len_transposed / len_original)))
+            assert len_transposed < len_original
+
+            # Transpose back (note: requires different row length)
+            transposed.seek(0)
+            with tempfile.TemporaryFile() as back_again:
+                transpose_converter.untranspose_replay_file(transposed, back_again, batch_size=1000)
+
+                # We should be similar to our original file.
+                original_file.seek(0)
+                back_again.seek(0)
+                for original_batch, new_batch in zip(
+                        binary_converter.iterate_data(original_file, batching=True, verbose=False),
+                        binary_converter.iterate_data(back_again, batching=True, verbose=False)):
+                    assert all(np.allclose(x,y) for x,y in zip(original_batch, new_batch))
+
+                # An even stricter test: exact binary equality.
+                original_file.seek(0)
+                back_again.seek(0)
+                assert original_file.read() == back_again.read()
+
+def get_compressed_file_length(f):
+    compressed_out = io.BytesIO()
+    with gzip.open(compressed_out, 'wb') as f_out:
+        shutil.copyfileobj(f, f_out)
+    return len(compressed_out.getvalue())
+
 
 test_create_input_array_is_idempodent()
+test_read_write_header_only()
 test_read_write_preserves_data()
 test_as_non_overlapping_pairs()
 test_transpose_file()
 test_transpose_file_with_header()
+test_transpose_replay()  # Note: this one is slow as it processes a real example of a replay file.
 print (' === ALL TESTS PASSED === ')

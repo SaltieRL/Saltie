@@ -28,6 +28,9 @@ def get_state_dim(file_version):
     elif file_version is get_latest_file_version():
         return input_formatter.get_state_dim()
 
+def get_output_vector_dim(file_version):
+    return 8
+
 def write_header_to_file(game_file, bot_hash, is_eval):
     write_version_info(game_file, get_latest_file_version())
     write_bot_hash(game_file, bot_hash)
@@ -39,22 +42,19 @@ def write_array_to_file(game_file, array):
     :param game_file: This is the file that the array will be written to.
     :param array: A numpy array of any size.
     """
-    bytes = convert_numpy_array(array)
-    size_of_bytes = len(bytes.getvalue())
-    game_file.write(struct.pack('i', size_of_bytes))
-    game_file.write(bytes.getvalue())
+    bytes = numpy_array_to_bytes(array)
+    game_file.write(struct.pack('i', len(bytes)))
+    game_file.write(bytes)
 
-
-def convert_numpy_array(numpy_array):
+def numpy_array_to_bytes(numpy_array):
     """
-    Converts a numpy array into compressed bytes
+    Converts a numpy array into bytes
     :param numpy_array: An array that is going to be converted into bytes
     :return: A BytesIO object that contains compressed bytes
     """
     compressed_array = io.BytesIO()    # np.savez_compressed() requires a file-like object to write to
     np.save(compressed_array, numpy_array, allow_pickle=False, fix_imports=False)
-    return compressed_array
-
+    return compressed_array.getvalue()
 
 def write_version_info(file, version_number):
     file.write(struct.pack('i', version_number))
@@ -114,10 +114,9 @@ def read_header(file):
 
 def get_file_size(f):
     """
-    :param f: The file
+    :param f: A file-like object that should support seeking to the end.
     :return: The size of the file in bytes.
     """
-    # f is a file-like object.
     try:
         old_file_position = f.tell()
         f.seek(0, os.SEEK_END)
@@ -194,7 +193,7 @@ def iterate_data(file, batching=False, verbose=True):
         chunk_start_time = time.clock()
         batch_size = int(len(state_array) / get_state_dim(file_version))
         state_array = np.reshape(state_array, (batch_size, int(get_state_dim(file_version))))
-        output_vector_array = np.reshape(output_vector_array, (batch_size, 8))
+        output_vector_array = np.reshape(output_vector_array, (batch_size, get_output_vector_dim(file_version)))
         numpy_end_time = time.clock()
 
         # External processing
