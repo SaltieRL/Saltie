@@ -1,13 +1,3 @@
-#### TEMP IGNORE TILL FILE IS FINALIZED
-training/
-bot_code/models/data
-
-#tensorflow
-tmp/
-
-
-# Created by .ignore support plugin (hsz.mobi)
-### Python template
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -18,6 +8,7 @@ __pycache__/
 
 # Distribution / packaging
 .Python
+env/
 build/
 develop-eggs/
 dist/
@@ -88,10 +79,11 @@ celerybeat-schedule
 # SageMath parsed files
 *.sage.py
 
-# Environments
+# dotenv
 .env
+
+# virtualenv
 .venv
-env/
 venv/
 ENV/
 
@@ -108,23 +100,12 @@ ENV/
 # mypy
 .mypy_cache/
 
-# Intellij IDEA project files
+# Intellij
 *.iml
 /.idea
-*.ipr
-*.iws
 
-# Intellij IDEA build output
-/out
+# Build output
+/build
 
-# Don't include pyvjoy in repo
-/pyvjoy
-
-# Gradle
+# Gradle files
 /.gradle
-RLBot_Injector.exe
-/config.py
-
-bot_code/models/TutorialBot/trained_variables
-
-*.py___jb_tmp___
