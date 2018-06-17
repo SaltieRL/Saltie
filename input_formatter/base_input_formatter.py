@@ -1,0 +1,2 @@
+class BaseInputFormatter:
+    pass
