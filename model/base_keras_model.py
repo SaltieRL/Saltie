@@ -1,6 +1,6 @@
 from model.base_model import BaseModel
 from tensorflow.python.keras.models import Sequential
-from tensorflow.keras.layers import Dense, Dropout
+from tensorflow.keras.layers import Dense, Dropout, InputLayer
 from tensorflow.keras.regularizers import l1
 
 
