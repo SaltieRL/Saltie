@@ -2,6 +2,7 @@
 Maintains the filesystem used by the trainers. MUST BE RUN IN A SEPARATE PROCESS TO MAINTAIN DOWNLOAD INTEGRITY
 """
 import io
+import json
 import random
 import zipfile
 
