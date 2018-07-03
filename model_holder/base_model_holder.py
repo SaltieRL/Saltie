@@ -10,3 +10,5 @@ class BaseModelHolder:
 
     def process_pair(self, input_array, output_array, pair_number, hashed_name):
         print(input_array, output_array, pair_number, hashed_name)
+        arr = self.input_formatter.create_input_array(input_array)
+        # etc...
