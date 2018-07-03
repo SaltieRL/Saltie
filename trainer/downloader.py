@@ -13,9 +13,9 @@ import requests
 class Downloader:
     BASE_URL = "http://saltie.tk:5000"
 
-    def __init__(self, max_size_mb=100):
+    def __init__(self, max_size_mb=100, path='mem://saltie'):
         self.max_size_mb = max_size_mb
-        self.mem_fs = fs.open_fs('mem://saltie')
+        self.filesystem = fs.open_fs(path)
 
     @staticmethod
     def unzip(in_memory_file: io.BytesIO):
@@ -41,19 +41,19 @@ class Downloader:
             imf = self.create_in_memory_file(r)
             return self.unzip(imf)
         else:
-            r = requests.get(self.BASE_URL + f'/replays/{filename_or_filenames}')
+            r = requests.get(self.BASE_URL + '/replays/{}'.format(filename_or_filenames))
             imf = self.create_in_memory_file(r)
             return imf
 
     def download_replays(self):
         rpl, fn = self.get_random_replay()
-        success = self.mem_fs.create(fn)
+        success = self.filesystem.create(fn)
         if success:
             # file has been successfully created
-            self.mem_fs.setfile(fn, rpl)
+            self.filesystem.setfile(fn, rpl)
 
 
 if __name__ == '__main__':
     dl = Downloader()
     dl.download_replays()
-    print(dl.mem_fs.listdir('/'))
+    print(dl.filesystem.listdir('/'))
