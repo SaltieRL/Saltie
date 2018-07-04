@@ -1,7 +1,12 @@
+def native(method):
+    method.is_native = True
+    return method
+
+
 class BaseModel:
     """The base model, this will internally hold different tensorflow/keras models"""
 
-    def get_input_layer(self):
+    def create_input_layer(self, input_placeholder):
         """Creates the input layer of the model, takes in feeding dicts"""
         pass
 
@@ -12,3 +17,10 @@ class BaseModel:
     def create_output_layer(self):
         """Creates the output layer of the model.
         :return The output layer of the model"""
+
+    @native
+    def fit(self, x, y):
+        pass
+
+    def predict(self, arr):
+        pass

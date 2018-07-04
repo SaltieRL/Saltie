@@ -1,4 +1,4 @@
-from model_holder.base_model_holder import BaseModelHolder
+from framework.input_formatter.model_holder.base_model_holder import BaseModelHolder
 
 
 class BaseTrainer:

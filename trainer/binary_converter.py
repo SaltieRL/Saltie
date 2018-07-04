@@ -7,7 +7,7 @@ import time
 import logging
 
 import gzip
-from input_formatter.base_input_formatter import BaseInputFormatter as input_formatter
+from framework.input_formatter import BaseInputFormatter as input_formatter
 
 EMPTY_FILE = 'empty'
 NO_FILE_VERSION = -1

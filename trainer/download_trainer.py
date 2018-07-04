@@ -1,9 +1,10 @@
 import gzip
 import io
 
-from input_formatter.base_input_formatter import BaseInputFormatter
-from model.base_model import BaseModel
-from model_holder.base_model_holder import BaseModelHolder
+from framework.input_formatter.base_input_formatter import BaseInputFormatter
+from framework.input_formatter.model_holder.base_model_holder import BaseModelHolder
+from framework.input_formatter.output_formatter.base_output_formatter import BaseOutputFormatter
+from framework.model.base_model import BaseModel
 from trainer.base_trainer import BaseTrainer
 from trainer.downloader import Downloader
 import trainer.binary_converter as bc
@@ -21,9 +22,9 @@ class DownloadTrainer(BaseTrainer):
         if isinstance(input_file, io.BytesIO):
             input_file.seek(0)
             with gzip.GzipFile(fileobj=input_file, mode='rb') as f:
-                bc.read_data(f, self.model_holder.process_pair)
+                bc.read_data(f, self.model_holder.train_step)
 
 
 if __name__ == '__main__':
-    d = DownloadTrainer(BaseModelHolder(BaseModel(), BaseInputFormatter()))
+    d = DownloadTrainer(BaseModelHolder(BaseModel(), BaseInputFormatter(), BaseOutputFormatter()))
     d.train_on_file()
