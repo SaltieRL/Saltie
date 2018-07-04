@@ -23,7 +23,7 @@ class BaseKerasModel(BaseModel):
         model.add(tf.keras.layers.Dense(32, kernel_regularizer=self.kernel_regularizer, activation=self.activation))
         model.add(tf.keras.layers.Dense(32))
 
-    def create_output_layer(self):
+    def create_output_layer(self, formatter):
         # sigmoid/tanh all you want on self.model
         return self.model.layers[-1].output
 
