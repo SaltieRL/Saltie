@@ -31,5 +31,9 @@ class BaseModel:
     def fit(self, x, y):
         pass
 
+    @native
     def predict(self, arr):
         pass
+
+    def save(self, file_path):
+        raise NotImplementedError

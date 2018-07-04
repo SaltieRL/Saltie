@@ -37,9 +37,17 @@ class BaseModelHolder:
             output = self.__predict(arr)
         return self.output_formatter.format_model_output(output)
 
+    def finish_training(self, save_model=True):
+        if save_model:
+            file_path = self.get_file_path()
+            print('saving model at:', file_path)
+            self.model.save(file_path)
+
     def __fit(self, arr, out):
         raise NotImplementedError
 
     def __predict(self, arr):
         raise NotImplementedError
 
+    def get_file_path(self):
+        return 'weights/' + str(type(self.model).__name__) + '.mdl'
