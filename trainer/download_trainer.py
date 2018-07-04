@@ -26,7 +26,8 @@ class DownloadTrainer(BaseTrainer):
                 bc.read_data(f, self.model_holder.process_pair, batching=True)
 
     def train_on_files(self):
-        input_file_list = self.downloader.get_replays(200)
+        input_file_list = self.downloader.get_replays(500)
+        counter = 0
         for input_file in input_file_list:
             file_name = input_file[1]
             input_file = input_file[0]
@@ -34,9 +35,11 @@ class DownloadTrainer(BaseTrainer):
                 input_file.seek(0)
                 with gzip.GzipFile(fileobj=input_file, mode='rb') as f:
                     bc.read_data(f, self.model_holder.process_pair, batching=True)
+            counter += 1
+            if counter % 10 == 0:
+                print('FILE', counter)
 
     def finish(self):
-
         self.model_holder.finish_training()
 
 

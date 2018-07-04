@@ -31,12 +31,12 @@ class Downloader:
         return in_memory_file
 
     def get_random_replay(self):
-        js = requests.get(self.BASE_URL + '/replays/list').json()
+        js = requests.get(self.BASE_URL + '/replays/list?model_hash=rashbot0').json()
         filename = random.choice(js)
         return self.get_replay(filename), filename
 
     def get_replays(self, number=1):
-        js = requests.get(self.BASE_URL + '/replays/list').json()
+        js = requests.get(self.BASE_URL + '/replays/list?model_hash=rashbot0').json()
         file_list = []
         for i in range(number):
             filename = random.choice(js)
