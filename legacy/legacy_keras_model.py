@@ -14,7 +14,7 @@ class BaseKerasModel(BaseModel):
     def create_input_layer(self, input_placeholder):
         """Creates keras model"""
         model = tf.keras.Sequential()
-        model.add(tf.keras.layers.InputLayer(input_tensor=input_placeholder))
+        model.add(tf.keras.layers.InputLayer(input_shape=[None, input_placeholder]))
         self.model = model
 
     def create_hidden_layers(self):

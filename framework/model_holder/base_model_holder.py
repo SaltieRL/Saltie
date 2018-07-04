@@ -1,5 +1,5 @@
 from framework.input_formatter.base_input_formatter import BaseInputFormatter
-from framework.input_formatter.output_formatter.base_output_formatter import BaseOutputFormatter
+from framework.output_formatter.base_output_formatter import BaseOutputFormatter
 from framework.model.base_model import BaseModel
 
 
@@ -15,8 +15,7 @@ class BaseModelHolder:
         self.output_formatter = output_formatter
 
     def initialize_model(self):
-        input_placeholder = self.input_formatter.create_input_placeholder()
-        self.model.create_input_layer(input_placeholder)
+        self.model.create_input_layer(self.input_formatter)
         self.model.create_hidden_layers()
         self.model_output = self.model.create_output_layer()
         self.use_custom_fit = not hasattr(self.model.fit, 'is_native')
@@ -24,7 +23,7 @@ class BaseModelHolder:
 
     def train_step(self, input_array, output_array):
         arr = self.input_formatter.create_input_array(input_array)
-        out = self.input_formatter.create_output_array(output_array)
+        out = self.input_formatter.create_prediction_array(output_array)
         if self.use_custom_fit:
             self.model.fit(arr, out)
 

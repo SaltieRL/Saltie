@@ -7,7 +7,6 @@ import time
 import logging
 
 import gzip
-from framework.input_formatter import BaseInputFormatter as input_formatter
 
 EMPTY_FILE = 'empty'
 NO_FILE_VERSION = -1
@@ -28,7 +27,7 @@ def get_state_dim(file_version):
         return 206
     elif file_version is get_latest_file_version():
         return 219
-        return input_formatter.get_state_dim()
+        # return input_formatter.get_state_dim()
 
 
 def write_array_to_file(game_file, array):

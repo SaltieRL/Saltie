@@ -9,8 +9,11 @@ class BaseInputFormatter:
         """
         pass
 
-    def create_output_array(self, output_array):
+    def create_prediction_array(self, output_array):
         pass
 
     def create_input_placeholder(self):
+        pass
+
+    def get_input_state_dimension(self):
         pass

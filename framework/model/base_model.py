@@ -1,3 +1,6 @@
+from framework.input_formatter.base_input_formatter import BaseInputFormatter
+
+
 def native(method):
     method.is_native = True
     return method
@@ -6,7 +9,7 @@ def native(method):
 class BaseModel:
     """The base model, this will internally hold different tensorflow/keras models"""
 
-    def create_input_layer(self, input_placeholder):
+    def create_input_layer(self, input_formatter: BaseInputFormatter):
         """Creates the input layer of the model, takes in feeding dicts"""
         pass
 

@@ -2,8 +2,8 @@ import gzip
 import io
 
 from framework.input_formatter.base_input_formatter import BaseInputFormatter
-from framework.input_formatter.model_holder.base_model_holder import BaseModelHolder
-from framework.input_formatter.output_formatter.base_output_formatter import BaseOutputFormatter
+from framework.model_holder.base_model_holder import BaseModelHolder
+from framework.output_formatter.base_output_formatter import BaseOutputFormatter
 from framework.model.base_model import BaseModel
 from trainer.base_trainer import BaseTrainer
 from trainer.downloader import Downloader
