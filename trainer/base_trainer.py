@@ -5,3 +5,4 @@ class BaseTrainer:
 
     def __init__(self, model_holder: BaseModelHolder):
         self.model_holder = model_holder
+        model_holder.initialize_model()

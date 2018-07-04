@@ -23,6 +23,10 @@ class BaseModel:
         :param formatter:
         :return The output layer of the model"""
 
+    def finalize_model(self):
+        """Finalizes the model"""
+        pass
+
     @native
     def fit(self, x, y):
         pass
