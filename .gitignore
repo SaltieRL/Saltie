@@ -111,3 +111,6 @@ ENV/
 # Gradle files
 /.gradle
 hits_all.pkl
+
+# weight files
+*.mdl
