@@ -23,9 +23,19 @@ class DownloadTrainer(BaseTrainer):
         if isinstance(input_file, io.BytesIO):
             input_file.seek(0)
             with gzip.GzipFile(fileobj=input_file, mode='rb') as f:
-                bc.read_data(f, self.model_holder.process_pair)
+                bc.read_data(f, self.model_holder.process_pair, batching=True)
+
+    def train_on_files(self):
+        input_file_list = self.downloader.get_replays(100)
+        for input_file in input_file_list:
+            file_name = input_file[1]
+            input_file = input_file[0]
+            if isinstance(input_file, io.BytesIO):
+                input_file.seek(0)
+                with gzip.GzipFile(fileobj=input_file, mode='rb') as f:
+                    bc.read_data(f, self.model_holder.process_pair, batching=True)
 
 
 if __name__ == '__main__':
     d = DownloadTrainer(LegacyModelHolder(LegacyKerasModel(), LegacyInputFormatter(), LegacyOutputFormatter()))
-    d.train_on_file()
+    d.train_on_files()

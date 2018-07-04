@@ -35,6 +35,15 @@ class Downloader:
         filename = random.choice(js)
         return self.get_replay(filename), filename
 
+    def get_replays(self, number=1):
+        js = requests.get(self.BASE_URL + '/replays/list').json()
+        file_list = []
+        for i in range(number):
+            filename = random.choice(js)
+            file_list.append((self.get_replay(filename), filename))
+            print('downloading file:', i)
+        return file_list
+
     def get_replay(self, filename_or_filenames: list or str):
         if isinstance(filename_or_filenames, list):
             r = requests.post(self.BASE_URL + '/replays/download', data={'files': json.dumps(filename_or_filenames)})
