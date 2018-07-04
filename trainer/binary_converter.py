@@ -140,7 +140,7 @@ def read_data(file, process_pair_function, batching=False):
     if file_version == EMPTY_FILE:
         return
 
-    print('replay version:', file_version)
+    # print('replay version:', file_version)
     # print('hashed name:', hashed_name)
 
     pair_number = 0
@@ -180,12 +180,12 @@ def read_data(file, process_pair_function, batching=False):
             totalbytes += num_bytes + 4
             counter += 1
         except EOFError:
-            print('reached end of file')
+            # print('reached end of file')
             break
         except Exception as e:
             logging.exception('error occurred but not because of reading but something else')
-    print('total batches [', counter, '] total pairs [', pair_number, ']')
-    print('time reading', total_time)
+    # print('total batches [', counter, '] total pairs [', pair_number, ']')
+    # print('time reading', total_time)
     file_size = get_file_size(file)
     if file_size - totalbytes <= 4 + 4 + 8 + 1:
         pass

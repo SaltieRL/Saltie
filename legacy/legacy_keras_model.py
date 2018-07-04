@@ -30,8 +30,11 @@ class LegacyKerasModel(BaseModel):
         model = self.model
         model.add(tf.keras.layers.Dropout(0.3))
         model.add(tf.keras.layers.Dense(128, kernel_regularizer=self.kernel_regularizer, activation=self.activation))
+        model.add(tf.keras.layers.Dropout(0.4))
         model.add(tf.keras.layers.Dense(64, kernel_regularizer=self.kernel_regularizer, activation=self.activation))
+        model.add(tf.keras.layers.Dropout(0.3))
         model.add(tf.keras.layers.Dense(32, kernel_regularizer=self.kernel_regularizer, activation=self.activation))
+        model.add(tf.keras.layers.Dropout(0.1))
 
     def create_output_layer(self, output_formatter: BaseOutputFormatter):
         # sigmoid/tanh all you want on self.model
@@ -62,6 +65,7 @@ class LegacyKerasModel(BaseModel):
         if self.counter % 200 == 0:
             logs = self.model.evaluate(x, y)
             self.write_log(self.tensorboard, self.val_names, logs, self.counter)
+            print('step:', self.counter)
         else:
             logs = self.model.train_on_batch(x, y)
             self.write_log(self.tensorboard, self.train_names, logs, self.counter)
