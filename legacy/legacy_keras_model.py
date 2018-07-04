@@ -29,7 +29,8 @@ class LegacyKerasModel(BaseModel):
     def create_hidden_layers(self):
         model = self.model
         model.add(tf.keras.layers.Dropout(0.3))
-        model.add(tf.keras.layers.Dense(32, kernel_regularizer=self.kernel_regularizer, activation=self.activation))
+        model.add(tf.keras.layers.Dense(128, kernel_regularizer=self.kernel_regularizer, activation=self.activation))
+        model.add(tf.keras.layers.Dense(64, kernel_regularizer=self.kernel_regularizer, activation=self.activation))
         model.add(tf.keras.layers.Dense(32, kernel_regularizer=self.kernel_regularizer, activation=self.activation))
 
     def create_output_layer(self, output_formatter: BaseOutputFormatter):
@@ -60,7 +61,7 @@ class LegacyKerasModel(BaseModel):
     def fit(self, x, y):
         if self.counter % 200 == 0:
             logs = self.model.evaluate(x, y)
-            self.write_log(self.tensorboard, self.train_names, logs, self.counter)
+            self.write_log(self.tensorboard, self.val_names, logs, self.counter)
         else:
             logs = self.model.train_on_batch(x, y)
             self.write_log(self.tensorboard, self.train_names, logs, self.counter)
@@ -68,3 +69,6 @@ class LegacyKerasModel(BaseModel):
 
     def predict(self, arr):
         return self.model.predict(arr)
+
+    def save(self, file_path):
+        self.model.save(filepath=file_path)

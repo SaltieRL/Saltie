@@ -26,7 +26,7 @@ class DownloadTrainer(BaseTrainer):
                 bc.read_data(f, self.model_holder.process_pair, batching=True)
 
     def train_on_files(self):
-        input_file_list = self.downloader.get_replays(100)
+        input_file_list = self.downloader.get_replays(10)
         for input_file in input_file_list:
             file_name = input_file[1]
             input_file = input_file[0]
@@ -35,7 +35,12 @@ class DownloadTrainer(BaseTrainer):
                 with gzip.GzipFile(fileobj=input_file, mode='rb') as f:
                     bc.read_data(f, self.model_holder.process_pair, batching=True)
 
+    def finish(self):
+
+        self.model_holder.finish_training()
+
 
 if __name__ == '__main__':
     d = DownloadTrainer(LegacyModelHolder(LegacyKerasModel(), LegacyInputFormatter(), LegacyOutputFormatter()))
     d.train_on_files()
+    d.finish()
