@@ -61,7 +61,10 @@ class Downloader:
             # file has been successfully created
             self.filesystem.setfile(fn, rpl)
 
-
+    def download_pandas_game(self):
+        js = requests.get(self.BASE_URL + '/parsed/list').json()
+        dl = random.choice(js)
+        f = requests.get(self.BASE_URL + '/replays/{}')
 if __name__ == '__main__':
     dl = Downloader()
     dl.download_replays()
