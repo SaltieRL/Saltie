@@ -3,11 +3,15 @@ Maintains the filesystem used by the trainers. MUST BE RUN IN A SEPARATE PROCESS
 """
 import io
 import json
+import pickle
 import random
 import zipfile
 
 import fs
 import requests
+import sys
+
+sys.path.append('../framework/replayanalysis')  # dirty way to fix the path for the submodule pickling
 
 
 class Downloader:
@@ -61,11 +65,21 @@ class Downloader:
             # file has been successfully created
             self.filesystem.setfile(fn, rpl)
 
-    def download_pandas_game(self):
-        js = requests.get(self.BASE_URL + '/parsed/list').json()
-        dl = random.choice(js)
-        f = requests.get(self.BASE_URL + '/replays/{}')
+    def download_pandas_game(self, from_disk=False):
+        if not from_disk:
+            js = requests.get(self.BASE_URL + '/parsed/list').json()
+            dl = random.choice(js)
+            f = requests.get(self.BASE_URL + '/parsed/{}'.format(dl))
+            fn = self.create_in_memory_file(f)
+            game = pickle.load(fn)
+        else:
+            game = pickle.load(open('test.pkl', 'rb'))
+        return game
+
+
 if __name__ == '__main__':
     dl = Downloader()
-    dl.download_replays()
-    print(dl.filesystem.listdir('/'))
+    # dl.download_replays()
+    # print(dl.filesystem.listdir('/'))
+    game = dl.download_pandas_game(True)
+    print()
