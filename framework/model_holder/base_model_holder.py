@@ -29,8 +29,13 @@ class BaseModelHolder:
         if self.use_custom_fit:
             self.model.fit(arr, out)
 
-    def predict(self, input_array):
-        arr = self.input_formatter.create_input_array(input_array)
+    def predict(self, prediction_input):
+        """
+        Predicts an output given the input
+        :param prediction_input: The input, this can be anything as it will go through a BaseInputFormatter 
+        :return:
+        """
+        arr = self.input_formatter.create_input_array(prediction_input)
         if self.use_custom_sample_action:
             output = self.model.predict(arr)
         else:
