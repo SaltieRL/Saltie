@@ -45,7 +45,8 @@ class LegacyGameInputFormatter(RawInputFormatter):
         total_score = enemy_team_score - own_team_score
         diff_in_score = self.last_total_score - total_score
 
-        score_info = self.get_score_info(game_tick_packet.gamecars[self.index].Score) + [diff_in_score]
+        score_info = self.get_score_info(game_tick_packet.game_cars[self.index].score_info)
+        score_info += [diff_in_score]
 
         self.last_total_score = total_score
         # extra_features = feature_creator.get_extra_features(game_tick_packet, self.index)
@@ -59,12 +60,12 @@ class LegacyGameInputFormatter(RawInputFormatter):
         own_team_score = 0
         enemy_team_score = 0
         player_car = self.return_emtpy_player_array()
-        for index in range(game_tick_packet.numCars):
+        for index in range(game_tick_packet.num_cars):
             if index == self.index:
                 own_team_score += self.get_player_goals(game_tick_packet, index)
                 enemy_team_score += self.get_own_goals(game_tick_packet, index)
                 player_car = self.get_car_info(game_tick_packet, index)
-            elif game_tick_packet.gamecars[index].Team == self.team:
+            elif game_tick_packet.game_cars[index].team == self.team:
                 own_team_score += self.get_player_goals(game_tick_packet, index)
                 enemy_team_score += self.get_own_goals(game_tick_packet, index)
                 team_members.append(self.get_car_info(game_tick_packet, index))
@@ -85,13 +86,13 @@ class LegacyGameInputFormatter(RawInputFormatter):
             print('nan indexes', output)
             for index in output:
                 np_version[index[0]] = 0
-        return np_version
+        return np_version.reshape([1, self.get_input_state_dimension()])
 
     def get_player_goals(self, game_tick_packet: GameTickPacket, index):
-        return game_tick_packet.gamecars[index].score_info.goals
+        return game_tick_packet.game_cars[index].score_info.goals
 
     def get_own_goals(self, game_tick_packet: GameTickPacket, index):
-        return game_tick_packet.gamecars[index].score_info.own_goals
+        return game_tick_packet.game_cars[index].score_info.own_goals
 
     def return_emtpy_player_array(self):
         """
@@ -109,3 +110,11 @@ class LegacyGameInputFormatter(RawInputFormatter):
 
     def get_input_state_dimension(self):
         return get_state_dim()
+
+    def get_ball_info(self, game_tick_packet: GameTickPacket):
+        arr = super().get_ball_info(game_tick_packet)
+        return  arr[:11] + [0, 0, 0] + arr[11:]
+
+    def get_car_info(self, game_tick_packet: GameTickPacket, index: int):
+        arr = super().get_car_info(game_tick_packet, index)
+        return arr[:-2] + [game_tick_packet.game_cars[index].team] + arr[-2:]

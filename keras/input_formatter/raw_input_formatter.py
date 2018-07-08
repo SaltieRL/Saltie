@@ -30,7 +30,7 @@ class RawInputFormatter(BaseInputFormatter):
 
     def get_boost_info(self, game_tick_packet: GameTickPacket):
         game_inputs = []
-        # limit this to 33 boosts total
+        # limit this to the number of boosts total in the map
         for i in range(game_tick_packet.num_boost):
             game_inputs.append(game_tick_packet.game_boosts[i].is_active)
             game_inputs.append(game_tick_packet.game_boosts[i].timer)
@@ -39,7 +39,7 @@ class RawInputFormatter(BaseInputFormatter):
     def get_score_info(self, score_info: ScoreInfo):
         score = score_info.score
         goals = score_info.goals
-        own_goals = score_info.own_gGoals
+        own_goals = score_info.own_goals
         assists = score_info.assists
         saves = score_info.saves
         shots = score_info.shots
