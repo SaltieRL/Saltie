@@ -6,9 +6,11 @@ from rlbot.utils.structures.game_data_struct import GameTickPacket
 
 class PythonExample(BaseAgent):
 
-    def get_output(self, packet: GameTickPacket) -> SimpleControllerState:
-        controller_state = SimpleControllerState()
+    def initialize_agent(self):
+        #This runs once before the bot starts up
+        self.controller_state = SimpleControllerState()
 
+    def get_output(self, packet: GameTickPacket) -> SimpleControllerState:
         ball_location = Vector2(packet.game_ball.physics.location.x, packet.game_ball.physics.location.y)
 
         my_car = packet.game_cars[self.index]
@@ -24,10 +26,10 @@ class PythonExample(BaseAgent):
         else:
             turn = 1.0
 
-        controller_state.throttle = 1.0
-        controller_state.steer = turn
+        self.controller_state.throttle = 1.0
+        self.controller_state.steer = turn
 
-        return controller_state
+        return self.controller_state
 
 
 class Vector2:
