@@ -2,3 +2,4 @@ h5py
 pandas
 requests
 fs
+tensorflow
