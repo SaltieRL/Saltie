@@ -1,5 +1,6 @@
 from random import random
 
+import os
 import tensorflow as tf
 
 from framework.input_formatter.base_input_formatter import BaseInputFormatter
@@ -23,7 +24,7 @@ class LegacyKerasModel(BaseModel):
     def create_input_layer(self, input_placeholder: BaseInputFormatter):
         """Creates keras model"""
         model = tf.keras.Sequential()
-        model.add(tf.keras.layers.InputLayer(input_shape=[input_placeholder.get_input_state_dimension()]))
+        model.add(tf.keras.layers.InputLayer(input_shape=input_placeholder.get_input_state_dimension()))
         self.model = model
 
     def create_hidden_layers(self):
@@ -61,9 +62,9 @@ class LegacyKerasModel(BaseModel):
                                                           )
         self.tensorboard.set_model(self.model)
 
-    def fit(self, x, y):
+    def fit(self, x, y, batch_size=1):
         if self.counter % 200 == 0:
-            logs = self.model.evaluate(x, y)
+            logs = self.model.evaluate(x, y, batch_size=batch_size)
             self.write_log(self.tensorboard, self.val_names, logs, self.counter)
             print('step:', self.counter)
         else:
@@ -75,4 +76,8 @@ class LegacyKerasModel(BaseModel):
         return self.model.predict(arr)
 
     def save(self, file_path):
-        self.model.save(filepath=file_path)
+        self.model.save_weights(filepath=file_path, overwrite=True)
+
+    def load(self, file_path):
+        path = os.path.abspath(file_path)
+        self.model.load_weights(filepath=os.path.abspath(file_path))
