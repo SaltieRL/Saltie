@@ -35,7 +35,7 @@ class BaseModel:
         pass
 
     @native
-    def fit(self, x, y):
+    def fit(self, x, y, batch_size=1):
         pass
 
     @native
