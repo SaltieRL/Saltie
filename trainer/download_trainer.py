@@ -3,6 +3,7 @@ import io
 
 from examples.legacy.legacy_input_formatter import LegacyInputFormatter
 from examples.legacy.legacy_output_formatter import LegacyOutputFormatter
+from examples.multi_output_model import MultiOutputKerasModel
 from framework.model_holder.base_model_holder import BaseModelHolder
 from examples.lstm.example_lstm_model import ExampleLSTMModel
 from examples.example_model_holder import ExampleModelHolder
@@ -46,7 +47,7 @@ class DownloadTrainer(BaseTrainer):
 
 
 if __name__ == '__main__':
-    d = DownloadTrainer(ExampleModelHolder(ExampleLSTMModel(),
+    d = DownloadTrainer(ExampleModelHolder(MultiOutputKerasModel(ExampleLSTMModel()),
                                            LSTMInputFormatter(LegacyInputFormatter()),
                                            LSTMOutputFormatter(LegacyOutputFormatter())))
     d.train_on_files()
