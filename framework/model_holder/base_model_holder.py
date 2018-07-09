@@ -1,3 +1,5 @@
+from rlbot.utils.logging_utils import get_logger
+
 from framework.input_formatter.base_input_formatter import BaseInputFormatter
 from framework.output_formatter.base_output_formatter import BaseOutputFormatter
 from framework.model.base_model import BaseModel
@@ -8,8 +10,10 @@ class BaseModelHolder:
     use_custom_fit = False
     use_custom_sample_action = False
     model_output = None
+    logger = None
 
     def __init__(self, model: BaseModel, input_formatter: BaseInputFormatter, output_formatter: BaseOutputFormatter):
+        self.logger = get_logger(str(type(self).__name__))
         self.model = model
         self.input_formatter = input_formatter
         self.output_formatter = output_formatter

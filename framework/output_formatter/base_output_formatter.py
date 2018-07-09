@@ -1,4 +1,12 @@
+from rlbot.utils.logging_utils import get_logger
+
+
 class BaseOutputFormatter:
+
+    logger = None
+
+    def __init__(self):
+        self.logger = get_logger(str(type(self).__name__))
 
     def format_model_output(self, output):
         return output
