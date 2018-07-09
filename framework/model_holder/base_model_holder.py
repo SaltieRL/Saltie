@@ -23,9 +23,9 @@ class BaseModelHolder:
         self.use_custom_sample_action = not hasattr(self.model.predict, 'is_native')
 
     def initialize_model(self, load=False):
-        self.model.create_input_layer(self.input_formatter)
-        self.model.create_hidden_layers()
-        self.model_output = self.model.create_output_layer(self.output_formatter)
+        input_layer = self.model.create_input_layer(self.input_formatter)
+        hidden_layer = self.model.create_hidden_layers(input_layer=input_layer)
+        self.model_output = self.model.create_output_layer(self.output_formatter, hidden_layer=hidden_layer)
         if load:
             self.__load_model_safely()
         self.model.finalize_model()
