@@ -47,11 +47,9 @@ class Downloader:
             sequence_filenames = []
             for j in range(batch):
                 sequence_filenames.append(random.choice(js))
-                print('creating file:', sequence_filenames[j])
-            print('downloading', batch, 'files')
             file_list += self.get_replay(sequence_filenames)
             filenames += sequence_filenames
-            print('downloaded', (batch * (i + 1.0)) / number, '% of files')
+            print('downloaded', (batch * (i + 1.0)) / number * 100, '% of files')
         return zip(file_list, filenames)
 
     def get_replay(self, filename_or_filenames: list or str):
