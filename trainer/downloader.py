@@ -40,8 +40,10 @@ class Downloader:
         js = requests.get(self.BASE_URL + '/replays/list?model_hash=rashbot0').json()
         filenames = []
         file_list = []
+
+        total_filenames = random.sample(js, number)
         for i in range(int(number / batch)):
-            sequence_filenames = random.sample(js, batch)
+            sequence_filenames = total_filenames[i * batch: (i + 1) * batch]
             file_list += self.get_replay(sequence_filenames)
             filenames += sequence_filenames
             print('downloaded', (batch * (i + 1.0)) / number * 100, '% of files')
