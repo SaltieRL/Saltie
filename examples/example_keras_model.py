@@ -17,6 +17,7 @@ class LegacyKerasModel(BaseModel):
     counter = 0
 
     def __init__(self, use_default_dense=True, activation='relu', kernel_regularizer=tf.keras.regularizers.l1(0.01)):
+        super().__init__()
         if use_default_dense:
             self.activation = activation
             self.kernel_regularizer = kernel_regularizer
@@ -54,13 +55,14 @@ class LegacyKerasModel(BaseModel):
     def finalize_model(self):
         self.model.compile(tf.keras.optimizers.Nadam(), loss='mse', metrics=['mse'])
         log_name = './logs/' + str(int(random() * 1000))
-        print("log_name", log_name)
+        self.logger.info("log_name: " + log_name)
         self.tensorboard = tf.keras.callbacks.TensorBoard(log_dir=log_name,
                                                           histogram_freq=1,
                                                           write_images=False,
                                                           batch_size=1000,
                                                           )
         self.tensorboard.set_model(self.model)
+        self.logger.info("Model has been finalized")
 
     def fit(self, x, y, batch_size=1):
         if self.counter % 200 == 0:

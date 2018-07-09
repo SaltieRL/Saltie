@@ -20,6 +20,7 @@ class LegacyGameInputFormatter(RawInputFormatter):
         self.team = team
         self.index = index
         self.total_score = [0, 0]
+        self.converted_array = [1] + self.get_input_state_dimension()
 
     def create_input_array(self, game_tick_packet: GameTickPacket, passed_time=0.0):
         """
@@ -86,7 +87,8 @@ class LegacyGameInputFormatter(RawInputFormatter):
             print('nan indexes', output)
             for index in output:
                 np_version[index[0]] = 0
-        return np_version.reshape([1, self.get_input_state_dimension()])
+
+        return np_version.reshape(self.converted_array)
 
     def get_player_goals(self, game_tick_packet: GameTickPacket, index):
         return game_tick_packet.game_cars[index].score_info.goals
@@ -109,7 +111,7 @@ class LegacyGameInputFormatter(RawInputFormatter):
         return [item for sublist in array_of_array for item in sublist]
 
     def get_input_state_dimension(self):
-        return get_state_dim()
+        return [get_state_dim()]
 
     def get_ball_info(self, game_tick_packet: GameTickPacket):
         arr = super().get_ball_info(game_tick_packet)

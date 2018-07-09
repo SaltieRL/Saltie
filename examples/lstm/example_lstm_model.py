@@ -14,7 +14,11 @@ class ExampleLSTMModel(LegacyKerasModel):
     def create_input_layer(self, input_placeholder: BaseInputFormatter):
         """Creates keras model"""
         model = tf.keras.Sequential()
-        model.add(tf.keras.layers.InputLayer(input_shape=input_placeholder.get_input_state_dimension()))
+        if self.prediction_mode:
+            shape = [1] + input_placeholder.get_input_state_dimension()
+            model.add(tf.keras.layers.InputLayer(batch_input_shape=shape))
+        else:
+            model.add(tf.keras.layers.InputLayer(input_shape=input_placeholder.get_input_state_dimension()))
         self.model = model
 
     def create_hidden_layers(self):
