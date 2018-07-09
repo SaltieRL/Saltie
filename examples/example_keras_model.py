@@ -39,7 +39,7 @@ class LegacyKerasModel(BaseModel):
 
     def create_output_layer(self, output_formatter: BaseOutputFormatter):
         # sigmoid/tanh all you want on self.model
-        self.model.add(tf.keras.layers.Dense(output_formatter.get_model_output_dimension(), activation='tanh'))
+        self.model.add(tf.keras.layers.Dense(output_formatter.get_model_output_dimension()[0], activation='tanh'))
         return self.model.layers[-1].output
 
     def write_log(self, callback, names, logs, batch_no):
