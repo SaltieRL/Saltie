@@ -16,4 +16,7 @@ class BaseInputFormatter:
         return input_array
 
     def get_input_state_dimension(self):
+        """
+        :return: An Array representing the input shape
+        """
         raise NotImplementedError
