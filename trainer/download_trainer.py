@@ -2,13 +2,10 @@ import gzip
 import io
 
 from framework.model_holder.base_model_holder import BaseModelHolder
-from legacy.legacy_input_formatter import LegacyInputFormatter
-from legacy.legacy_keras_lstm import LegacyKerasLstm
-from legacy.legacy_keras_model import LegacyKerasModel
-from legacy.legacy_model_holder import LegacyModelHolder
-from legacy.legacy_output_formatter import LegacyOutputFormatter
-from legacy.training_lstm_input_formatter import TrainingLSTMInputFormatter
-from legacy.training_lstm_output_formatter import TrainingLSTMOutputFormatter
+from examples.lstm.legacy_keras_lstm import LegacyKerasLstm
+from examples.example_model_holder import ExampleModelHolder
+from examples.lstm.training_lstm_input_formatter import TrainingLSTMInputFormatter
+from examples.lstm.training_lstm_output_formatter import TrainingLSTMOutputFormatter
 from trainer.base_trainer import BaseTrainer
 from trainer.downloader import Downloader
 import trainer.binary_converter as bc
@@ -47,6 +44,6 @@ class DownloadTrainer(BaseTrainer):
 
 
 if __name__ == '__main__':
-    d = DownloadTrainer(LegacyModelHolder(LegacyKerasLstm(), TrainingLSTMInputFormatter(), TrainingLSTMOutputFormatter()))
+    d = DownloadTrainer(ExampleModelHolder(LegacyKerasLstm(), TrainingLSTMInputFormatter(), TrainingLSTMOutputFormatter()))
     d.train_on_files()
     d.finish()

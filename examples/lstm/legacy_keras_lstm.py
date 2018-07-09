@@ -1,5 +1,5 @@
 from framework.input_formatter.base_input_formatter import BaseInputFormatter
-from legacy.legacy_keras_model import LegacyKerasModel
+from examples.example_keras_model import LegacyKerasModel
 import tensorflow as tf
 
 

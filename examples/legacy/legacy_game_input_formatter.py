@@ -1,8 +1,8 @@
 import numpy as np
 from rlbot.utils.structures import game_data_struct
-from rlbot.utils.structures.game_data_struct import GameTickPacket, ScoreInfo
+from rlbot.utils.structures.game_data_struct import GameTickPacket
 
-from keras.input_formatter.raw_input_formatter import RawInputFormatter
+from examples.current.raw_input_formatter import RawInputFormatter
 
 
 def get_state_dim():

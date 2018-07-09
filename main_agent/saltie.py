@@ -1,5 +1,3 @@
-import math
-
 from rlbot.agents.base_agent import BaseAgent, SimpleControllerState
 from rlbot.utils.structures.game_data_struct import GameTickPacket
 
@@ -12,14 +10,14 @@ class Saltie(BaseAgent):
         #This runs once before the bot starts up
         self.controller_state = SimpleControllerState()
 
-        from legacy.legacy_game_input_formatter import LegacyGameInputFormatter
-        from legacy.legacy_keras_model import LegacyKerasModel
-        from legacy.legacy_model_holder import LegacyModelHolder
-        from legacy.legacy_output_formatter import LegacyOutputFormatter
+        from examples.legacy.legacy_game_input_formatter import LegacyGameInputFormatter
+        from examples.example_keras_model import LegacyKerasModel
+        from examples.example_model_holder import ExampleModelHolder
+        from examples.legacy.legacy_output_formatter import LegacyOutputFormatter
 
-        self.model_holder = LegacyModelHolder(LegacyKerasModel(),
-                                              LegacyGameInputFormatter(self.team, self.index),
-                                              LegacyOutputFormatter())
+        self.model_holder = ExampleModelHolder(LegacyKerasModel(),
+                                               LegacyGameInputFormatter(self.team, self.index),
+                                               LegacyOutputFormatter())
 
         self.model_holder.initialize_model(load=True)
 

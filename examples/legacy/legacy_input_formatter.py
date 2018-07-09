@@ -7,6 +7,5 @@ class LegacyInputFormatter(BaseInputFormatter):
     feature_size = 219
     logger = None
 
-
     def get_input_state_dimension(self):
         return [self.feature_size]
