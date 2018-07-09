@@ -3,7 +3,7 @@ from examples.example_keras_model import LegacyKerasModel
 import tensorflow as tf
 
 
-class LegacyKerasLstm(LegacyKerasModel):
+class ExampleLSTMModel(LegacyKerasModel):
     lstm_state = None
     prediction_mode = False
 

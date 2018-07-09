@@ -1,25 +1,39 @@
 from rlbot.agents.base_agent import BaseAgent, SimpleControllerState
 from rlbot.utils.structures.game_data_struct import GameTickPacket
+from examples.legacy.legacy_game_input_formatter import LegacyGameInputFormatter
+from examples.lstm.lstm_input_formatter import LSTMInputFormatter
+from examples.legacy.legacy_output_formatter import LegacyOutputFormatter
+from examples.lstm.lstm_output_formatter import LSTMOutputFormatter
 
 
 class Saltie(BaseAgent):
 
     model_holder = None
+    controller_state = None
 
     def initialize_agent(self):
-        #This runs once before the bot starts up
+        # This runs once before the bot starts up
         self.controller_state = SimpleControllerState()
 
-        from examples.legacy.legacy_game_input_formatter import LegacyGameInputFormatter
-        from examples.example_keras_model import LegacyKerasModel
         from examples.example_model_holder import ExampleModelHolder
-        from examples.legacy.legacy_output_formatter import LegacyOutputFormatter
 
-        self.model_holder = ExampleModelHolder(LegacyKerasModel(),
-                                               LegacyGameInputFormatter(self.team, self.index),
-                                               LegacyOutputFormatter())
+        self.model_holder = ExampleModelHolder(self.create_model(),
+                                               self.create_input_formatter(),
+                                               self.create_output_formatter())
 
         self.model_holder.initialize_model(load=True)
+
+    def create_model(self):
+        # Models need to be imported locally dues to creation of tensorflow and keras on imports
+        from examples.lstm.example_lstm_model import ExampleLSTMModel
+
+        return ExampleLSTMModel()
+
+    def create_input_formatter(self):
+        return LSTMInputFormatter(LegacyGameInputFormatter(self.team, self.index), sequence_size=1)
+
+    def create_output_formatter(self):
+        return LSTMOutputFormatter(LegacyOutputFormatter(), sequence_size=1)
 
     def get_output(self, packet: GameTickPacket) -> SimpleControllerState:
         result = self.model_holder.predict(packet)
