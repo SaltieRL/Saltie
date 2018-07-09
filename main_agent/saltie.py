@@ -21,7 +21,7 @@ class Saltie(BaseAgent):
                                               LegacyGameInputFormatter(self.team, self.index),
                                               LegacyOutputFormatter())
 
-        self.model_holder.initialize_model()
+        self.model_holder.initialize_model(load=True)
 
     def get_output(self, packet: GameTickPacket) -> SimpleControllerState:
         result = self.model_holder.predict(packet)
