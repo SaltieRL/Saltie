@@ -8,12 +8,12 @@ from framework.model.base_model import BaseModel
 from framework.output_formatter.base_output_formatter import BaseOutputFormatter
 
 
-class LegacyKerasModel(BaseModel):
+class ExampleSequentialKerasModel(BaseModel):
 
     model = None
     tensorboard = None
-    train_names = ['train_loss', 'train_mae']
-    val_names = ['val_loss', 'val_mae']
+    train_names = ['train_loss', 'train_mse', 'train_mae']
+    val_names = ['val_loss', 'val_mse', 'val_mae']
     counter = 0
 
     def __init__(self, use_default_dense=True, activation='relu', kernel_regularizer=tf.keras.regularizers.l1(0.01)):
@@ -53,7 +53,8 @@ class LegacyKerasModel(BaseModel):
             callback.writer.flush()
 
     def finalize_model(self):
-        self.model.compile(tf.keras.optimizers.Nadam(), loss='mse', metrics=['mse'])
+        self.model.compile(tf.keras.optimizers.Nadam(lr=0.001), loss='mean_absolute_error',
+                           metrics=[tf.keras.metrics.mean_squared_error, tf.keras.metrics.mean_absolute_error])
         log_name = './logs/' + str(int(random() * 1000))
         self.logger.info("log_name: " + log_name)
         self.tensorboard = tf.keras.callbacks.TensorBoard(log_dir=log_name,
@@ -66,7 +67,7 @@ class LegacyKerasModel(BaseModel):
 
     def fit(self, x, y, batch_size=1):
         if self.counter % 200 == 0:
-            logs = self.model.evaluate(x, y, batch_size=batch_size)
+            logs = self.model.evaluate(x, y, batch_size=batch_size, verbose=1)
             self.write_log(self.tensorboard, self.val_names, logs, self.counter)
             print('step:', self.counter)
         else:
