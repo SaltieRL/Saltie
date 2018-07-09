@@ -20,14 +20,18 @@ class ExampleLSTMModel(BaseKerasModel):
             self.inputs = Input(batch_input_shape=shape)
         else:
             self.inputs = Input(shape=input_placeholder.get_input_state_dimension())
+        return self.inputs
 
-    def create_hidden_layers(self):
+    def create_hidden_layers(self, input_layer=None):
+        if input_layer is None:
+            input_layer = self.inputs
         lstm = tf.keras.layers.LSTM(units=512, kernel_regularizer=self.kernel_regularizer, recurrent_dropout=0.1,
                                     return_sequences=True, stateful=self.prediction_mode)
-        self.hidden_layer = lstm(self.inputs)
+        self.hidden_layer = lstm(input_layer)
         lstm = tf.keras.layers.LSTM(units=128, kernel_regularizer=self.kernel_regularizer, recurrent_dropout=0.1,
                                     return_sequences=True, stateful=self.prediction_mode)
         self.hidden_layer = lstm(self.hidden_layer)
+        return self.hidden_layer
 
     def predict(self, arr):
         return self.model.predict(arr)

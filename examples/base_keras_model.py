@@ -29,32 +29,41 @@ class BaseKerasModel(BaseModel):
     def create_input_layer(self, input_placeholder: BaseInputFormatter):
         """Creates keras model"""
         self.inputs = tf.keras.layers.InputLayer(input_shape=input_placeholder.get_input_state_dimension())
+        return self.inputs
 
-    def create_hidden_layers(self):
-        hidden_layer = tf.keras.layers.Dropout(0.3)(self.inputs)
-        hidden_layer =tf.keras.layers.Dense(128, kernel_regularizer=self.kernel_regularizer,
-                                            activation=self.activation)(hidden_layer)
-        hidden_layer =tf.keras.layers.Dropout(0.4)(hidden_layer)
-        hidden_layer =tf.keras.layers.Dense(64, kernel_regularizer=self.kernel_regularizer,
-                                            activation=self.activation)(hidden_layer)
-        hidden_layer =tf.keras.layers.Dropout(0.3)(hidden_layer)
-        hidden_layer =tf.keras.layers.Dense(32, kernel_regularizer=self.kernel_regularizer,
-                                            activation=self.activation)(hidden_layer)
-        hidden_layer =tf.keras.layers.Dropout(0.1)(hidden_layer)
+    def create_hidden_layers(self, input_layer=None):
+        if input_layer is None:
+            input_layer = self.inputs
+        hidden_layer = tf.keras.layers.Dropout(0.3)(input_layer)
+        hidden_layer = tf.keras.layers.Dense(128, kernel_regularizer=self.kernel_regularizer,
+                                             activation=self.activation)(hidden_layer)
+        hidden_layer = tf.keras.layers.Dropout(0.4)(hidden_layer)
+        hidden_layer = tf.keras.layers.Dense(64, kernel_regularizer=self.kernel_regularizer,
+                                             activation=self.activation)(hidden_layer)
+        hidden_layer = tf.keras.layers.Dropout(0.3)(hidden_layer)
+        hidden_layer = tf.keras.layers.Dense(32, kernel_regularizer=self.kernel_regularizer,
+                                             activation=self.activation)(hidden_layer)
+        hidden_layer = tf.keras.layers.Dropout(0.1)(hidden_layer)
         self.hidden_layer = hidden_layer
+        return self.hidden_layer
 
-    def create_output_layer(self, output_formatter: BaseOutputFormatter):
+    def create_output_layer(self, output_formatter: BaseOutputFormatter, hidden_layer=None):
         # sigmoid/tanh all you want on self.model
+        if hidden_layer is None:
+            hidden_layer = self.hidden_layer
         self.outputs = tf.keras.layers.Dense(output_formatter.get_model_output_dimension()[0],
-                                             activation='tanh')(self.hidden_layer)
+                                             activation='tanh')(hidden_layer)
         return self.outputs
 
-    def write_log(self, callback, names, logs, batch_no):
+    def write_log(self, callback, names, logs, batch_no, eval=False):
         for name, value in zip(names, logs):
             summary = tf.Summary()
             summary_value = summary.value.add()
             summary_value.simple_value = value
-            summary_value.tag = name
+            tag_name = name
+            if eval:
+                tag_name = 'eval_' + tag_name
+            summary_value.tag = tag_name
             callback.writer.add_summary(summary, batch_no)
             callback.writer.flush()
 
@@ -63,7 +72,7 @@ class BaseKerasModel(BaseModel):
 
         loss, loss_weights = self.create_loss()
         self.model.compile(tf.keras.optimizers.Nadam(lr=0.001), loss=loss, loss_weights=loss_weights,
-                           metrics=[tf.keras.metrics.mean_squared_error, tf.keras.metrics.mean_absolute_error])
+                           metrics=[tf.keras.metrics.mean_absolute_error, tf.keras.metrics.binary_accuracy])
         log_name = './logs/' + str(int(random() * 1000))
         self.logger.info("log_name: " + log_name)
         self.tensorboard = tf.keras.callbacks.TensorBoard(log_dir=log_name,
@@ -77,11 +86,11 @@ class BaseKerasModel(BaseModel):
     def fit(self, x, y, batch_size=1):
         if self.counter % 200 == 0:
             logs = self.model.evaluate(x, y, batch_size=batch_size, verbose=1)
-            self.write_log(self.tensorboard, self.val_names, logs, self.counter)
+            self.write_log(self.tensorboard, self.model.metrics_names, logs, self.counter, eval=True)
             print('step:', self.counter)
         else:
             logs = self.model.train_on_batch(x, y)
-            self.write_log(self.tensorboard, self.train_names, logs, self.counter)
+            self.write_log(self.tensorboard, self.model.metrics_names, logs, self.counter)
         self.counter += 1
 
     def predict(self, arr):
