@@ -1,5 +1,6 @@
 from random import random
 
+import os
 import tensorflow as tf
 
 from framework.input_formatter.base_input_formatter import BaseInputFormatter
@@ -7,15 +8,16 @@ from framework.model.base_model import BaseModel
 from framework.output_formatter.base_output_formatter import BaseOutputFormatter
 
 
-class LegacyKerasModel(BaseModel):
+class ExampleSequentialKerasModel(BaseModel):
 
     model = None
     tensorboard = None
-    train_names = ['train_loss', 'train_mae']
-    val_names = ['val_loss', 'val_mae']
+    train_names = ['train_loss', 'train_mse', 'train_mae']
+    val_names = ['val_loss', 'val_mse', 'val_mae']
     counter = 0
 
     def __init__(self, use_default_dense=True, activation='relu', kernel_regularizer=tf.keras.regularizers.l1(0.01)):
+        super().__init__()
         if use_default_dense:
             self.activation = activation
             self.kernel_regularizer = kernel_regularizer
@@ -23,7 +25,7 @@ class LegacyKerasModel(BaseModel):
     def create_input_layer(self, input_placeholder: BaseInputFormatter):
         """Creates keras model"""
         model = tf.keras.Sequential()
-        model.add(tf.keras.layers.InputLayer(input_shape=[input_placeholder.get_input_state_dimension()]))
+        model.add(tf.keras.layers.InputLayer(input_shape=input_placeholder.get_input_state_dimension()))
         self.model = model
 
     def create_hidden_layers(self):
@@ -38,7 +40,7 @@ class LegacyKerasModel(BaseModel):
 
     def create_output_layer(self, output_formatter: BaseOutputFormatter):
         # sigmoid/tanh all you want on self.model
-        self.model.add(tf.keras.layers.Dense(output_formatter.get_model_output_dimension(), activation='tanh'))
+        self.model.add(tf.keras.layers.Dense(output_formatter.get_model_output_dimension()[0], activation='tanh'))
         return self.model.layers[-1].output
 
     def write_log(self, callback, names, logs, batch_no):
@@ -51,19 +53,21 @@ class LegacyKerasModel(BaseModel):
             callback.writer.flush()
 
     def finalize_model(self):
-        self.model.compile(tf.keras.optimizers.Nadam(), loss='mse', metrics=['mse'])
+        self.model.compile(tf.keras.optimizers.Nadam(lr=0.001), loss='mean_absolute_error',
+                           metrics=[tf.keras.metrics.mean_squared_error, tf.keras.metrics.mean_absolute_error])
         log_name = './logs/' + str(int(random() * 1000))
-        print("log_name", log_name)
+        self.logger.info("log_name: " + log_name)
         self.tensorboard = tf.keras.callbacks.TensorBoard(log_dir=log_name,
                                                           histogram_freq=1,
                                                           write_images=False,
                                                           batch_size=1000,
                                                           )
         self.tensorboard.set_model(self.model)
+        self.logger.info("Model has been finalized")
 
-    def fit(self, x, y):
+    def fit(self, x, y, batch_size=1):
         if self.counter % 200 == 0:
-            logs = self.model.evaluate(x, y)
+            logs = self.model.evaluate(x, y, batch_size=batch_size, verbose=1)
             self.write_log(self.tensorboard, self.val_names, logs, self.counter)
             print('step:', self.counter)
         else:
@@ -75,4 +79,8 @@ class LegacyKerasModel(BaseModel):
         return self.model.predict(arr)
 
     def save(self, file_path):
-        self.model.save(filepath=file_path)
+        self.model.save_weights(filepath=file_path, overwrite=True)
+
+    def load(self, file_path):
+        path = os.path.abspath(file_path)
+        self.model.load_weights(filepath=os.path.abspath(file_path))

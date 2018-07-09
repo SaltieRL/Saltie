@@ -175,7 +175,7 @@ def read_data(file, process_pair_function, batching=False):
             else:
                 if file_version is 4:
                     input_array = v4tov5(input_array)
-                process_pair_function(input_array, output_array, pair_number, hashed_name)
+                process_pair_function(input_array, output_array, pair_number, hashed_name, batch_size)
                 pair_number += batch_size
             totalbytes += num_bytes + 4
             counter += 1

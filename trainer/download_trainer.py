@@ -1,11 +1,14 @@
 import gzip
 import io
 
+from examples.legacy.legacy_input_formatter import LegacyInputFormatter
+from examples.legacy.legacy_output_formatter import LegacyOutputFormatter
+from examples.multi_output_model import MultiOutputKerasModel
 from framework.model_holder.base_model_holder import BaseModelHolder
-from legacy.legacy_input_formatter import LegacyInputFormatter
-from legacy.legacy_keras_model import LegacyKerasModel
-from legacy.legacy_model_holder import LegacyModelHolder
-from legacy.legacy_output_formatter import LegacyOutputFormatter
+from examples.lstm.example_lstm_model import ExampleLSTMModel
+from examples.example_model_holder import ExampleModelHolder
+from examples.lstm.lstm_input_formatter import LSTMInputFormatter
+from examples.lstm.lstm_output_formatter import LSTMOutputFormatter
 from trainer.base_trainer import BaseTrainer
 from trainer.downloader import Downloader
 import trainer.binary_converter as bc
@@ -26,7 +29,7 @@ class DownloadTrainer(BaseTrainer):
                 bc.read_data(f, self.model_holder.process_pair, batching=True)
 
     def train_on_files(self):
-        input_file_list = self.downloader.get_replays(500)
+        input_file_list = self.downloader.get_replays(1000)
         counter = 0
         for input_file in input_file_list:
             file_name = input_file[1]
@@ -44,6 +47,8 @@ class DownloadTrainer(BaseTrainer):
 
 
 if __name__ == '__main__':
-    d = DownloadTrainer(LegacyModelHolder(LegacyKerasModel(), LegacyInputFormatter(), LegacyOutputFormatter()))
+    d = DownloadTrainer(ExampleModelHolder(MultiOutputKerasModel(ExampleLSTMModel()),
+                                           LSTMInputFormatter(LegacyInputFormatter()),
+                                           LSTMOutputFormatter(LegacyOutputFormatter())))
     d.train_on_files()
     d.finish()

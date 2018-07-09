@@ -1,5 +1,5 @@
 from framework.input_formatter.base_input_formatter import BaseInputFormatter
-from rlbot.utils.structures.game_data_struct import GameTickPacket
+from rlbot.utils.structures.game_data_struct import GameTickPacket, ScoreInfo
 from rlbot.utils.structures.start_match_structures import MAX_PLAYERS
 from numpy import array
 
@@ -17,10 +17,45 @@ class RawInputFormatter(BaseInputFormatter):
 
         return array(input_array)
 
+    def get_game_info(self, game_tick_packet: GameTickPacket):
+        game_ball_hit = game_tick_packet.game_info.is_kickoff_pause
+
+        # no need for any of these but ball has been hit (kickoff indicator)
+        # game_timeseconds = game_tick_packet.gameInfo.TimeSeconds
+        # game_timeremaining = game_tick_packet.gameInfo.GameTimeRemaining
+        # game_overtime = game_tick_packet.gameInfo.bOverTime
+        # game_active = game_tick_packet.gameInfo.bRoundActive
+        # game_ended = game_tick_packet.gameInfo.bMatchEnded
+        return [game_ball_hit]
+
+    def get_boost_info(self, game_tick_packet: GameTickPacket):
+        game_inputs = []
+        # limit this to the number of boosts total in the map
+        for i in range(game_tick_packet.num_boost):
+            game_inputs.append(game_tick_packet.game_boosts[i].is_active)
+            game_inputs.append(game_tick_packet.game_boosts[i].timer)
+        return game_inputs
+
+    def get_score_info(self, score_info: ScoreInfo):
+        score = score_info.score
+        goals = score_info.goals
+        own_goals = score_info.own_goals
+        assists = score_info.assists
+        saves = score_info.saves
+        shots = score_info.shots
+        demolitions = score_info.demolitions
+
+        return [score, goals, own_goals, assists, saves, shots, demolitions]
+
     def get_input_state_dimension(self):
         total = 0
+        # game info
+        total += 1
+        # car info
         total += 19 * MAX_PLAYERS
+        # ball info
         total += 18
+
         return [total]
 
     def get_car_info(self, game_tick_packet: GameTickPacket, index: int):

@@ -36,14 +36,18 @@ class Downloader:
         filename = random.choice(js)
         return self.get_replay(filename), filename
 
-    def get_replays(self, number=1):
+    def get_replays(self, number=1, batch=50):
         js = requests.get(self.BASE_URL + '/replays/list?model_hash=rashbot0').json()
+        filenames = []
         file_list = []
-        for i in range(number):
-            filename = random.choice(js)
-            file_list.append((self.get_replay(filename), filename))
-            print('downloading file:', i)
-        return file_list
+        for i in range(int(number / batch)):
+            sequence_filenames = []
+            for j in range(batch):
+                sequence_filenames.append(random.choice(js))
+            file_list += self.get_replay(sequence_filenames)
+            filenames += sequence_filenames
+            print('downloaded', (batch * (i + 1.0)) / number * 100, '% of files')
+        return zip(file_list, filenames)
 
     def get_replay(self, filename_or_filenames: list or str):
         if isinstance(filename_or_filenames, list):
