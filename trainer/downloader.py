@@ -41,9 +41,7 @@ class Downloader:
         filenames = []
         file_list = []
         for i in range(int(number / batch)):
-            sequence_filenames = []
-            for j in range(batch):
-                sequence_filenames.append(random.choice(js))
+            sequence_filenames = random.sample(js, batch)
             file_list += self.get_replay(sequence_filenames)
             filenames += sequence_filenames
             print('downloaded', (batch * (i + 1.0)) / number * 100, '% of files')
