@@ -8,6 +8,8 @@ import fs
 import requests
 import sys
 
+from requests.exceptions import ChunkedEncodingError
+
 sys.path.append('../framework/replayanalysis')  # dirty way to fix the path for the submodule pickling
 
 
@@ -51,7 +53,10 @@ class Downloader:
 
     def get_replay(self, filename_or_filenames: list or str):
         if isinstance(filename_or_filenames, list):
-            r = requests.post(self.BASE_URL + '/replays/download', data={'files': json.dumps(filename_or_filenames)})
+            try:
+                r = requests.post(self.BASE_URL + '/replays/download', data={'files': json.dumps(filename_or_filenames)})
+            except ChunkedEncodingError:
+                return []
             imf = self.create_in_memory_file(r)
             return self.unzip(imf)
         else:

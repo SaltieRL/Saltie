@@ -10,7 +10,6 @@ from framework.output_formatter.base_output_formatter import BaseOutputFormatter
 
 
 class BaseKerasModel(BaseModel):
-
     model = None
     tensorboard = None
     train_names = ['train_loss', 'train_mse', 'train_mae']
@@ -67,13 +66,13 @@ class BaseKerasModel(BaseModel):
             callback.writer.add_summary(summary, batch_no)
             callback.writer.flush()
 
-    def finalize_model(self):
+    def finalize_model(self, logname=str(int(random() * 1000))):
         self.model = Model(inputs=self.inputs, outputs=self.outputs)
 
         loss, loss_weights = self.create_loss()
         self.model.compile(tf.keras.optimizers.Nadam(lr=0.001), loss=loss, loss_weights=loss_weights,
                            metrics=[tf.keras.metrics.mean_absolute_error, tf.keras.metrics.binary_accuracy])
-        log_name = './logs/' + str(int(random() * 1000))
+        log_name = './logs/' + logname
         self.logger.info("log_name: " + log_name)
         self.tensorboard = tf.keras.callbacks.TensorBoard(log_dir=log_name,
                                                           histogram_freq=1,
