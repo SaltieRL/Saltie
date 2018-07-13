@@ -6,6 +6,7 @@ from examples.autoencoder.autoencoder_model_holder import AutoencoderModelHolder
 from examples.autoencoder.autoencoder_output_formatter import AutoencoderOutputFormatter
 from examples.autoencoder.variational_autoencoder_model import VariationalAutoencoderModel
 from examples.legacy.legacy_input_formatter import LegacyInputFormatter
+from examples.legacy.legacy_normalizer_input_formatter import LegacyNormalizerInputFormatter
 from examples.legacy.legacy_output_formatter import LegacyOutputFormatter
 from examples.multi_output_model import MultiOutputKerasModel
 from framework.input_formatter.host_input_formatter import HostInputFormatter
@@ -53,7 +54,7 @@ class DownloadTrainer(BaseTrainer):
 
 
 if __name__ == '__main__':
-    input_formatter = HostInputFormatter(LegacyInputFormatter())
+    input_formatter = LegacyNormalizerInputFormatter(LegacyInputFormatter())
     output_formatter = HostOutputFormatter(AutoencoderOutputFormatter(input_formatter))
     d = DownloadTrainer(AutoencoderModelHolder(AutoencoderModel(compressed_dim=50),
                                                input_formatter, output_formatter))
