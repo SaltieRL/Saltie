@@ -78,7 +78,5 @@ class AutoencoderModel(BaseKerasModel):
         self.tensorboard.set_model(self.model)
         self.logger.info("Model has been finalized")
 
-
-
     def create_loss(self):
-        return 'binary_crossentropy', None
+        return 'mean_absolute_error', None
