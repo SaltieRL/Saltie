@@ -6,6 +6,8 @@ from examples.base_keras_model import BaseKerasModel
 from framework.input_formatter.base_input_formatter import BaseInputFormatter
 import tensorflow as tf
 
+from framework.output_formatter.base_output_formatter import BaseOutputFormatter
+
 
 class AutoencoderModel(BaseKerasModel):
     input_dim = 0
@@ -40,6 +42,13 @@ class AutoencoderModel(BaseKerasModel):
 
         self.hidden_layer = hidden_layer
         return self.hidden_layer
+
+    def create_output_layer(self, output_formatter: BaseOutputFormatter, hidden_layer=None):
+        # sigmoid/tanh all you want on self.model
+        if hidden_layer is None:
+            hidden_layer = self.hidden_layer
+        self.outputs = tf.keras.layers.Dense(output_formatter.get_model_output_dimension()[0],
+                                             activation='linear')(hidden_layer)
 
     def create_encoder(self, hidden_layer):
         decrease_per_layer = int((self.input_dim - self.compressed_dim) / 3)
