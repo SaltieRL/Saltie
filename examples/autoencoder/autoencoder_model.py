@@ -49,6 +49,7 @@ class AutoencoderModel(BaseKerasModel):
             hidden_layer = self.hidden_layer
         self.outputs = tf.keras.layers.Dense(output_formatter.get_model_output_dimension()[0],
                                              activation='linear')(hidden_layer)
+        self.model = Model(inputs=self.inputs, outputs=self.outputs)
 
     def create_encoder(self, hidden_layer):
         decrease_per_layer = int((self.input_dim - self.compressed_dim) / 3)
@@ -72,7 +73,6 @@ class AutoencoderModel(BaseKerasModel):
         return hidden_layer
 
     def finalize_model(self, logname=str(int(random() * 1000))):
-        self.model = Model(inputs=self.inputs, outputs=self.outputs)
 
         loss, loss_weights = self.create_loss()
         self.model.compile(tf.keras.optimizers.Nadam(lr=0.001), loss=loss, loss_weights=loss_weights,

@@ -30,14 +30,16 @@ class Saltie(BaseAgent):
     def create_model(self):
         # Models need to be imported locally dues to creation of tensorflow and keras on imports
         from examples.lstm.example_lstm_model import ExampleLSTMModel
+        #return ExampleLSTMModel(prediction_mode=True)
 
-        return ExampleLSTMModel(prediction_mode=True)
+        from examples.autoencoder.autoencoder_model import AutoencoderModel
+        return AutoencoderModel(compressed_dim=50)
 
     def create_input_formatter(self):
-        return LSTMInputFormatter(LegacyGameInputFormatter(self.team, self.index), sequence_size=1)
+        return LegacyGameInputFormatter(self.team, self.index)
 
     def create_output_formatter(self):
-        return LSTMOutputFormatter(LegacyOutputFormatter(), sequence_size=1)
+        return LegacyOutputFormatter()
 
     def get_output(self, packet: GameTickPacket) -> SimpleControllerState:
         result = self.model_holder.predict(packet)

@@ -2,6 +2,8 @@ import gzip
 import io
 
 from examples.autoencoder.autoencoder_model import AutoencoderModel
+from examples.autoencoder.autoencoder_model_holder import AutoencoderModelHolder
+from examples.autoencoder.autoencoder_output_formatter import AutoencoderOutputFormatter
 from examples.autoencoder.variational_autoencoder_model import VariationalAutoencoderModel
 from examples.legacy.legacy_input_formatter import LegacyInputFormatter
 from examples.legacy.legacy_output_formatter import LegacyOutputFormatter
@@ -51,8 +53,9 @@ class DownloadTrainer(BaseTrainer):
 
 
 if __name__ == '__main__':
-    d = DownloadTrainer(ExampleModelHolder(AutoencoderModel(compressed_dim=50),
-                                           HostInputFormatter(LegacyInputFormatter()),
-                                           HostOutputFormatter(LegacyOutputFormatter())))
+    input_formatter = HostInputFormatter(LegacyInputFormatter())
+    output_formatter = HostOutputFormatter(AutoencoderOutputFormatter(input_formatter))
+    d = DownloadTrainer(AutoencoderModelHolder(AutoencoderModel(compressed_dim=50),
+                                               input_formatter, output_formatter))
     d.train_on_files()
     d.finish()

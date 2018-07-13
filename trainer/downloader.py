@@ -39,6 +39,7 @@ class Downloader:
         return self.get_replay(filename), filename
 
     def get_replays(self, number=1, batch=50):
+        batch = min(number, batch)
         js = requests.get(self.BASE_URL + '/replays/list?model_hash=rashbot0').json()
         filenames = []
         file_list = []
