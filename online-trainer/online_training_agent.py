@@ -4,7 +4,7 @@ from rlbot.agents.base_agent import BaseAgent, SimpleControllerState
 from rlbot.botmanager.helper_process_request import HelperProcessRequest
 
 
-class TorchLearner(BaseAgent):
+class OnlineTrainingAgent(BaseAgent):
     def __init__(self, name, team, index):
         from leviathan.output_formatter import OutputFormatter
         from leviathan.input_formatter import InputFormatter
@@ -23,7 +23,7 @@ class TorchLearner(BaseAgent):
         # self.input_formatter = InputFormatter(self.index, (self.index + 1) % 2)
 
     def get_helper_process_request(self) -> HelperProcessRequest:
-        from torch.multiprocessing import Pipe
+        from multiprocessing import Pipe
 
         file = os.path.realpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'torch_manager.py'))
         key = 'hive_mind'
