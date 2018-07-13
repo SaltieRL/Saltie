@@ -1,4 +1,5 @@
 from rlbot.utils.structures.game_data_struct import GameTickPacket, ScoreInfo
+import numpy as np
 
 from examples.current.raw_input_formatter import RawInputFormatter
 from examples.legacy.legacy_game_input_formatter import LegacyGameInputFormatter
@@ -26,7 +27,7 @@ class LegacyNormalizerInputFormatter(HostInputFormatter):
 
         diff = max - min
 
-        result = input_array / diff
+        result = (input_array - min) / diff
         return result
 
     def get_normalized_game_tick(self) -> GameTickPacket:
@@ -164,7 +165,7 @@ class LegacyNormalizerInputFormatter(HostInputFormatter):
 class NormalizedGameInputFormatter(LegacyGameInputFormatter):
     def __init__(self, team, index):
         super().__init__(team, index)
-        self.converted_array = [2] + self.get_input_state_dimension()
+        self.converted_array = self.get_input_state_dimension() + [2]
 
     def split_teams(self, game_tick_packet):
         team_members = []
@@ -203,3 +204,13 @@ class NormalizedGameInputFormatter(LegacyGameInputFormatter):
         score_info += [[0, 20]]
 
         return score_info
+
+    def create_result_array(self, array):
+        np_version = np.asarray(array, dtype=np.float32)
+        output = np.argwhere(np.isnan(np_version))
+        if len(output) > 0:
+            print('nan indexes', output)
+            for index in output:
+                np_version[index[0]] = 0
+
+        return np.swapaxes(np_version.reshape(self.converted_array), 0, 1)
