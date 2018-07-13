@@ -2,6 +2,7 @@ import gzip
 import io
 
 from examples.autoencoder.autoencoder_model import AutoencoderModel
+from examples.autoencoder.variational_autoencoder_model import VariationalAutoencoderModel
 from examples.legacy.legacy_input_formatter import LegacyInputFormatter
 from examples.legacy.legacy_output_formatter import LegacyOutputFormatter
 from examples.multi_output_model import MultiOutputKerasModel
@@ -30,7 +31,7 @@ class DownloadTrainer(BaseTrainer):
                 bc.read_data(f, self.model_holder.process_pair, batching=True)
 
     def train_on_files(self):
-        input_file_list = self.downloader.get_replays(500)
+        input_file_list = self.downloader.get_replays(2000)
         counter = 0
         for input_file in input_file_list:
             file_name = input_file[1]
@@ -48,7 +49,7 @@ class DownloadTrainer(BaseTrainer):
 
 
 if __name__ == '__main__':
-    d = DownloadTrainer(ExampleModelHolder(AutoencoderModel(compressed_dim=50),
+    d = DownloadTrainer(ExampleModelHolder(AutoencoderModel(compressed_dim=20),
                                            LegacyInputFormatter(),
                                            LegacyOutputFormatter()))
     d.train_on_files()
