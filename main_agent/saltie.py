@@ -43,14 +43,14 @@ class Saltie(BaseAgent):
 
     def get_output(self, packet: GameTickPacket) -> SimpleControllerState:
         result = self.model_holder.predict(packet)
-        self.controller_state.throttle = result[0]
-        self.controller_state.steer = result[1]
-        self.controller_state.pitch = result[2]
-        self.controller_state.yaw = result[3]
-        self.controller_state.roll = result[4]
-        self.controller_state.jump = result[5]
-        self.controller_state.boost = result[6]
-        self.controller_state.boost = result[7]
+        self.controller_state.throttle = max(1, min(-1, result[0]))
+        self.controller_state.steer = max(1, min(-1, result[1]))
+        self.controller_state.pitch = max(1, min(-1, result[2]))
+        self.controller_state.yaw = max(1, min(-1, result[3]))
+        self.controller_state.roll = max(1, min(-1, result[4]))
+        self.controller_state.jump = max(1, min(0, result[5]))
+        self.controller_state.boost = max(1, min(0, result[6]))
+        self.controller_state.handbrake = max(1, min(0, result[7]))
 
         self.logger.info("%s", str(result))
 
