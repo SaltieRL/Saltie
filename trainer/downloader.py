@@ -1,5 +1,6 @@
 import io
 import json
+import pandas
 import pickle
 import random
 import zipfile
@@ -29,6 +30,7 @@ class Downloader:
     def create_in_memory_file(response: requests.Response) -> io.BytesIO:
         in_memory_file = io.BytesIO()
         for chunk in response.iter_content(chunk_size=1024):
+            print ('chunk')
             if chunk:
                 in_memory_file.write(chunk)
         return in_memory_file
@@ -72,13 +74,15 @@ class Downloader:
             # file has been successfully created
             self.filesystem.setfile(fn, rpl)
 
-    def download_pandas_game(self, from_disk=False):
+    def download_pandas_game(self, from_disk=False) -> pandas.DataFrame:
         if not from_disk:
             js = requests.get(self.BASE_URL + '/parsed/list').json()
             dl = random.choice(js)
-            f = requests.get(self.BASE_URL + '/parsed/{}'.format(dl))
-            fn = self.create_in_memory_file(f)
-            game = pickle.load(fn)
+            dl_url = self.BASE_URL + '/parsed/{}'.format(dl)
+            r = requests.get(dl_url, stream=True)
+            r.raw.decode_content = True  # Content-Encoding
+            r.raise_for_status()
+            game = pickle.load(io.BytesIO(r.content))
         else:
             game = pickle.load(open('test.pkl', 'rb'))
         return game
