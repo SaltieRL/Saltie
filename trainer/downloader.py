@@ -15,8 +15,10 @@ sys.path.append('../framework/replayanalysis')  # dirty way to fix the path for 
 
 
 class Downloader:
-    BASE_URL = "http://saltie.tk:5000"
+    BASE_URL = 'http://138.197.6.71:5000'  # for saltie replays/training
+    BASE_REPLAY_URL = "http://saltie.tk"  # for replay parsing/training
     API_KEY = '123456'
+
     def __init__(self, max_size_mb=100, path='mem://saltie'):
         self.max_size_mb = max_size_mb
         self.filesystem = fs.open_fs(path)
@@ -30,7 +32,7 @@ class Downloader:
     def create_in_memory_file(response: requests.Response) -> io.BytesIO:
         in_memory_file = io.BytesIO()
         for chunk in response.iter_content(chunk_size=1024):
-            print ('chunk')
+            print('chunk')
             if chunk:
                 in_memory_file.write(chunk)
         return in_memory_file
@@ -57,7 +59,8 @@ class Downloader:
     def get_replay(self, filename_or_filenames: list or str):
         if isinstance(filename_or_filenames, list):
             try:
-                r = requests.post(self.BASE_URL + '/replays/download', data={'files': json.dumps(filename_or_filenames)})
+                r = requests.post(self.BASE_URL + '/replays/download',
+                                  data={'files': json.dumps(filename_or_filenames)})
             except ChunkedEncodingError:
                 return []
             imf = self.create_in_memory_file(r)
@@ -76,9 +79,9 @@ class Downloader:
 
     def download_pandas_game(self, from_disk=False) -> pandas.DataFrame:
         if not from_disk:
-            js = requests.get(self.BASE_URL + '/api/v1/parsed/list?key={}'.format(self.API_KEY)).json()
+            js = requests.get(self.BASE_REPLAY_URL + '/api/v1/parsed/list?key={}'.format(self.API_KEY)).json()
             dl = random.choice(js)
-            dl_url = self.BASE_URL + '/api/v1/parsed/{}?key={}'.format(dl, self.API_KEY)
+            dl_url = self.BASE_REPLAY_URL + '/api/v1/parsed/{}?key={}'.format(dl, self.API_KEY)
             r = requests.get(dl_url, stream=True)
             r.raw.decode_content = True  # Content-Encoding
             r.raise_for_status()
