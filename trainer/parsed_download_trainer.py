@@ -31,6 +31,8 @@ class ParsedDownloadTrainer(BaseTrainer):
         print ('Loading file ', input_file)
         ball_df = input_file.ball
         player_dfs = [p.data for p in input_file.players]
+        hits = input_file.hits
+        # train on hits
 
     def train_on_files(self):
         input_file_list = self.downloader.get_replays(2000)

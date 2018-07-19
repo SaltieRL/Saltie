@@ -16,7 +16,7 @@ sys.path.append('../framework/replayanalysis')  # dirty way to fix the path for 
 
 class Downloader:
     BASE_URL = "http://saltie.tk:5000"
-
+    API_KEY = '123456'
     def __init__(self, max_size_mb=100, path='mem://saltie'):
         self.max_size_mb = max_size_mb
         self.filesystem = fs.open_fs(path)
@@ -76,9 +76,9 @@ class Downloader:
 
     def download_pandas_game(self, from_disk=False) -> pandas.DataFrame:
         if not from_disk:
-            js = requests.get(self.BASE_URL + '/parsed/list').json()
+            js = requests.get(self.BASE_URL + '/api/v1/parsed/list?key={}'.format(self.API_KEY)).json()
             dl = random.choice(js)
-            dl_url = self.BASE_URL + '/parsed/{}'.format(dl)
+            dl_url = self.BASE_URL + '/api/v1/parsed/{}?key={}'.format(dl, self.API_KEY)
             r = requests.get(dl_url, stream=True)
             r.raw.decode_content = True  # Content-Encoding
             r.raise_for_status()
