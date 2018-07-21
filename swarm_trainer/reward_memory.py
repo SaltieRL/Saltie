@@ -1,70 +1,56 @@
+import random
+import numpy as np
+from multiprocessing import Lock
+from framework.model_holder.base_model_holder import BaseModelHolder
 
 
-class RewardMemory:
-    def __init__(self):
-        self.spatial = torch.empty(0, 3, 15)
-        self.car_stats = torch.empty(0, 2, 5)
-        self.action = torch.empty(0, 9)
-        self.reward = torch.empty(0)
+class BaseRewardMemory:
+    def __init__(self, model_holder: BaseModelHolder):
+        self.model_holder = model_holder
+        self.input_data = np.array([])
+        self.action = np.array([])
+        self.reward = np.array([])
         self.length = 0
         self.lock = Lock()
 
-    def load(self, file_name):
+    def append(self, input_data, action, reward=None):
         self.lock.acquire()
-        self = torch.load(file_name)
-        self.lock = Lock()
-
-    def save(self, file_name):
-        self.lock.acquire()
-        del self.lock
-        torch.save(self, file_name)
-        print('memory saved')
-        self.lock = Lock()
-
-    def append(self, spatial, car_stats, action, reward):
-        self.lock.acquire()
-        self.spatial = torch.cat([self.spatial, torch.unsqueeze(spatial, 0)], 0)
-        self.car_stats = torch.cat([self.car_stats, torch.unsqueeze(car_stats, 0)], 0)
-        self.action = torch.cat([self.action, torch.unsqueeze(action, 0)], 0)
-        self.reward = torch.cat([self.reward, torch.unsqueeze(torch.tensor(reward), 0)], 0)
+        self.input_data = np.append(self.input_data, input_data)
+        self.action = np.append(self.action, action)
+        if reward is not None:
+            self.reward = np.append(self.reward, reward)
         self.length += 1
         self.lock.release()
 
     def get_sample(self, amount):
         self.lock.acquire()
 
-        # print(self.length)
         if self.length <= amount:
-            sample_spatial = self.spatial.clone()
-            sample_car_stats = self.car_stats.clone()
-            sample_action = self.action.clone()
-            sample_reward = self.reward.clone()
+            sample_input_data = np.copy(self.input_data)
+            sample_action = np.copy(self.action)
+            sample_reward = np.copy(self.reward)
             self.lock.release()
 
-            return sample_spatial, sample_car_stats, sample_action, sample_reward
+            return sample_input_data, sample_action, sample_reward
 
         i = random.randint(0, self.length - 1)
         j = i + amount
 
         if j > self.length:
             j %= self.length
-            sample_spatial = torch.cat([self.spatial[i:], self.spatial[:j]], 0).clone()
-            sample_car_stats = torch.cat([self.car_stats[i:], self.car_stats[:j]], 0).clone()
-            sample_action = torch.cat([self.action[i:], self.action[:j]], 0).clone()
-            sample_reward = torch.cat([self.reward[i:], self.reward[:j]], 0).clone()
+            sample_input_data = np.concatenate((self.input_data[i:], self.input_data[:j]))
+            sample_action = np.concatenate((self.action[i:], self.action[:j]))
+            if len(self.reward) > 0:
+                sample_reward = np.concatenate((self.reward[i:], self.reward[:j]))
+            else:
+                sample_reward = []
             self.lock.release()
 
-            return sample_spatial, sample_car_stats, sample_action, sample_reward
+            return sample_input_data, sample_action, sample_reward
         else:
-            sample_spatial = self.spatial[i:j].clone()
-            sample_car_stats = self.car_stats[i:j].clone()
-            sample_action = self.action[i:j].clone()
-            sample_reward = self.reward[i:j].clone()
+            sample_input_data = np.copy(self.input_data[i:j])
+            sample_action = np.copy(self.action[i:j])
+            sample_reward = np.copy(self.reward[i:j])
             self.lock.release()
 
-            return sample_spatial, sample_car_stats, sample_action, sample_reward
-
-        # assert sample_spatial.shape == (10, 3, 15)
-        # assert sample_car_stats.shape == (10, 2, 5)
-        # assert sample_action.shape == (10, 9)
-        # assert sample_reward.shape == (10,)
+            return sample_input_data, sample_action, sample_reward

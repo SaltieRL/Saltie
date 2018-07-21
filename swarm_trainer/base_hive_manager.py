@@ -23,20 +23,23 @@ class BaseHiveManager(BotHelperProcess):
 
     def setup_manager(self):
         from multiprocessing.managers import BaseManager
-        from swarm_trainer.reward_memory import RewardMemory
+        from swarm_trainer.reward_memory import BaseRewardMemory
 
-        BaseManager.register('Memory', RewardMemory)
+        BaseManager.register('Memory', BaseRewardMemory)
         manager = BaseManager()
         manager.start()
 
         return manager
+
+    def get_shared_model_handle(self):
+        return "hello"
 
     def start(self):
         while not self.metadata_queue.empty():
             metadata = self.metadata_queue.get()
             pipe = metadata.helper_process_request.pipe
 
-            pipe.send(self.actor_model.model)
+            pipe.send(self.get_shared_model_handle())
             pipe.send(self.game_memory)
 
             self.metadata_map[metadata.team] = metadata
@@ -65,16 +68,9 @@ class BaseHiveManager(BotHelperProcess):
         self.game_memory.save(self.actor_model.get_model_name() + '.exp')
 
     def learn_memory(self):
-        spatial, car_stats, action, reward = self.game_memory.get_sample(self.batch_size)
-        if len(reward) > 0:
-            self.optimizer.zero_grad()
-
-            estimated_reward = self.reward_model.forward(spatial, car_stats, action)
-
-            loss = self.loss_function(estimated_reward, reward)
-
-            self.writer.add_scalar('loss', loss, self.n_iter)
-            self.n_iter += 1
-
-            loss.backward()
-            self.optimizer.step()
+        input_data, action, reward = self.game_memory.get_sample(self.batch_size)
+        if len(input_data) > 0:
+            if len(reward) == 0:
+                reward = None
+            self.actor_model.train_step(input_array=input_data, output_array=action,
+                                        rewards=reward, batch_size=len(input_data))
