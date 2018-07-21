@@ -15,4 +15,4 @@ class BaseOutputFormatter:
         return output_array
 
     def get_model_output_dimension(self):
-        raise NotImplementedError
+        raise NotImplementedError()

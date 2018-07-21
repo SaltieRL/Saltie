@@ -82,7 +82,7 @@ class BaseKerasModel(BaseModel):
         self.tensorboard.set_model(self.model)
         self.logger.info("Model has been finalized")
 
-    def fit(self, x, y, batch_size=1):
+    def fit(self, x, y, rewards=None, batch_size=1):
         if self.counter % 200 == 0:
             logs = self.model.evaluate(x, y, batch_size=batch_size, verbose=1)
             self.write_log(self.tensorboard, self.model.metrics_names, logs, self.counter, eval=True)

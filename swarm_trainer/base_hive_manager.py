@@ -7,6 +7,8 @@ from framework.model_holder.base_model_holder import BaseModelHolder
 
 class BaseHiveManager(BotHelperProcess):
 
+    batch_size = 1000
+
     def __init__(self, agent_metadata_queue, quit_event):
         super().__init__(agent_metadata_queue, quit_event)
         self.logger = get_logger('base_hive_mgr')
@@ -47,16 +49,32 @@ class BaseHiveManager(BotHelperProcess):
 
         self.game_loop()
 
-
     def game_loop(self):
+        """
+        Loops through the game providing training as data is collected.
+        :return:
+        """
         while not self.quit_event.is_set():
             self.learn_memory()
 
         # quit -> save actor network
 
-        import torch
         self.logger.info('saving model')
-        torch.save(self.actor_model.state_dict(), name + '.actor')
+        self.actor_model.finish_training()
         self.logger.info('model saved')
-        self.game_memory.save(name + '.exp')
+        self.game_memory.save(self.actor_model.get_model_name() + '.exp')
 
+    def learn_memory(self):
+        spatial, car_stats, action, reward = self.game_memory.get_sample(self.batch_size)
+        if len(reward) > 0:
+            self.optimizer.zero_grad()
+
+            estimated_reward = self.reward_model.forward(spatial, car_stats, action)
+
+            loss = self.loss_function(estimated_reward, reward)
+
+            self.writer.add_scalar('loss', loss, self.n_iter)
+            self.n_iter += 1
+
+            loss.backward()
+            self.optimizer.step()
