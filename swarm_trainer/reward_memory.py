@@ -54,3 +54,8 @@ class BaseRewardMemory:
             self.lock.release()
 
             return sample_input_data, sample_action, sample_reward
+
+    def clear(self):
+        self.input_data = np.array([])
+        self.action = np.array([])
+        self.reward = np.array([])

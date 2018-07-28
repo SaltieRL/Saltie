@@ -43,8 +43,11 @@ class BaseModelAgent(BaseAgent):
     def create_output_formatter(self):
         return LegacyOutputFormatter()
 
+    def predict(self, packet: GameTickPacket):
+        return self.model_holder.predict(packet)
+
     def get_output(self, packet: GameTickPacket) -> SimpleControllerState:
-        result = self.model_holder.predict(packet)
+        result = self.predict(packet)
         self.controller_state.throttle = max(1, min(-1, result[0]))
         self.controller_state.steer = max(1, min(-1, result[1]))
         self.controller_state.pitch = max(1, min(-1, result[2]))
