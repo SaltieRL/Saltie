@@ -5,7 +5,7 @@ from numpy import array
 
 
 class RawInputFormatter(BaseInputFormatter):
-    def create_input_array(self, game_tick_packet: GameTickPacket):
+    def create_input_array(self, game_tick_packet: GameTickPacket, batch_size=1):
         input_array = []
 
         for index in range(MAX_PLAYERS):
