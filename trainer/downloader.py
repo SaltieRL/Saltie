@@ -79,10 +79,13 @@ class Downloader:
             # file has been successfully created
             self.filesystem.setfile(fn, rpl)
 
-    def download_pandas_game(self, from_disk=False) -> pandas.DataFrame:
+    def download_pandas_game(self, from_disk=False, hash=None) -> pandas.DataFrame:
         if not from_disk:
-            js = requests.get(self.BASE_REPLAY_URL + '/api/v1/parsed/list?key={}'.format(self.API_KEY)).json()
-            dl = random.choice(js)
+            if hash is None:
+                js = requests.get(self.BASE_REPLAY_URL + '/api/v1/parsed/list?key={}'.format(self.API_KEY)).json()
+                dl = random.choice(js)
+            else:
+                dl = hash + '.replay.pkl'
             dl_url = self.BASE_REPLAY_URL + '/api/v1/parsed/{}?key={}'.format(dl, self.API_KEY)
             r = requests.get(dl_url, stream=True)
             r.raw.decode_content = True  # Content-Encoding

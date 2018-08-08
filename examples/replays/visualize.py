@@ -41,9 +41,12 @@ class Visualizer(ParsedDownloadTrainer):
         ax.set_ylim(-5000, 5000)
         ax.set_zlim(0, 2000)
 
+        ax.set_xlabel('x')
+        ax.set_ylabel('y')
+        ax.set_zlabel('z')
         # draw field lines
-        ax.plot([-5000, -5000], [5000, -5000])
-        ax.plot([5000, 5000], [-5000, 5000])
+        ax.plot([-5000, 5000], [-5000, -5000])
+        ax.plot([-5000, 5000], [5000, 5000])
 
         # set colors
         colors = []
@@ -57,9 +60,10 @@ class Visualizer(ParsedDownloadTrainer):
         # create initial points
         graphs = []
         num_pts = num_players + 1
+        markers = ["x"] * num_players + ["o"]
         for n in range(num_pts):
             graph, = ax.plot([0.], [0.], [0.], linestyle="",
-                             marker="o", color=colors[n])
+                             marker=markers[n], color=colors[n], ms=10)
             graphs.append(graph)
 
         # create player labels
@@ -88,8 +92,9 @@ class Visualizer(ParsedDownloadTrainer):
                 graphs[-1].set_data(x, y)
                 graphs[-1].set_3d_properties(z)
             return None, graphs,
-
-        anim = animation.FuncAnimation(fig, update, len(player_dfs[0]), interval=20, blit=False)
+        frames = len(player_dfs[0])
+        anim = animation.FuncAnimation(fig, update, frames, interval=30, blit=False)
+        # anim.save('line.gif', dpi=80, writer='imagemagick')
         plt.show()
         # train on hits
 

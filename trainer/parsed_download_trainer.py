@@ -18,8 +18,11 @@ class ParsedDownloadTrainer(BaseTrainer):
     def process_file(self, input_file):
         pass
 
-    def train_on_file(self):
-        input_file = self.downloader.download_pandas_game(from_disk=False)
+    def train_on_file(self, name=None):
+        if name is None:
+            input_file = self.downloader.download_pandas_game(from_disk=False)
+        else:
+            input_file = self.downloader.download_pandas_game(hash=name)
         self.process_file(input_file)
 
     def train_on_files(self, count=200):
