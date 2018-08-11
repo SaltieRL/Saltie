@@ -1,0 +1,7 @@
+h5py
+pandas
+requests
+fs
+tensorflow
+xlrd
+matplotlib
