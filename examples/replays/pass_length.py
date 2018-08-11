@@ -13,6 +13,10 @@ class PassLengthTrainer(ParsedDownloadTrainer):
 
     def process_file(self, input_file):
         print('Loading file ', input_file)
+        steer = input_file.players[0].data.loc[1:100]['steer']
+        if (steer > 0 & steer < 100).sum() > 0:
+            print ('controller')
+
         ball_df = input_file.ball
         player_dfs = [p.data for p in input_file.players]
         hits = input_file.hits
@@ -34,4 +38,5 @@ if __name__ == '__main__':
     output_formatter = HostOutputFormatter(AutoencoderOutputFormatter(input_formatter))
     pl = PassLengthTrainer(AutoencoderModelHolder(AutoencoderModel(compressed_dim=50),
                                                   input_formatter, output_formatter))
-    pl.train_on_files(500)
+    # pl.train_on_files(500)
+    pl.train_on_file(name='3E38E50B44101E81F91C40ABC99CA0AB')
