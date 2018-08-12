@@ -17,6 +17,7 @@ class LegacyGameInputFormatter(RawInputFormatter):
     """
 
     def __init__(self, team, index):
+        super().__init__()
         self.team = team
         self.index = index
         self.total_score = [0, 0]
@@ -41,6 +42,14 @@ class LegacyGameInputFormatter(RawInputFormatter):
 
         boost_info = self.get_boost_info(game_tick_packet)
 
+        score_info = self._get_score_info(game_tick_packet, enemy_team_score, own_team_score)
+        # extra_features = feature_creator.get_extra_features(game_tick_packet, self.index)
+
+        return self.create_result_array(game_info + score_info + player_car + ball_data +
+                                        self.flattenArrays(team_members) + self.flattenArrays(enemies) + boost_info)
+
+
+    def _get_score_info(self, game_tick_packet, enemy_team_score, own_team_score):
         # we subtract so that when they score it becomes negative for this frame
         # and when we score it is positive
         total_score = enemy_team_score - own_team_score
@@ -50,10 +59,7 @@ class LegacyGameInputFormatter(RawInputFormatter):
         score_info += [diff_in_score]
 
         self.last_total_score = total_score
-        # extra_features = feature_creator.get_extra_features(game_tick_packet, self.index)
-
-        return self.create_result_array(game_info + score_info + player_car + ball_data +
-                                        self.flattenArrays(team_members) + self.flattenArrays(enemies) + boost_info)
+        return score_info
 
     def split_teams(self, game_tick_packet: GameTickPacket):
         team_members = []
@@ -81,7 +87,7 @@ class LegacyGameInputFormatter(RawInputFormatter):
         return player_car, team_members, enemies, own_team_score, enemy_team_score
 
     def create_result_array(self, array):
-        np_version = np.array(array, dtype=np.float32)
+        np_version = np.asarray(array, dtype=np.float32)
         output = np.argwhere(np.isnan(np_version))
         if len(output) > 0:
             print('nan indexes', output)
@@ -115,7 +121,7 @@ class LegacyGameInputFormatter(RawInputFormatter):
 
     def get_ball_info(self, game_tick_packet: GameTickPacket):
         arr = super().get_ball_info(game_tick_packet)
-        return  arr[:11] + [0, 0, 0] + arr[11:]
+        return arr[:11] + [0, 0, 0] + arr[11:]
 
     def get_car_info(self, game_tick_packet: GameTickPacket, index: int):
         arr = super().get_car_info(game_tick_packet, index)

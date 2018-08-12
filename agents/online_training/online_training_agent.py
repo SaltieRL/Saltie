@@ -11,3 +11,4 @@ class OnlineTrainingAgent(BaseModelAgent):
 
     def predict(self, packet: GameTickPacket):
         result = self.model_holder.predict(packet)
+        return result

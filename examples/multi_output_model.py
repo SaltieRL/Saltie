@@ -10,9 +10,11 @@ class MultiOutputKerasModel(BaseKerasModel):
     outputs_list = {'boolean': ['jump', 'boost', 'handbrake'], 'other': [
         'throttle', 'steer', 'pitch', 'yaw', 'roll']}
 
-    def __init__(self, wrapped_model: BaseKerasModel):
+    def __init__(self, wrapped_model: BaseKerasModel, outputs_list=None):
         super().__init__()
         self.wrapped_model = wrapped_model
+        if outputs_list is not None:
+            self.outputs_list = outputs_list
 
     def create_input_layer(self, input_placeholder: BaseInputFormatter):
         self.inputs = self.wrapped_model.create_input_layer(input_placeholder)
@@ -28,6 +30,8 @@ class MultiOutputKerasModel(BaseKerasModel):
 
                 if _output_type == 'boolean':
                     activation = 'sigmoid'
+                elif _output_type == 'linear':
+                    activation = 'linear'
                 else:
                     activation = 'tanh'
                 _output = tf.keras.layers.Dense(1, activation=activation, name='o_%s' % output_name)(hidden_layer)

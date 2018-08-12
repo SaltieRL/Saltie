@@ -2,14 +2,20 @@ import gzip
 import io
 
 from examples.autoencoder.autoencoder_model import AutoencoderModel
+from examples.autoencoder.autoencoder_model_holder import AutoencoderModelHolder
+from examples.autoencoder.autoencoder_output_formatter import AutoencoderOutputFormatter
+from examples.autoencoder.variational_autoencoder_model import VariationalAutoencoderModel
 from examples.legacy.legacy_input_formatter import LegacyInputFormatter
+from examples.legacy.legacy_normalizer_input_formatter import LegacyNormalizerInputFormatter
 from examples.legacy.legacy_output_formatter import LegacyOutputFormatter
 from examples.multi_output_model import MultiOutputKerasModel
+from framework.input_formatter.host_input_formatter import HostInputFormatter
 from framework.model_holder.base_model_holder import BaseModelHolder
 from examples.lstm.example_lstm_model import ExampleLSTMModel
 from examples.example_model_holder import ExampleModelHolder
 from examples.lstm.lstm_input_formatter import LSTMInputFormatter
 from examples.lstm.lstm_output_formatter import LSTMOutputFormatter
+from framework.output_formatter.host_output_formatter import HostOutputFormatter
 from trainer.base_trainer import BaseTrainer
 from trainer.downloader import Downloader
 import trainer.binary_converter as bc
@@ -30,7 +36,7 @@ class DownloadTrainer(BaseTrainer):
                 bc.read_data(f, self.model_holder.process_pair, batching=True)
 
     def train_on_files(self):
-        input_file_list = self.downloader.get_replays(500)
+        input_file_list = self.downloader.get_replays(2000)
         counter = 0
         for input_file in input_file_list:
             file_name = input_file[1]
@@ -48,8 +54,9 @@ class DownloadTrainer(BaseTrainer):
 
 
 if __name__ == '__main__':
-    d = DownloadTrainer(ExampleModelHolder(AutoencoderModel(compressed_dim=50),
-                                           LegacyInputFormatter(),
-                                           LegacyOutputFormatter()))
+    input_formatter = LegacyNormalizerInputFormatter(LegacyInputFormatter())
+    output_formatter = HostOutputFormatter(AutoencoderOutputFormatter(input_formatter))
+    d = DownloadTrainer(AutoencoderModelHolder(AutoencoderModel(compressed_dim=50),
+                                               input_formatter, output_formatter))
     d.train_on_files()
     d.finish()

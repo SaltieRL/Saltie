@@ -52,6 +52,7 @@ class BaseKerasModel(BaseModel):
             hidden_layer = self.hidden_layer
         self.outputs = tf.keras.layers.Dense(output_formatter.get_model_output_dimension()[0],
                                              activation='tanh')(hidden_layer)
+        self.model = Model(inputs=self.inputs, outputs=self.outputs)
         return self.outputs
 
     def write_log(self, callback, names, logs, batch_no, eval=False):
@@ -67,7 +68,7 @@ class BaseKerasModel(BaseModel):
             callback.writer.flush()
 
     def finalize_model(self, logname=str(int(random() * 1000))):
-        self.model = Model(inputs=self.inputs, outputs=self.outputs)
+
 
         loss, loss_weights = self.create_loss()
         self.model.compile(tf.keras.optimizers.Nadam(lr=0.001), loss=loss, loss_weights=loss_weights,
