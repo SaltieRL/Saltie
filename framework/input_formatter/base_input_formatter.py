@@ -13,12 +13,16 @@ class BaseInputFormatter:
 
     def create_input_array(self, input_data, batch_size=1):
         """
-        Creates an array for the model from the input data.
+        Creates one or multiple numpy arrays for the model from the input data.
         :param input_data: Can be any format that the formatter understands.
         :param batch_size: Specifies the batch size of the input data if that is batched.
         Also the batch size what this formatter returns.
-        :return: An array that can then be directly fed into a model.
-        This can be a python/numpy array.
+        :return: One or multiple numpy arrays that can then be directly fed into a model.
+        The numpy arrays have the shapes returned by 'get_input_state_dimension'.
+        The numpy arrays are grouped in a python array in the same order as the shapes.
+        ex: [np.zeros((8,))]
+        ex: [np.zeros((5, 6))]
+        ex: [np.zeros((3, 9)), np.zeros((5,))]
         """
         return input_data
 
@@ -28,12 +32,13 @@ class BaseInputFormatter:
         :param input_tensor: A tensorflow/pytorch tensor.
         :return: A tensorflow/pytorch tensor
         """
-        raise NotImplementedError
+        return input_tensor
 
     def get_input_state_dimension(self):
         """
-        This is the dimension returned by 'create_input_array'
-        :return: Result need to be an array specifying the output dimensions.
-        ex: [8] or [5, 6]
+        This returns the shapes of the numpy arrays returned by 'create_input_array'.
+        :return: Result needs to be an array of shapes.
+        Shapes are tuples that contain the dimensions of an array.
+        ex: [(8,)] or [(5, 6)] or [(3, 9), (5,)]
         """
         raise NotImplementedError
