@@ -1,9 +1,9 @@
 import os
 from rlbot.botmanager.helper_process_request import HelperProcessRequest
-from agents.online_training.online_training_agent import OnlineTrainingAgent
+from agents.main_agent.base_model_agent import BaseModelAgent
 
 
-class SwarmAgent(OnlineTrainingAgent):
+class SwarmAgent(BaseModelAgent):
 
     pipe = None
 
