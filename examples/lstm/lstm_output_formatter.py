@@ -11,10 +11,10 @@ class LSTMOutputFormatter(BaseOutputFormatter):
         self.sequence_size = sequence_size
         self.output_formatter = output_formatter
 
-    def create_array_for_training(self, output_array, batch_size=1):
+    def create_array_for_training(self, predicted_data, batch_size=1):
         new_size = batch_size / self.sequence_size
         result_array = [int(new_size), self.sequence_size] + self.get_model_output_dimension()
-        return np.reshape(output_array, result_array)
+        return np.reshape(predicted_data, result_array)
 
     def get_model_output_dimension(self):
         return self.output_formatter.get_model_output_dimension()
