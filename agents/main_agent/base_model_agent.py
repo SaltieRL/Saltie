@@ -8,6 +8,10 @@ from examples.lstm.lstm_input_formatter import LSTMInputFormatter
 from examples.legacy.legacy_output_formatter import LegacyOutputFormatter
 from examples.lstm.lstm_output_formatter import LSTMOutputFormatter
 
+import os
+import sys
+path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 
 class BaseModelAgent(BaseAgent):
 
@@ -16,6 +20,7 @@ class BaseModelAgent(BaseAgent):
     logger = None
 
     def initialize_agent(self):
+        sys.path.append(path)
         self.logger = get_logger(self.name)
         # This runs once before the bot starts up
         self.controller_state = SimpleControllerState()
