@@ -35,12 +35,7 @@ class BaseModelAgent(BaseAgent):
         self.logger.info("Model has been initialized")
 
     def create_model(self):
-        # Models need to be imported locally dues to creation of tensorflow and keras on imports
-        from examples.lstm.example_lstm_model import ExampleLSTMModel
-        #return ExampleLSTMModel(prediction_mode=True)
-
-        from examples.autoencoder.autoencoder_model import AutoencoderModel
-        return AutoencoderModel(compressed_dim=50)
+        raise NotImplementedError
 
     def create_input_formatter(self):
         return LegacyGameInputFormatter(self.team, self.index)
