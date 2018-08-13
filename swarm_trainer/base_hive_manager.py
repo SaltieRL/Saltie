@@ -4,6 +4,9 @@ from rlbot.utils.logging_utils import get_logger
 
 from framework.model_holder.base_model_holder import BaseModelHolder
 
+from multiprocessing.managers import BaseManager
+from swarm_trainer.reward_memory import BaseRewardMemory
+
 
 class BaseHiveManager(BotHelperProcess):
 
@@ -22,9 +25,6 @@ class BaseHiveManager(BotHelperProcess):
         pass
 
     def setup_manager(self):
-        from multiprocessing.managers import BaseManager
-        from swarm_trainer.reward_memory import BaseRewardMemory
-
         BaseManager.register('Memory', BaseRewardMemory)
         manager = BaseManager()
         manager.start()
