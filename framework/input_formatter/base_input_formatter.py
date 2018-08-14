@@ -20,9 +20,9 @@ class BaseInputFormatter:
         :return: One or multiple numpy arrays that can then be directly fed into a model.
         The numpy arrays have the shapes returned by 'get_input_state_dimension'.
         The numpy arrays are grouped in a python array in the same order as the shapes.
-        ex: [np.zeros((8,))]
-        ex: [np.zeros((5, 6))]
-        ex: [np.zeros((3, 9)), np.zeros((5,))]
+        ex: [np.zeros((1, 8,))]
+        ex: [np.zeros((1, 5, 6))]
+        ex: [np.zeros((1, 3, 9)), np.zeros((1, 5,))]
         """
         return input_data
 
