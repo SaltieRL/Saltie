@@ -31,19 +31,17 @@ class InputFormatter(BaseInputFormatter):
         spatial_x = np.array([own_car_location.x, game_ball_location.x,
                               own_car_velocity.x, game_ball_velocity.x,
                               own_car_angular.x, game_ball_angular.x])
-        spatial_x = np.concatenate([spatial_x, own_theta[0]])
 
         spatial_y = np.array([own_car_location.y, game_ball_location.y,
                               own_car_velocity.y, game_ball_velocity.y,
                               own_car_angular.y, game_ball_angular.y])
-        spatial_y = np.concatenate([spatial_y, own_theta[1]])
 
         spatial_z = np.array([own_car_location.z, game_ball_location.z,
                               own_car_velocity.z, game_ball_velocity.z,
                               own_car_angular.z, game_ball_angular.z])
-        spatial_z = np.concatenate([spatial_z, own_theta[2]])
 
         spatial = np.stack([spatial_x, spatial_y, spatial_z])
+        spatial = np.concatenate([spatial, own_theta])
 
         spatial[:, 0:6] /= 1000
 
