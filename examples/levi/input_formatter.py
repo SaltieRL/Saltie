@@ -4,7 +4,7 @@ import numpy as np
 from framework.input_formatter.base_input_formatter import BaseInputFormatter
 
 
-class InputFormatter(BaseInputFormatter):
+class LeviInputFormatter(BaseInputFormatter):
     def __init__(self, team, index):
         super().__init__()
         self.team = team
