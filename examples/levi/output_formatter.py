@@ -22,13 +22,19 @@
 
 from random import random
 from rlbot.utils.structures.bot_input_struct import PlayerInput
+from framework.output_formatter.base_output_formatter import BaseOutputFormatter
 
 
-class OutputFormatter:
-    def __init__(self):
-        self.player_input = PlayerInput()
+class LeviOutputFormatter(BaseOutputFormatter):
+    player_input = PlayerInput()
 
-    def get_output(self, action, in_the_air):
+    def __init__(self, index):
+        super().__init__()
+        self.index = index
+
+    def format_model_output(self, action, packet, batch_size=1):
+        in_the_air = packet.game_cars[self.index].jumped
+
         self.player_input.throttle = action[0]
         self.player_input.pitch = action[1]
         self.player_input.boost = action[2] > semi_random(3)
