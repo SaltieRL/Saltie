@@ -86,8 +86,8 @@ class SymmetricModel(nn.Module):
 
         return output
 
-    def forward_single(self, spatial, car_stats):
-        return torch.squeeze(self.forward(torch.unsqueeze(spatial, 0), torch.unsqueeze(car_stats, 0)))
+    def predict(self, input_state):
+        self.forward(self, *input_state)
 
 
 class SingleAction:
