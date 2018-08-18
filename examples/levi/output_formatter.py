@@ -55,6 +55,9 @@ class LeviOutputFormatter(BaseOutputFormatter):
 
         return self.player_input
 
+    def get_model_output_dimension(self):
+        return [(9,)]
+
 
 def semi_random(power):
     return pow(random() - random(), power)
