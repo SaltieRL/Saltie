@@ -10,21 +10,20 @@ from examples.lstm.lstm_output_formatter import LSTMOutputFormatter
 
 import os
 import sys
-path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
 class BaseModelAgent(BaseAgent):
-
     model_holder = None
-    controller_state = None
-    logger = None
+    controller_state = SimpleControllerState()
+
+    def __init__(self, name, team, index):
+        super().__init__(name, team, index)
+        self.logger = get_logger(name)
+        path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        sys.path.append(path)
 
     def initialize_agent(self):
-        sys.path.append(path)
-        self.logger = get_logger(self.name)
         # This runs once before the bot starts up
-        self.controller_state = SimpleControllerState()
-
         from examples.example_model_holder import ExampleModelHolder
 
         self.model_holder = ExampleModelHolder(self.create_model(),
