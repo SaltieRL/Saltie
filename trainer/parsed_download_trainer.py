@@ -1,14 +1,8 @@
-from examples.autoencoder.autoencoder_model import AutoencoderModel
-from examples.autoencoder.autoencoder_model_holder import AutoencoderModelHolder
-from examples.autoencoder.autoencoder_output_formatter import AutoencoderOutputFormatter
-from examples.legacy.legacy_input_formatter import LegacyInputFormatter
-from examples.legacy.legacy_normalizer_input_formatter import LegacyNormalizerInputFormatter
 from framework.model_holder.base_model_holder import BaseModelHolder
-from framework.output_formatter.host_output_formatter import HostOutputFormatter
-from trainer.base_trainer import BaseTrainer
-from trainer.downloader import Downloader
-import matplotlib.pyplot as plt
 
+from trainer.base_trainer import BaseTrainer
+
+from trainer.downloader import Downloader
 
 class ParsedDownloadTrainer(BaseTrainer):
     def __init__(self, model_holder: BaseModelHolder):
@@ -39,6 +33,13 @@ class ParsedDownloadTrainer(BaseTrainer):
 
 
 if __name__ == '__main__':
+    from examples.autoencoder.autoencoder_model import AutoencoderModel
+    from examples.autoencoder.autoencoder_model_holder import AutoencoderModelHolder
+    from examples.autoencoder.autoencoder_output_formatter import AutoencoderOutputFormatter
+    from examples.legacy.legacy_input_formatter import LegacyInputFormatter
+    from examples.legacy.legacy_normalizer_input_formatter import LegacyNormalizerInputFormatter
+    from framework.output_formatter.host_output_formatter import HostOutputFormatter
+
     input_formatter = LegacyNormalizerInputFormatter(LegacyInputFormatter())
     output_formatter = HostOutputFormatter(AutoencoderOutputFormatter(input_formatter))
     d = ParsedDownloadTrainer(AutoencoderModelHolder(AutoencoderModel(compressed_dim=50),

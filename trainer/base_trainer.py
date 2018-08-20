@@ -5,4 +5,7 @@ class BaseTrainer:
 
     def __init__(self, model_holder: BaseModelHolder):
         self.model_holder = model_holder
-        model_holder.initialize_model(load=True)
+        if model_holder is not None:
+            model_holder.initialize_model(load=True)
+        else:
+            print('Model holder is none')

@@ -14,6 +14,7 @@ import sys
 from requests.exceptions import ChunkedEncodingError
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'framework', 'replayanalysis'))  # dirty way to fix the path for the submodule pickling
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'framework'))  # dirty way to fix the path for the submodule pickling
 
 
 class Downloader:
@@ -92,8 +93,9 @@ class Downloader:
             r.raise_for_status()
             try:
                 game = pickle.load(io.BytesIO(r.content))
-            except (EOFError, ImportError):
-                return self.download_pandas_game(from_disk=False)
+            except (EOFError, ImportError) as e:
+                print('error', e)
+                return None
         else:
             game = pickle.load(open('test.pkl', 'rb'))
         return game

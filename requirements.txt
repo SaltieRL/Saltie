@@ -5,3 +5,5 @@ fs
 tensorflow
 xlrd
 matplotlib
+rlbot
+torch
