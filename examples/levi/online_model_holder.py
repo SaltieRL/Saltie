@@ -20,36 +20,11 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from agents.swarm.swarm_agent import SwarmAgent
-from .output_formatter import LeviOutputFormatter
-from .input_formatter import LeviInputFormatter
-
-
-class LeviAgent(SwarmAgent):
-    model_holder = None
-
-    def initialize_agent(self):
-        self.model_holder = ModelHolder(self.create_model(),
-                                        self.create_input_formatter(),
-                                        self.create_output_formatter())
-
-    def create_model(self):
-        from examples.levi.torch_model import SymmetricModel
-        model = SymmetricModel()
-        return model
-
-    def create_input_formatter(self):
-        return LeviInputFormatter(self.team, self.index)
-
-    def create_output_formatter(self):
-        return LeviOutputFormatter(self.index)
-
-
 from framework.input_formatter.base_input_formatter import BaseInputFormatter
 from framework.output_formatter.base_output_formatter import BaseOutputFormatter
 
 
-class ModelHolder:
+class OnlineModelHolder:
     def __init__(self, model, input_formatter: BaseInputFormatter, output_formatter: BaseOutputFormatter):
         """
         :param model:
