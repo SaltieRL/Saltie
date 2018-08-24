@@ -47,14 +47,14 @@ class BaseModelAgent(BaseAgent):
 
     def get_output(self, packet: GameTickPacket) -> SimpleControllerState:
         result = self.predict(packet)
-        self.controller_state.throttle = max(1, min(-1, result[0]))
-        self.controller_state.steer = max(1, min(-1, result[1]))
-        self.controller_state.pitch = max(1, min(-1, result[2]))
-        self.controller_state.yaw = max(1, min(-1, result[3]))
-        self.controller_state.roll = max(1, min(-1, result[4]))
-        self.controller_state.jump = max(1, min(0, result[5]))
-        self.controller_state.boost = max(1, min(0, result[6]))
-        self.controller_state.handbrake = max(1, min(0, result[7]))
+        self.controller_state.throttle = min(1, max(-1, result[0]))
+        self.controller_state.steer = min(1, max(-1, result[1]))
+        self.controller_state.pitch = min(1, max(-1, result[2]))
+        self.controller_state.yaw = min(1, max(-1, result[3]))
+        self.controller_state.roll = min(1, max(-1, result[4]))
+        self.controller_state.jump = min(1, max(0, result[5]))
+        self.controller_state.boost = min(1, max(0, result[6]))
+        self.controller_state.handbrake = min(1, max(0, result[7]))
 
         self.logger.info("%s", str(result))
 
