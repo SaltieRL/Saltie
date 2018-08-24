@@ -21,12 +21,12 @@
 # SOFTWARE.
 
 from random import random
-from rlbot.utils.structures.bot_input_struct import PlayerInput
 from framework.output_formatter.base_output_formatter import BaseOutputFormatter
+import numpy as np
 
 
 class LeviOutputFormatter(BaseOutputFormatter):
-    player_input = PlayerInput()
+    jumped = False
 
     def __init__(self, index):
         super().__init__()
@@ -39,27 +39,29 @@ class LeviOutputFormatter(BaseOutputFormatter):
         action = arr[0]
         packet = arr[1]  # hacky solution until we have packet support
 
+        player_input = np.zeros(9)
+
+        player_input[0] = action[0]  # throttle
+        player_input[2] = action[1]  # pitch
+        player_input[6] = action[2] > semi_random(3)  # boost
+        player_input[7] = action[3] > semi_random(3)  # handbrake
+
         in_the_air = packet.game_cars[self.index].jumped
-
-        self.player_input.throttle = action[0]
-        self.player_input.pitch = action[1]
-        self.player_input.boost = action[2] > semi_random(3)
-        self.player_input.handbrake = action[3] > semi_random(3)
-
         jump_1 = action[4] > semi_random(5)
         jump_2 = action[5] > semi_random(5)
 
-        jump_on_ground = not self.player_input.jump and not in_the_air and jump_1
-        flip_in_air = not self.player_input.jump and jump_2
+        jump_on_ground = not self.jumped and not in_the_air and jump_1
+        flip_in_air = not self.jumped and jump_2
         jump_in_air = in_the_air and (flip_in_air or not jump_2) and (jump_1 or jump_2)
 
-        self.player_input.jump = jump_on_ground or jump_in_air
+        player_input[5] = jump_on_ground or jump_in_air  # jump
+        self.jumped = player_input[5]
 
-        self.player_input.roll = action[6]
-        self.player_input.steer = action[7]
-        self.player_input.yaw = action[8]
+        player_input[1] = action[6]  # steer
+        player_input[3] = action[7]  # yaw
+        player_input[4] = action[8]  # roll
 
-        return [self.player_input]
+        return [player_input]
 
     def get_model_output_dimension(self):
         return [(9,)]
