@@ -32,7 +32,13 @@ class LeviOutputFormatter(BaseOutputFormatter):
         super().__init__()
         self.index = index
 
-    def format_model_output(self, action, packet, batch_size=1):
+    def format_model_output(self, arr, batch_size=1):
+        if batch_size != 1:
+            raise NotImplementedError
+
+        action = arr[0]
+        packet = arr[1]  # hacky solution until we have packet support
+
         in_the_air = packet.game_cars[self.index].jumped
 
         self.player_input.throttle = action[0]
@@ -40,12 +46,12 @@ class LeviOutputFormatter(BaseOutputFormatter):
         self.player_input.boost = action[2] > semi_random(3)
         self.player_input.handbrake = action[3] > semi_random(3)
 
-        action_1 = action[4] > semi_random(5)
-        action_2 = action[5] > semi_random(5)
+        jump_1 = action[4] > semi_random(5)
+        jump_2 = action[5] > semi_random(5)
 
-        jump_on_ground = not self.player_input.jump and not in_the_air and action_1
-        flip_in_air = not self.player_input.jump and action_2
-        jump_in_air = in_the_air and (flip_in_air or not action_2) and (action_1 or action_2)
+        jump_on_ground = not self.player_input.jump and not in_the_air and jump_1
+        flip_in_air = not self.player_input.jump and jump_2
+        jump_in_air = in_the_air and (flip_in_air or not jump_2) and (jump_1 or jump_2)
 
         self.player_input.jump = jump_on_ground or jump_in_air
 
@@ -53,7 +59,7 @@ class LeviOutputFormatter(BaseOutputFormatter):
         self.player_input.steer = action[7]
         self.player_input.yaw = action[8]
 
-        return self.player_input
+        return [self.player_input]
 
     def get_model_output_dimension(self):
         return [(9,)]

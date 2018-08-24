@@ -14,6 +14,8 @@ class LeviInputFormatter(BaseInputFormatter):
         if batch_size != 1:
             raise NotImplementedError
 
+        packet = packet[0]
+
         own_car = packet.game_cars[self.index]
         game_ball = packet.game_ball
 
@@ -41,7 +43,7 @@ class LeviInputFormatter(BaseInputFormatter):
                               own_car_angular.z, game_ball_angular.z])
 
         spatial = np.stack([spatial_x, spatial_y, spatial_z])
-        spatial = np.concatenate([spatial, own_theta])
+        spatial = np.concatenate([spatial, own_theta], axis=1)
 
         spatial[:, 0:6] /= 1000
 
@@ -54,7 +56,7 @@ class LeviInputFormatter(BaseInputFormatter):
         if self.team == 1:
             spatial[0:2] *= -1
 
-        return [spatial, own_car_stats]
+        return [np.expand_dims(spatial, axis=0), np.expand_dims(own_car_stats, axis=0)]
 
     def get_input_state_dimension(self):
         return [(3, 9), (5,)]
@@ -72,7 +74,7 @@ def get_all_vectors(car):
     c_y = math.cos(yaw)
     s_y = math.sin(yaw)
 
-    theta = np.zeros(3, 3)
+    theta = np.zeros((3, 3))
     #   front direction
     theta[0, 0] = c_p * c_y
     theta[1, 0] = c_p * s_y

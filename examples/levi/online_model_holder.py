@@ -37,13 +37,19 @@ class OnlineModelHolder:
         self.input_formatter = input_formatter
         self.output_formatter = output_formatter
 
-    def predict(self, prediction_input):
+    def predict(self, packet):
         """
         Predicts an output given the input
-        :param prediction_input: The input, this can be anything as it will go through a BaseInputFormatter
+        :param packet: The game_tick_packet
         :return:
         """
-        arr = self.input_formatter.create_input_array(prediction_input)
+        arr = self.input_formatter.create_input_array([packet], batch_size=1)
+
+        arr = [self.torch.from_numpy(x).float() for x in arr]
+
         with self.torch.no_grad():
-            output = self.model.predict(arr)
-        return self.output_formatter.format_model_output(output)
+            output = self.model.forward(*arr)
+
+        output = [output[0], packet]
+
+        return self.output_formatter.format_model_output(output, batch_size=1)[0]
