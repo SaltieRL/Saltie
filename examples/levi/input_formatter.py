@@ -10,56 +10,74 @@ class LeviInputFormatter(BaseInputFormatter):
         self.team = team
         self.index = index
 
-    def create_input_array(self, packet, batch_size=1):
-        if batch_size != 1:
-            raise NotImplementedError
+    def create_input_array(self, packet_list, batch_size=1):
+        input_list = [self.create_input(packet_list[i]) for i in range(batch_size)]
+        input_array = [np.concatenate([input_list[j][i] for j in range(batch_size)]) for i in range(7)]
 
-        packet = packet[0]
+        return input_array
 
-        own_car = packet.game_cars[self.index]
-        game_ball = packet.game_ball
+    def create_input(self, packet):
+        own_car_stats = None
+        own_team_car_stats = np.empty((0, 6))  # player, value
+        opp_team_car_stars = np.empty((0, 6))  # player, value
 
-        own_car_location = own_car.physics.location
-        game_ball_location = game_ball.physics.location
+        own_car_spatial = None
+        own_team_car_spatial = np.empty((0, 3, 6))  # player, axis, value
+        opp_team_car_spatial = np.empty((0, 3, 6))  # player, axis, value
 
-        own_car_velocity = own_car.physics.velocity
-        game_ball_velocity = game_ball.physics.velocity
+        for car_index in range(packet.num_cars):
+            car = packet.game_cars[car_index]
 
-        own_car_angular = own_car.physics.angular_velocity
-        game_ball_angular = game_ball.physics.angular_velocity
+            car_stats = np.array([car.boost / 100,
+                                  1 if car.jumped else 0,
+                                  1 if car.double_jumped else 0,
+                                  1 if car.is_demolished else 0,
+                                  1 if car.has_wheel_contact else 0,
+                                  1 if car.is_supersonic else 0])
 
-        own_theta = get_all_vectors(own_car)
+            location = car.physics.location
+            velocity = car.physics.velocity
+            angular = car.physics.angular_velocity
 
-        spatial_x = np.array([own_car_location.x, game_ball_location.x,
-                              own_car_velocity.x, game_ball_velocity.x,
-                              own_car_angular.x, game_ball_angular.x])
+            car_spatial = np.array([[location.x, velocity.x, angular.x],
+                                    [location.y, velocity.y, angular.y],
+                                    [location.z, velocity.z, angular.z]])
+            car_spatial[:, 0:2] /= 1000
+            theta = get_all_vectors(car)
 
-        spatial_y = np.array([own_car_location.y, game_ball_location.y,
-                              own_car_velocity.y, game_ball_velocity.y,
-                              own_car_angular.y, game_ball_angular.y])
+            car_spatial = np.concatenate((car_spatial, theta), axis=1)
 
-        spatial_z = np.array([own_car_location.z, game_ball_location.z,
-                              own_car_velocity.z, game_ball_velocity.z,
-                              own_car_angular.z, game_ball_angular.z])
+            if self.team == 1:
+                car_spatial[0:2] *= -1
 
-        spatial = np.stack([spatial_x, spatial_y, spatial_z])
-        spatial = np.concatenate([spatial, own_theta], axis=1)
+            if car_index == self.index:
+                own_car_stats = car_stats
+                own_car_spatial = car_spatial
+            elif car.team == self.team:
+                own_team_car_stats = np.concatenate((own_team_car_stats, [car_stats]))
+                own_team_car_spatial = np.concatenate((own_team_car_spatial, [car_spatial]))
+            else:
+                opp_team_car_stars = np.concatenate((opp_team_car_stars, [car_stats]))
+                opp_team_car_spatial = np.concatenate((opp_team_car_spatial, [car_spatial]))
 
-        spatial[:, 0:6] /= 1000
+        location = packet.game_ball.physics.location
+        velocity = packet.game_ball.physics.velocity
+        angular = packet.game_ball.physics.angular_velocity
 
-        own_car_stats = np.array([own_car.boost / 100,
-                                  1 if own_car.jumped else 0,
-                                  1 if own_car.double_jumped else 0,
-                                  1 if own_car.is_demolished else 0,
-                                  1 if own_car.has_wheel_contact else 0])
+        game_ball_spatial = np.array([[location.x, velocity.x, angular.x],
+                                      [location.y, velocity.y, angular.y],
+                                      [location.z, velocity.z, angular.z]])
 
-        if self.team == 1:
-            spatial[0:2] *= -1
-
-        return [np.expand_dims(spatial, axis=0), np.expand_dims(own_car_stats, axis=0)]
+        return [np.expand_dims(own_car_stats, axis=0),
+                np.expand_dims(own_team_car_stats, axis=0),
+                np.expand_dims(opp_team_car_stars, axis=0),
+                np.expand_dims(own_car_spatial, axis=0),
+                np.expand_dims(own_team_car_spatial, axis=0),
+                np.expand_dims(opp_team_car_spatial, axis=0),
+                np.expand_dims(game_ball_spatial, axis=0)]
 
     def get_input_state_dimension(self):
-        return [(3, 9), (5,)]
+        return [(6,), (None, 6), (None, 6), (3, 6), (None, 3, 6), (None, 3, 6), (3, 3)]
 
 
 def get_all_vectors(car):
