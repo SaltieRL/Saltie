@@ -30,16 +30,16 @@ class SpatialInput(nn.Module):
 
         self.location = nn.Linear(2, size, bias=True)
         self.velocity = nn.Linear(2, size, bias=True)
-        self.angular_velocity = nn.Linear(2, size, bias=True)
+        self.angular = nn.Linear(2, size, bias=True)
         self.normal = nn.Linear(3, size, bias=False)
 
-    def forward(self, spatial):
-        processed_location = self.location(spatial[:, 0:2])
-        processed_velocity = self.velocity(spatial[:, 2:4])
-        processed_angular_velocity = self.angular_velocity(spatial[:, 4:6])
-        processed_normal = self.normal(spatial[:, 6:9])
+    def forward(self, own_car_axis, game_ball_axis):
+        processed_location = self.location(torch.stack((own_car_axis[:, 0], game_ball_axis[:, 0]), dim=1))
+        processed_velocity = self.velocity(torch.stack((own_car_axis[:, 1], game_ball_axis[:, 1]), dim=1))
+        processed_angular = self.angular(torch.stack((own_car_axis[:, 2], game_ball_axis[:, 2]), dim=1))
+        processed_normal = self.normal(own_car_axis[:, 3:6])
 
-        return processed_location * processed_velocity * processed_angular_velocity * processed_normal
+        return processed_location * processed_velocity * processed_angular * processed_normal
 
 
 class ActorModel(nn.Module):
@@ -52,10 +52,10 @@ class ActorModel(nn.Module):
 
         self.linear = nn.Linear(30, 9)
 
-    def forward(self, spatial, car_stats):
-        processed_x = self.input_x(spatial[:, 0])
-        processed_y = self.input_y(spatial[:, 1])
-        processed_z = self.input_z(spatial[:, 2])
+    def forward(self, own_car_spatial, game_ball_spatial):
+        processed_x = self.input_x(own_car_spatial[:, 0], game_ball_spatial[:, 0])
+        processed_y = self.input_y(own_car_spatial[:, 1], game_ball_spatial[:, 1])
+        processed_z = self.input_z(own_car_spatial[:, 2], game_ball_spatial[:, 2])
 
         processed_spatial = torch.cat([processed_x, processed_y, processed_z], dim=1)
 
@@ -76,13 +76,18 @@ class SymmetricModel(nn.Module):
                 own_team_car_spatial,
                 opp_team_car_spatial,
                 game_ball_spatial):
-        spatial_inv = torch.tensor(spatial)
-        spatial_inv[:, 0] *= -1  # invert x coordinates
-        spatial_inv[:, :, 7] *= -1  # invert own car left normal
-        spatial_inv[:, :, 4:6] *= -1  # invert angular velocity
 
-        output = self.actor(spatial, car_stats)
-        output_inv = self.actor(spatial_inv, car_stats)
+        own_car_spatial_inv = torch.tensor(own_car_spatial)
+        own_car_spatial_inv[:, 0] *= -1  # invert x coordinates
+        own_car_spatial_inv[:, :, 4] *= -1  # invert left normal
+        own_car_spatial_inv[:, :, 2] *= -1  # invert angular velocity
+
+        game_ball_spatial_inv = torch.tensor(game_ball_spatial)
+        game_ball_spatial_inv[:, 0] *= -1  # invert x coordinates
+        game_ball_spatial_inv[:, :, 2] *= -1  # invert angular velocity
+
+        output = self.actor(own_car_spatial, game_ball_spatial)
+        output_inv = self.actor(own_car_spatial_inv, game_ball_spatial_inv)
 
         output[:, 0:6] += output_inv[:, 0:6]  # combine unflippable outputs
         output[:, 6:9] += -1 * output_inv[:, 6:9]  # combine flippable outputs
