@@ -69,7 +69,13 @@ class SymmetricModel(nn.Module):
         self.actor = ActorModel()
         self.tanh = nn.Tanh()
 
-    def forward(self, spatial, car_stats):
+    def forward(self, own_car_stats,
+                own_team_car_stats,
+                opp_team_car_stars,
+                own_car_spatial,
+                own_team_car_spatial,
+                opp_team_car_spatial,
+                game_ball_spatial):
         spatial_inv = torch.tensor(spatial)
         spatial_inv[:, 0] *= -1  # invert x coordinates
         spatial_inv[:, :, 7] *= -1  # invert own car left normal

@@ -12,7 +12,7 @@ class LeviInputFormatter(BaseInputFormatter):
 
     def create_input_array(self, packet_list, batch_size=1):
         input_list = [self.create_input(packet_list[i]) for i in range(batch_size)]
-        input_array = [np.concatenate([input_list[j][i] for j in range(batch_size)]) for i in range(7)]
+        input_array = [np.stack([input_list[j][i] for j in range(batch_size)]) for i in range(7)]
 
         return input_array
 
@@ -68,13 +68,16 @@ class LeviInputFormatter(BaseInputFormatter):
                                       [location.y, velocity.y, angular.y],
                                       [location.z, velocity.z, angular.z]])
 
-        return [np.expand_dims(own_car_stats, axis=0),
-                np.expand_dims(own_team_car_stats, axis=0),
-                np.expand_dims(opp_team_car_stars, axis=0),
-                np.expand_dims(own_car_spatial, axis=0),
-                np.expand_dims(own_team_car_spatial, axis=0),
-                np.expand_dims(opp_team_car_spatial, axis=0),
-                np.expand_dims(game_ball_spatial, axis=0)]
+        if self.team == 1:
+            game_ball_spatial[0:2] *= -1
+
+        return [own_car_stats,
+                own_team_car_stats,
+                opp_team_car_stars,
+                own_car_spatial,
+                own_team_car_spatial,
+                opp_team_car_spatial,
+                game_ball_spatial]
 
     def get_input_state_dimension(self):
         return [(6,), (None, 6), (None, 6), (3, 6), (None, 3, 6), (None, 3, 6), (3, 3)]
