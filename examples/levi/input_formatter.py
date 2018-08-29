@@ -48,7 +48,7 @@ class LeviInputFormatter(BaseInputFormatter):
             car_spatial = np.concatenate((car_spatial, theta), axis=1)
 
             if self.team == 1:
-                car_spatial[0:2] *= -1
+                car_spatial[0:2] *= -1  # rotate the whole field
 
             if car_index == self.index:
                 own_car_stats = car_stats
@@ -69,7 +69,7 @@ class LeviInputFormatter(BaseInputFormatter):
                                       [location.z, velocity.z, angular.z]])
 
         if self.team == 1:
-            game_ball_spatial[0:2] *= -1
+            game_ball_spatial[0:2] *= -1  # rotate the whole field
 
         return [own_car_stats,
                 own_team_car_stats,
