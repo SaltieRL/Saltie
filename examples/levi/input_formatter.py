@@ -1,6 +1,7 @@
 import math
 import numpy as np
 
+from rlbot.utils.structures.game_data_struct import rotate_game_tick_packet_boost_omitted
 from framework.input_formatter.base_input_formatter import BaseInputFormatter
 
 
@@ -25,6 +26,9 @@ class LeviInputFormatter(BaseInputFormatter):
         own_team_car_spatial = np.empty((0, 3, 6))  # player, axis, value
         opp_team_car_spatial = np.empty((0, 3, 6))  # player, axis, value
 
+        if self.team == 1:
+            packet = rotate_game_tick_packet_boost_omitted(packet)
+
         for car_index in range(packet.num_cars):
             car = packet.game_cars[car_index]
 
@@ -47,9 +51,6 @@ class LeviInputFormatter(BaseInputFormatter):
 
             car_spatial = np.concatenate((car_spatial, theta), axis=1)
 
-            if self.team == 1:
-                car_spatial[0:2] *= -1  # rotate the whole field
-
             if car_index == self.index:
                 own_car_stats = car_stats
                 own_car_spatial = car_spatial
@@ -67,9 +68,6 @@ class LeviInputFormatter(BaseInputFormatter):
         game_ball_spatial = np.array([[location.x, velocity.x, angular.x],
                                       [location.y, velocity.y, angular.y],
                                       [location.z, velocity.z, angular.z]])
-
-        if self.team == 1:
-            game_ball_spatial[0:2] *= -1  # rotate the whole field
 
         return [own_car_stats,
                 own_team_car_stats,
