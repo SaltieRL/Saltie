@@ -57,7 +57,7 @@ class MultiOutputKerasModel(BaseKerasModel):
         # loss_weights['o_roll'] *= 0.001
         return loss, loss_weights
 
-    def fit(self, x, y, batch_size=1):
+    def fit(self, x, y, rewards=None, batch_size=1):
         y = np.array_split(y, np.ma.size(y, axis=-1), axis=-1)
         super().fit(x, y, batch_size)
 

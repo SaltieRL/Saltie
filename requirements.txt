@@ -2,6 +2,8 @@ h5py
 pandas
 requests
 fs
+numpy
+rlbot
 tensorflow
 xlrd
 matplotlib

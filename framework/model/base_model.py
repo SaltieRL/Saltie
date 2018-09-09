@@ -39,7 +39,7 @@ class BaseModel:
         pass
 
     @native
-    def fit(self, x, y, batch_size=1):
+    def fit(self, x, y, rewards=None, batch_size=1):
         pass
 
     @native

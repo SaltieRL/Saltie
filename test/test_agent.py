@@ -1,4 +1,4 @@
-from main_agent.saltie import Saltie
+from agents.main_agent import Saltie
 
 if __name__ == '__main__':
     saltie = Saltie('saltie', 0, 0)
