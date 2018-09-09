@@ -8,8 +8,8 @@ class HostOutputFormatter(BaseOutputFormatter):
         super().__init__()
         self.output_formatter = output_formatter
 
-    def create_array_for_training(self, output_array, batch_size=1):
-        return self.output_formatter.create_array_for_training(output_array, batch_size)
+    def create_array_for_training(self, predicted_data, batch_size=1):
+        return self.output_formatter.create_array_for_training(predicted_data, batch_size)
 
     def get_model_output_dimension(self):
         return self.output_formatter.get_model_output_dimension()
