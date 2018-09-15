@@ -2,9 +2,11 @@ import zlib
 
 from carball.analysis.utils.pandas_manager import PandasManager
 from carball.generated.api import game_pb2
+import pandas as pd
+from carball.generated.api.stats import events_pb2
 
 
-class Replay:
+class GeneratedReplay:
     def __init__(self, protobuf, pandas):
         """
         :param protobuf: described in https://github.com/SaltieRL/carball/tree/master/api
@@ -15,7 +17,7 @@ class Replay:
         self.decoded_proto = None
         self.decoded_pandas = None
 
-    def get_proto(self):
+    def get_proto(self) -> game_pb2.Game:
         """
         Gets the protobuf lazily decompiles it
         :return:
@@ -26,8 +28,9 @@ class Replay:
         self.decoded_proto.ParseFromString(self.protobuf)
         # free up the memory
         self.protobuf = None
+        return self.decoded_proto
 
-    def get_pandas(self):
+    def get_pandas(self) -> pd.DataFrame:
         """
         Gets the pandas lazily decompiles it
         :return:
@@ -36,3 +39,22 @@ class Replay:
             return self.decoded_pandas
         self.decoded_pandas = PandasManager.safe_read_pandas_to_memory(zlib.decompress(self.pandas))
         self.pandas = None
+        return self.decoded_pandas
+
+
+class GeneratedHit:
+    def __init__(self, hit: events_pb2.Hit, replay: GeneratedReplay):
+        self.replay = replay
+        self.hit = hit
+
+    def get_hit(self) -> events_pb2.Hit:
+        return self.hit
+
+    def get_game_state(self):
+        """
+        :return: Game state at a given point in time
+        """
+        return None
+
+    def get_replay(self) -> GeneratedReplay:
+        return self.replay

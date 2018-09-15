@@ -1,7 +1,9 @@
+import random
+
 import requests
 
 from framework.data_generator.base_generator import BaseDataGenerator
-from framework.replay.replay import Replay
+from framework.replay.replay_format import GeneratedReplay
 
 
 class ReplayListGenerator(BaseDataGenerator):
@@ -30,9 +32,12 @@ class ReplayListGenerator(BaseDataGenerator):
     def has_next(self):
         return len(self.replays) > 0 or self.next_page
 
-    def _next(self):
+    def __get_next_replay_hash(self):
         if len(self.replays) > 0:
             return self.replays.pop()
+        if not self.next_page:
+            self.logger.warn('There are no more replays we should not be getting another')
+            return None
         self.logger.debug('getting list of replays')
         js = requests.get(self.create_url(self.existing_url)).json()
         next_url = js['next']
@@ -46,10 +51,16 @@ class ReplayListGenerator(BaseDataGenerator):
         self.replays = [replay['hash'] for replay in replay_list
                         if replay['teamsize'] == self.num_players_on_team or self.num_players_on_team == -1]
         self.logger.info('%s replays in queue', len(self.replays))
-        return self.replays.pop()
+        if self.shuffle:
+            random.shuffle(self.replays)
+        return self.__get_next_replay_hash()
+
+    def _next(self) -> str:
+        return self.__get_next_replay_hash()
 
 
-class CalculatedDownloader(ReplayListGenerator):
+
+class ReplayDownloaderGenerator(ReplayListGenerator):
 
     DOWNLOAD_URL = "/api/v1/parsed/"
 
@@ -60,7 +71,7 @@ class CalculatedDownloader(ReplayListGenerator):
         self.parallel_threads = 1
         self.key_url = None
 
-    def initialize(self, buffer_size, parallel_threads, **kwargs):
+    def initialize(self, buffer_size=10, parallel_threads=1, **kwargs):
         super().initialize(**kwargs)
         self.buffer_size = buffer_size
         self.parallel_threads = parallel_threads
@@ -76,21 +87,23 @@ class CalculatedDownloader(ReplayListGenerator):
         # get pts
         pts = requests.get(self.BASE_URL + self.DOWNLOAD_URL + replay_hash + '.replay.pts' + self.key_url)
         pandas = requests.get(self.BASE_URL + self.DOWNLOAD_URL + replay_hash + '.replay.gzip' + self.key_url)
-        replay = Replay(protobuf=pts.content, pandas=pandas.content)
+        replay = GeneratedReplay(protobuf=pts.content, pandas=pandas.content)
         return replay
 
-    def _next(self):
+    def __get_next_replay(self):
         if len(self.buffer) > 0:
             return self.buffer.pop()
         replay = self.download_replay(super()._next())
         return replay
 
+    def _next(self) -> GeneratedReplay:
+        return self.__get_next_replay()
+
+
 
 if __name__ == "__main__":
-    import logging
     # https://calculated.gg/api/v1/parsed/1097A28E46D0756EEB7820BFD31BE226.replay.pts?key=1
-    downloader = CalculatedDownloader()
-    downloader.logger.setLevel(logging.DEBUG)
+    downloader = ReplayDownloaderGenerator()
     downloader.initialize(buffer_size=10, parallel_threads=1)
     count = 1
     for i in downloader.get_data():
