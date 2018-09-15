@@ -21,26 +21,49 @@
 # SOFTWARE.
 
 from agents.swarm.swarm_agent import SwarmAgent
-from examples.levi.online_model_holder import OnlineModelHolder
-from examples.levi.output_formatter import LeviOutputFormatter
-from examples.levi.input_formatter import LeviInputFormatter
+from examples.Levi.output_formatter import LeviOutputFormatter
+from examples.Levi.input_formatter import LeviInputFormatter
+import os
+from rlbot.botmanager.helper_process_request import HelperProcessRequest
 
 
 class LeviAgent(SwarmAgent):
-    model_holder = None
+    import torch
+    pipe = None
+    model = None
+    input_formatter = None
+    output_formatter = None
+    game_memory = None
+
+    def get_helper_process_request(self) -> HelperProcessRequest:
+        from multiprocessing import Pipe
+
+        file = os.path.realpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'torch_manager.py'))
+        key = 'levi_hive_mind'
+        request = HelperProcessRequest(file, key)
+        self.pipe, request.pipe = Pipe(False)
+        return request
 
     def initialize_agent(self):
-        self.model_holder = OnlineModelHolder(self.create_model(),
-                                              self.create_input_formatter(),
-                                              self.create_output_formatter())
+        self.model = self.pipe.recv()
+        self.input_formatter = LeviInputFormatter(self.team, self.index)
+        self.output_formatter = LeviOutputFormatter(self.index)
+        self.game_memory = self.pipe.recv()
 
-    def create_model(self):
-        from examples.levi.torch_model import SymmetricModel
-        model = SymmetricModel()
-        return model
+    def predict(self, packet):
+        """
+        Predicts an output given the input
+        :param packet: The game_tick_packet
+        :return:
+        """
+        arr = self.input_formatter.create_input_array([packet], batch_size=1)
 
-    def create_input_formatter(self):
-        return LeviInputFormatter(self.team, self.index)
+        arr = [self.torch.from_numpy(x).float() for x in arr]
 
-    def create_output_formatter(self):
-        return LeviOutputFormatter(self.index)
+        with self.torch.no_grad():
+            output = self.model.forward(*arr)
+            self.game_memory.append(arr, output)  # should be replaced with hardcoded output
+
+        output = [output[0], packet]
+
+        return self.output_formatter.format_model_output(output, batch_size=1)[0]
