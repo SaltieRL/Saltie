@@ -59,7 +59,6 @@ class ReplayListGenerator(BaseDataGenerator):
         return self.__get_next_replay_hash()
 
 
-
 class ReplayDownloaderGenerator(ReplayListGenerator):
 
     DOWNLOAD_URL = "/api/v1/parsed/"

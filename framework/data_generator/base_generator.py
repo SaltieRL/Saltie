@@ -9,16 +9,16 @@ class BaseDataGenerator:
     def initialize(self, **kwargs):
         raise NotImplementedError()
 
-    def get_data(self):
+    def get_data(self, **kwargs):
         """
         Gets all the data needed for a model.
         :return: The result can be used as an iterator.
         """
         while self.has_next():
-            yield self._next()
+            yield self._next(**kwargs)
 
     def has_next(self):
         raise NotImplementedError()
 
-    def _next(self):
+    def _next(self, **kwargs):
         raise NotImplementedError()
