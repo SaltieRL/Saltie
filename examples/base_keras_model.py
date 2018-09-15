@@ -69,7 +69,6 @@ class BaseKerasModel(BaseModel):
 
     def finalize_model(self, logname=str(int(random() * 1000))):
 
-
         loss, loss_weights = self.create_loss()
         self.model.compile(tf.keras.optimizers.Nadam(lr=0.001), loss=loss, loss_weights=loss_weights,
                            metrics=[tf.keras.metrics.mean_absolute_error, tf.keras.metrics.binary_accuracy])

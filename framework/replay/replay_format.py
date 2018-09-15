@@ -1,3 +1,4 @@
+import gzip
 import zlib
 
 from carball.analysis.utils.pandas_manager import PandasManager
@@ -37,7 +38,9 @@ class GeneratedReplay:
         """
         if self.decoded_pandas is not None:
             return self.decoded_pandas
-        self.decoded_pandas = PandasManager.safe_read_pandas_to_memory(zlib.decompress(self.pandas))
+        self.pandas.seek(0)
+        with gzip.GzipFile(fileobj=self.pandas, mode='rb') as f:
+            self.decoded_pandas = PandasManager.safe_read_pandas_to_memory(f)
         self.pandas = None
         return self.decoded_pandas
 

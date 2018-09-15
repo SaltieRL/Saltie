@@ -1,9 +1,15 @@
+import io
 import random
 
 import requests
 
 from framework.data_generator.base_generator import BaseDataGenerator
 from framework.replay.replay_format import GeneratedReplay
+
+
+def create_in_memory_file(response: bytes) -> io.BytesIO:
+    in_memory_file = io.BytesIO(response)
+    return in_memory_file
 
 
 class ReplayListGenerator(BaseDataGenerator):
@@ -20,11 +26,11 @@ class ReplayListGenerator(BaseDataGenerator):
 
         self.shuffle = shuffle
         self.next_page = True
-        self.existing_url = '/api/v1/replays?page=1&key=' + str(api_key)
+        self.existing_url = None
         self.replays = []
 
-    def initialize(self, **kwargs):
-        pass
+    def initialize(self, initial_page=1):
+        self.existing_url = '/api/v1/replays?page=' + str(initial_page) + '&key=' + str(self.api_key)
 
     def create_url(self, existing_url):
         return self.BASE_URL + existing_url +'&minmmr=' + str(self.min_mmr) + '&max_mmr=' + str(self.max_mmr)
@@ -86,7 +92,8 @@ class ReplayDownloaderGenerator(ReplayListGenerator):
         # get pts
         pts = requests.get(self.BASE_URL + self.DOWNLOAD_URL + replay_hash + '.replay.pts' + self.key_url)
         pandas = requests.get(self.BASE_URL + self.DOWNLOAD_URL + replay_hash + '.replay.gzip' + self.key_url)
-        replay = GeneratedReplay(protobuf=pts.content, pandas=pandas.content)
+
+        replay = GeneratedReplay(protobuf=pts.content, pandas=create_in_memory_file(pandas.content))
         return replay
 
     def __get_next_replay(self):
