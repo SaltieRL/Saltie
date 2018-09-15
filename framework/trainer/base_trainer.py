@@ -6,3 +6,9 @@ class BaseTrainer:
     def __init__(self, model_holder: BaseModelHolder):
         self.model_holder = model_holder
         model_holder.initialize_model(load=True)
+
+    def initialize_training(self):
+        raise NotImplementedError()
+
+    def train(self):
+        raise NotImplementedError()
