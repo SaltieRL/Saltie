@@ -1,3 +1,4 @@
+import pandas as pd
 from framework.input_formatter.base_input_formatter import BaseInputFormatter
 from framework.replay.replay_format import GeneratedHit
 
@@ -10,7 +11,11 @@ class ShotInputFormatter(BaseInputFormatter):
         result = []
         hit = input_data.get_hit()
         frame = hit.frame_number
-        hit_frame = input_data.get_replay().get_pandas().loc[frame]
+        df = input_data.get_replay().get_pandas()
+        df.set_index(('index',), inplace=True)
+        index = df.index
+        hit_frame = df.loc[frame]
+
         result = input_data.get_replay().get_pandas()
-        index = input_data.get_replay().get_pandas().loc[frame].name
+        index = input_data.get_replay().get_pandas().loc[frame].index
         return result

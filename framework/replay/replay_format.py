@@ -41,6 +41,15 @@ class GeneratedReplay:
         self.pandas.seek(0)
         with gzip.GzipFile(fileobj=self.pandas, mode='rb') as f:
             self.decoded_pandas = PandasManager.safe_read_pandas_to_memory(f)
+        cols = []
+        for tuple_str in self.decoded_pandas.columns.values:
+            cleaned_string = tuple_str.replace("'", "")
+            if '(' in cleaned_string:
+                split = cleaned_string.replace('(', '').replace(')', '').split(',')
+                cols.append(tuple(split))
+            else:
+                cols.append((cleaned_string,))
+        self.decoded_pandas.columns = pd.MultiIndex.from_tuples(cols)
         self.pandas = None
         return self.decoded_pandas
 
