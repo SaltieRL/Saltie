@@ -24,31 +24,19 @@ from agents.swarm.swarm_agent import SwarmAgent
 from examples.Levi.output_formatter import LeviOutputFormatter
 from examples.Levi.input_formatter import LeviInputFormatter
 import os
-from rlbot.botmanager.helper_process_request import HelperProcessRequest
 
 
 class LeviAgent(SwarmAgent):
     import torch
-    pipe = None
-    model = None
-    input_formatter = None
-    output_formatter = None
-    game_memory = None
 
-    def get_helper_process_request(self) -> HelperProcessRequest:
-        from multiprocessing import Pipe
+    def get_manager_path(self):
+        return os.path.realpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'torch_manager.py'))
 
-        file = os.path.realpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'torch_manager.py'))
-        key = 'levi_hive_mind'
-        request = HelperProcessRequest(file, key)
-        self.pipe, request.pipe = Pipe(False)
-        return request
+    def create_input_formatter(self):
+        return LeviInputFormatter(self.team, self.index)
 
-    def initialize_agent(self):
-        self.model = self.pipe.recv()
-        self.input_formatter = LeviInputFormatter(self.team, self.index)
-        self.output_formatter = LeviOutputFormatter(self.index)
-        self.game_memory = self.pipe.recv()
+    def create_output_formatter(self):
+        return LeviOutputFormatter(self.index)
 
     def predict(self, packet):
         """
