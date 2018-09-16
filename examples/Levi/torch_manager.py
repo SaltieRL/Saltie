@@ -24,17 +24,20 @@ from swarm_trainer.base_hive_manager import BaseHiveManager
 
 
 class TorchManager(BaseHiveManager):
-    import torch
-
     optimizer = None
     loss_function = None
 
+    def __init__(self, agent_metadata_queue, quit_event):
+        import torch
+        self.torch = torch
+        super().__init__(agent_metadata_queue, quit_event)
+
     def setup_trainer(self):
-        self.optimizer = self.torch.optim.Adamax(self.model.parameters())
+        self.optimizer = self.torch.optim.Adamax(self.actor_model.parameters())
         self.loss_function = self.torch.nn.L1Loss()
 
     def get_model(self):
-        from examples.Levi.torch_model import SymmetricModel
+        from .torch_model import SymmetricModel  # this has to be a relative import
         return SymmetricModel()
 
     def get_shared_model_handle(self):
@@ -56,7 +59,7 @@ class TorchManager(BaseHiveManager):
         loss = self.loss_function(network_output, formatted_output)
         loss.backward()
 
-    def finish_training(self, save_model=True, save_exp=True):
+    def finish_training(self, save_model=False, save_exp=False):
         if save_model:
             file_path = self.get_file_path()
             print('saving model at:', file_path)

@@ -23,14 +23,16 @@
 from agents.swarm.swarm_agent import SwarmAgent
 from examples.Levi.output_formatter import LeviOutputFormatter
 from examples.Levi.input_formatter import LeviInputFormatter
-import os
 
 
 class LeviAgent(SwarmAgent):
-    import torch
+    def __init__(self, name, team, index):
+        super().__init__(name, team, index)
+        import torch
+        self.torch = torch
 
     def get_manager_path(self):
-        return os.path.realpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'torch_manager.py'))
+        return "examples.Levi.torch_manager.py"
 
     def create_input_formatter(self):
         return LeviInputFormatter(self.team, self.index)
@@ -50,7 +52,7 @@ class LeviAgent(SwarmAgent):
 
         with self.torch.no_grad():
             output = self.model.forward(*arr)
-            self.game_memory.append(arr, output)  # should be replaced with hardcoded output
+            # self.game_memory.append(arr, output)  # should be replaced with hardcoded output
 
         output = [output[0], packet]
 

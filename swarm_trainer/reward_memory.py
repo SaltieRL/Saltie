@@ -1,12 +1,10 @@
 import random
 import numpy as np
 from multiprocessing import Lock
-from framework.model_holder.base_model_holder import BaseModelHolder
 
 
 class BaseRewardMemory:
-    def __init__(self, model_holder: BaseModelHolder):
-        self.model_holder = model_holder
+    def __init__(self):
         self.input_data = np.array([])
         self.action = np.array([])
         self.reward = np.array([])

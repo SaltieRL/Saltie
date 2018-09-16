@@ -4,9 +4,6 @@ from rlbot.utils.logging_utils import get_logger
 
 from framework.utils import get_repo_directory
 
-from multiprocessing.managers import BaseManager
-from swarm_trainer.reward_memory import BaseRewardMemory
-
 
 class BaseHiveManager(BotHelperProcess):
 
@@ -15,11 +12,11 @@ class BaseHiveManager(BotHelperProcess):
     def __init__(self, agent_metadata_queue, quit_event):
         super().__init__(agent_metadata_queue, quit_event)
         self.logger = get_logger('base_hive_mgr')
-        self.metadata_map = []
 
         self.manager = self.setup_manager()
         self.game_memory = self.manager.Memory()
         self.actor_model = self.get_model()
+        self.shared_model_handle = self.get_shared_model_handle()
 
         self.setup_trainer()
 
@@ -30,6 +27,9 @@ class BaseHiveManager(BotHelperProcess):
         raise NotImplementedError()
 
     def setup_manager(self):
+        from multiprocessing.managers import BaseManager
+        from swarm_trainer.reward_memory import BaseRewardMemory
+
         BaseManager.register('Memory', BaseRewardMemory)
         manager = BaseManager()
         manager.start()
@@ -44,10 +44,8 @@ class BaseHiveManager(BotHelperProcess):
             metadata = self.metadata_queue.get()
             pipe = metadata.helper_process_request.pipe
 
-            pipe.send(self.get_shared_model_handle())
+            pipe.send(self.shared_model_handle)
             pipe.send(self.game_memory)
-
-            self.metadata_map[metadata.team] = metadata
 
         self.logger.info('set up all agents')
 
