@@ -1,8 +1,5 @@
-import matplotlib.colors
-from typing import List, Any
-
 from matplotlib import animation
-from mpl_toolkits.mplot3d.art3d import Patch3DCollection, Text3D
+from mpl_toolkits.mplot3d.art3d import Text3D
 
 from examples.autoencoder.autoencoder_model import AutoencoderModel
 from examples.autoencoder.autoencoder_model_holder import AutoencoderModelHolder
@@ -10,10 +7,9 @@ from examples.autoencoder.autoencoder_output_formatter import AutoencoderOutputF
 from examples.legacy.legacy_input_formatter import LegacyInputFormatter
 from examples.legacy.legacy_normalizer_input_formatter import LegacyNormalizerInputFormatter
 from framework.output_formatter.host_output_formatter import HostOutputFormatter
-from framework.replayanalysis.game.player import Player
+from carball.analysis.saltie_game.metadata.ApiPlayer import Player
 from trainer.parsed_download_trainer import ParsedDownloadTrainer
 import matplotlib.pyplot as plt
-import mpl_toolkits.mplot3d.axes3d as p3
 
 import pandas as pd
 

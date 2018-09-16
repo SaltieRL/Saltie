@@ -6,7 +6,7 @@ from examples.autoencoder.autoencoder_output_formatter import AutoencoderOutputF
 from examples.legacy.legacy_input_formatter import LegacyInputFormatter
 from examples.legacy.legacy_normalizer_input_formatter import LegacyNormalizerInputFormatter
 from framework.output_formatter.host_output_formatter import HostOutputFormatter
-from framework.replayanalysis.game.game import Game
+from carball.analysis.saltie_game.saltie_game import Game
 from trainer.parsed_download_trainer import ParsedDownloadTrainer
 import matplotlib.pyplot as plt
 import numpy as np
