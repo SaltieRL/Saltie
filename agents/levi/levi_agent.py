@@ -20,6 +20,11 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import os
+import sys
+path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, path)  # this is for first process imports
+
 from agents.swarm.swarm_agent import SwarmAgent
 from examples.Levi.output_formatter import LeviOutputFormatter
 from examples.Levi.input_formatter import LeviInputFormatter
@@ -32,7 +37,7 @@ class LeviAgent(SwarmAgent):
         self.torch = torch
 
     def get_manager_path(self):
-        return "examples.Levi.torch_manager.py"
+        return path + "//examples//levi//torch_manager"
 
     def create_input_formatter(self):
         return LeviInputFormatter(self.team, self.index)

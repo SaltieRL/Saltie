@@ -1,3 +1,4 @@
+import sys
 import psutil
 from rlbot.botmanager.bot_helper_process import BotHelperProcess
 from rlbot.utils.logging_utils import get_logger
@@ -12,6 +13,7 @@ class BaseHiveManager(BotHelperProcess):
     def __init__(self, agent_metadata_queue, quit_event):
         super().__init__(agent_metadata_queue, quit_event)
         self.logger = get_logger('base_hive_mgr')
+        sys.path.insert(0, get_repo_directory())  # this is for separate process imports
 
         self.manager = self.setup_manager()
         self.game_memory = self.manager.Memory()
