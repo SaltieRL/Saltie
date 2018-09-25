@@ -34,7 +34,7 @@ class TorchManager(BaseHiveManager):
 
     def __init__(self, agent_metadata_queue, quit_event):
         import torch
-        self.torch = torch
+        self.torch = torch  # before initialization as this is needed for `setup_trainer`
         super().__init__(agent_metadata_queue, quit_event)
 
     def setup_trainer(self):
@@ -42,7 +42,7 @@ class TorchManager(BaseHiveManager):
         self.loss_function = self.torch.nn.L1Loss()
 
     def get_model(self):
-        from .torch_model import SymmetricModel  # this has to be a relative import
+        from examples.levi.torch_model import SymmetricModel
         return SymmetricModel()
 
     def get_shared_model_handle(self):
@@ -59,7 +59,10 @@ class TorchManager(BaseHiveManager):
     def train_step(self, formatted_input, formatted_output, rewards=None, batch_size=1):
         self.optimizer.zero_grad()
 
-        network_output = self.actor_model.forward(formatted_input)
+        formatted_input = [self.torch.from_numpy(x).float() for x in formatted_input]
+        formatted_output = self.torch.from_numpy(formatted_output).float()
+
+        network_output = self.actor_model.forward(*formatted_input)
 
         loss = self.loss_function(network_output, formatted_output)
         loss.backward()

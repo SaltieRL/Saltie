@@ -25,9 +25,10 @@ import sys
 path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, path)  # this is for first process imports
 
+import numpy as np
 from agents.swarm.swarm_agent import SwarmAgent
-from examples.Levi.output_formatter import LeviOutputFormatter
-from examples.Levi.input_formatter import LeviInputFormatter
+from examples.levi.output_formatter import LeviOutputFormatter
+from examples.levi.input_formatter import LeviInputFormatter
 
 
 class LeviAgent(SwarmAgent):
@@ -53,12 +54,12 @@ class LeviAgent(SwarmAgent):
         """
         arr = self.input_formatter.create_input_array([packet], batch_size=1)
 
+        self.game_memory.append(arr, np.array([[1, 0, -1, -1, -1, -1, 0, 0, 0]]))  # should be replaced with hardcoded output
+
         arr = [self.torch.from_numpy(x).float() for x in arr]
 
         with self.torch.no_grad():
             output = self.model.forward(*arr)
-            # self.game_memory.append(arr, output)  # should be replaced with hardcoded output
-
         output = [output[0], packet]
 
         return self.output_formatter.format_model_output(output, batch_size=1)[0]

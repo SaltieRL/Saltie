@@ -71,11 +71,9 @@ class BaseHiveManager(BotHelperProcess):
 
     def learn_memory(self):
         input_data, action, reward = self.game_memory.get_sample(self.batch_size)
-        if len(input_data) > 0:
-            if len(reward) == 0:
-                reward = None
+        if action.shape[0] > 0:
             self.train_step(formatted_input=input_data, formatted_output=action,
-                            rewards=reward, batch_size=len(input_data))
+                            rewards=reward, batch_size=len(action.shape[0]))
 
     def initialize_training(self, load_model=False, load_exp=False):
         raise NotImplementedError()
@@ -92,7 +90,7 @@ class BaseHiveManager(BotHelperProcess):
         """
         raise NotImplementedError()
 
-    def finish_training(self, save_model=True):
+    def finish_training(self, save_model=True, save_exp=False):
         raise NotImplementedError()
 
     def get_model_name(self):
