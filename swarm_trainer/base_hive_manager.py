@@ -73,7 +73,7 @@ class BaseHiveManager(BotHelperProcess):
         input_data, action, reward = self.game_memory.get_sample(self.batch_size)
         if action.shape[0] > 0:
             self.train_step(formatted_input=input_data, formatted_output=action,
-                            rewards=reward, batch_size=len(action.shape[0]))
+                            rewards=reward, batch_size=action.shape[0])
 
     def initialize_training(self, load_model=False, load_exp=False):
         raise NotImplementedError()
