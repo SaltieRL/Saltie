@@ -26,6 +26,7 @@ path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 sys.path.insert(0, path)  # this is for first process imports
 
 from swarm_trainer.base_hive_manager import BaseHiveManager
+from quicktracer import trace
 
 
 class TorchManager(BaseHiveManager):
@@ -66,6 +67,9 @@ class TorchManager(BaseHiveManager):
 
         loss = self.loss_function(network_output, formatted_output)
         loss.backward()
+        trace(loss.item())
+
+        self.optimizer.step()
 
     def finish_training(self, save_model=False, save_exp=False):
         if save_model:
