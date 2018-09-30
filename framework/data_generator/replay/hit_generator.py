@@ -7,7 +7,7 @@ from framework.replay.replay_format import GeneratedHit
 
 class HitGenerator(ReplayCacheGenerator):
 
-    def __init__(self, hit_filter:Dict=None **kwargs):
+    def __init__(self, hit_filter:Dict=None, **kwargs):
         super().__init__(**kwargs)
         self.hit_filter = None
         self.hit_buffer = []
