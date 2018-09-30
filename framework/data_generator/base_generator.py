@@ -6,9 +6,6 @@ class BaseDataGenerator:
         self.logger = get_logger(type(self).__name__)
         pass
 
-    def initialize(self, **kwargs):
-        raise NotImplementedError()
-
     def get_data(self, **kwargs):
         """
         Gets all the data needed for a model.
