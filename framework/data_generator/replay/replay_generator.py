@@ -17,14 +17,10 @@ class ReplayListGenerator(BaseDataGenerator):
         self.max_mmr = max_mmr
         self.num_players_on_team = num_players_on_team
         self.max_pages = max_pages
-
         self.shuffle = shuffle
         self.next_page = True
         self.existing_url = '/api/v1/replays?page=1&key=' + str(api_key)
         self.replays = []
-
-    def initialize(self, **kwargs):
-        pass
 
     def create_url(self, existing_url):
         return self.BASE_URL + existing_url +'&minmmr=' + str(self.min_mmr) + '&max_mmr=' + str(self.max_mmr)
@@ -59,20 +55,13 @@ class ReplayListGenerator(BaseDataGenerator):
         return self.__get_next_replay_hash()
 
 
-
 class ReplayDownloaderGenerator(ReplayListGenerator):
 
     DOWNLOAD_URL = "/api/v1/parsed/"
 
-    def __init__(self, **kwargs):
+    def __init__(self, buffer_size=10, parallel_threads=1, **kwargs):
         super().__init__(**kwargs)
         self.buffer = []
-        self.buffer_size = 10
-        self.parallel_threads = 1
-        self.key_url = None
-
-    def initialize(self, buffer_size=10, parallel_threads=1, **kwargs):
-        super().initialize(**kwargs)
         self.buffer_size = buffer_size
         self.parallel_threads = parallel_threads
         self.key_url = '?key=' + str(self.api_key)
@@ -103,8 +92,7 @@ class ReplayDownloaderGenerator(ReplayListGenerator):
 
 if __name__ == "__main__":
     # https://calculated.gg/api/v1/parsed/1097A28E46D0756EEB7820BFD31BE226.replay.pts?key=1
-    downloader = ReplayDownloaderGenerator()
-    downloader.initialize(buffer_size=10, parallel_threads=1)
+    downloader = ReplayDownloaderGenerator(buffer_size=10, parallel_threads=1)
     count = 1
     for i in downloader.get_data():
         print(str(count))
