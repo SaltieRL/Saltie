@@ -18,6 +18,7 @@ class BaseRewardMemory:
         self.action = np.zeros((0, 9))
         # self.reward = np.array((0,))
         self.lock = Lock()
+        np.seterr(all='raise')
 
     @non_parallel
     def append(self, input_data, action, reward=None):
@@ -62,6 +63,19 @@ class BaseRewardMemory:
             #     sample_reward = np.copy(self.reward[i:j])
             # else:
             #     sample_reward = np.copy(self.reward)
+
+        return sample_input_data, sample_action, None
+
+    @non_parallel
+    def get_random_sample(self, amount):
+        if self.action.shape[0] <= amount:
+            return [n.copy() for n in self.input_data], self.action.copy(), None
+        assert(self.action.shape[0] == self.input_data[0].shape[0])
+
+        indexes = np.random.randint(self.action.shape[0], size=amount)
+
+        sample_input_data = [n[indexes, :].copy() for n in self.input_data]
+        sample_action = self.action[indexes, :].copy()
 
         return sample_input_data, sample_action, None
 

@@ -40,7 +40,7 @@ class TorchManager(BaseHiveManager):
 
     def setup_trainer(self):
         self.optimizer = self.torch.optim.Adamax(self.actor_model.parameters())
-        self.loss_function = self.torch.nn.L1Loss()
+        self.loss_function = self.torch.nn.MSELoss()
 
     def get_model(self):
         from examples.levi.torch_model import SymmetricModel
@@ -51,7 +51,7 @@ class TorchManager(BaseHiveManager):
 
     def initialize_training(self, load_model=False, load_exp=False):
         if load_model:
-            file_path = self.get_file_path()
+            file_path = path + '\examples\levi\weights\cool_atba.w'
             self.actor_model.load_state_dict(self.torch.load(file_path))
         if load_exp:
             file_path = self.get_file_path()  # should be different actually
@@ -67,13 +67,15 @@ class TorchManager(BaseHiveManager):
 
         loss = self.loss_function(network_output, formatted_output)
         loss.backward()
-        trace(loss.item())
+        # for i in range(9):
+        #     trace(self.loss_function(network_output[:, i], formatted_output[:, i]).item(), key=i)
+        trace(loss.item(), key='loss')
 
         self.optimizer.step()
 
-    def finish_training(self, save_model=False, save_exp=False):
+    def finish_training(self, save_model=True, save_exp=False):
         if save_model:
-            file_path = self.get_file_path()
+            file_path = path + '\examples\levi\weights\cool_atba.w'
             print('saving model at:', file_path)
             self.torch.save(self.actor_model.state_dict(), file_path)
         if save_exp:

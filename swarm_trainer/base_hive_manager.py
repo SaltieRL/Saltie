@@ -8,7 +8,7 @@ from framework.utils import get_repo_directory
 
 class BaseHiveManager(BotHelperProcess):
 
-    batch_size = 1000
+    batch_size = 2000
 
     def __init__(self, agent_metadata_queue, quit_event):
         super().__init__(agent_metadata_queue, quit_event)
@@ -28,7 +28,8 @@ class BaseHiveManager(BotHelperProcess):
     def get_shared_model_handle(self):
         raise NotImplementedError()
 
-    def setup_manager(self):
+    @staticmethod
+    def setup_manager():
         from multiprocessing.managers import BaseManager
         from swarm_trainer.reward_memory import BaseRewardMemory
 
@@ -70,8 +71,8 @@ class BaseHiveManager(BotHelperProcess):
         self.finish_training()
 
     def learn_memory(self):
-        input_data, action, reward = self.game_memory.get_sample(self.batch_size)
-        if action.shape[0] > 0:
+        input_data, action, reward = self.game_memory.get_random_sample(self.batch_size)
+        if action.shape[0] >= 1000:
             self.train_step(formatted_input=input_data, formatted_output=action,
                             rewards=reward, batch_size=action.shape[0])
 

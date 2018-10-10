@@ -25,10 +25,10 @@ import sys
 path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, path)  # this is for first process imports
 
-import numpy as np
 from agents.swarm.swarm_agent import SwarmAgent
 from examples.levi.output_formatter import LeviOutputFormatter
 from examples.levi.input_formatter import LeviInputFormatter
+from rlbot.agents.base_agent import SimpleControllerState
 
 
 class LeviAgent(SwarmAgent):
@@ -36,6 +36,10 @@ class LeviAgent(SwarmAgent):
         super().__init__(name, team, index)
         import torch
         self.torch = torch
+        from examples.levi.cool_atba import Atba
+        self.atba = Atba()
+
+        self.empty_controller = SimpleControllerState()
 
     def get_manager_path(self):
         return path + "//examples//levi//torch_manager"
@@ -46,20 +50,46 @@ class LeviAgent(SwarmAgent):
     def create_output_formatter(self):
         return LeviOutputFormatter(self.index)
 
-    def predict(self, packet):
+    def get_output(self, packet):
         """
         Predicts an output given the input
         :param packet: The game_tick_packet
         :return:
         """
+        if not packet.game_info.is_round_active:
+            return self.empty_controller
+        if packet.game_cars[self.index].is_demolished:
+            return self.empty_controller
+
         arr = self.input_formatter.create_input_array([packet], batch_size=1)
 
-        self.game_memory.append(arr, np.array([[1, 0, -1, -1, -1, -1, 0, 0, 0]]))  # should be replaced with hardcoded output
+        try:
+            atba_output = self.atba.get_action(arr)
+        except FloatingPointError:
+            self.logger.debug("something was wrong with the packet")
+            return self.empty_controller
+
+        assert (arr[0].shape == (1, 3, 9))
+        assert (arr[1].shape == (1, 5))
+        assert (atba_output.shape == (1, 9))
+
+        self.game_memory.append(arr, atba_output)
 
         arr = [self.torch.from_numpy(x).float() for x in arr]
 
+        # output = self.torch.from_numpy(np.array(self.atba.get_action(arr))).float()
+        # output.requires_grad_(False)
+        #
+        # network_output = self.model.forward(*arr)
+        #
+        # loss = self.loss_function(network_output, output)
+        # loss.backward()
+        #
+        # self.optimizer.step()
+
         with self.torch.no_grad():
             output = self.model.forward(*arr)
+
         output = [output[0], packet]
 
         return self.output_formatter.format_model_output(output, batch_size=1)[0]
