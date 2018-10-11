@@ -28,14 +28,14 @@ class ShotInputFormatter(BaseInputFormatter):
             else:
                 blue_team.append(player)
 
-
         return result
 
     def get_speed(self, frame):
         return np.sqrt(frame['vel_x']**2 + frame['vel_y']**2 + frame['vel_z']**2)
 
-    def get_distance_from_goal(self, frame, player):
-
+    def get_distance_from_goal(self, frame, player, team):
+        if team == 0:
+            return np.sqrt(frame['pos_x']**2 + (frame['pos_y'] - (6000 * (1 - team)))**2 + frame['vel_z']**2)
 
     def get_player_data(self, frame):
         return [frame['pos_x'], frame['pos_y'], frame['pos_z'],
