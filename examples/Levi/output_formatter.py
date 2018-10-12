@@ -21,23 +21,24 @@
 # SOFTWARE.
 
 from random import random
-from framework.output_formatter.base_output_formatter import BaseOutputFormatter
 from rlbot.agents.base_agent import SimpleControllerState
+from rlbot.utils.structures.game_data_struct import GameTickPacket
+import numpy as np
+from numpy import ndarray
 
 
-class LeviOutputFormatter(BaseOutputFormatter):
+class LeviOutputFormatter:
     controller_state = SimpleControllerState()
 
     def __init__(self, index):
         super().__init__()
         self.index = index
+        self.controller_state = SimpleControllerState()
 
-    def format_model_output(self, arr, batch_size=1):
+    def format_model_output(self, arr: ndarray, packet: GameTickPacket, batch_size=1) -> ndarray:
         if batch_size != 1:
             raise NotImplementedError
-
         action = arr[0]
-        packet = arr[1]  # hacky solution until we have packet support
 
         self.controller_state.throttle = action[0]
         self.controller_state.pitch = action[1]
@@ -58,10 +59,27 @@ class LeviOutputFormatter(BaseOutputFormatter):
         self.controller_state.yaw = action[7]
         self.controller_state.roll = action[8]
 
-        return [self.controller_state]
+        return np.array([self.controller_state])
 
-    def get_model_output_dimension(self):
+    @staticmethod
+    def get_model_output_dimension():
         return [(9,)]
+
+    def format_numpy_output(self, new_controller_state: SimpleControllerState, packet: GameTickPacket) -> ndarray:
+        result = np.array([[
+            new_controller_state.throttle,
+            new_controller_state.pitch,
+            1 if new_controller_state.boost else -1,
+            1 if new_controller_state.handbrake else -1,
+            1 if new_controller_state.jump else -1,
+            1 if (new_controller_state.jump and not self.controller_state.jump
+                  and packet.game_cars[self.index].jumped) or packet.game_cars[self.index].double_jumped else -1,
+            new_controller_state.steer,
+            new_controller_state.yaw,
+            new_controller_state.roll,
+        ]])
+        self.controller_state = new_controller_state
+        return result
 
 
 def semi_random(power):

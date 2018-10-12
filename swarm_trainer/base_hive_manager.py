@@ -2,6 +2,7 @@ import sys
 import psutil
 from rlbot.botmanager.bot_helper_process import BotHelperProcess
 from rlbot.utils.logging_utils import get_logger
+import time
 
 from framework.utils import get_repo_directory
 
@@ -75,6 +76,8 @@ class BaseHiveManager(BotHelperProcess):
         if action.shape[0] >= 1000:
             self.train_step(formatted_input=input_data, formatted_output=action,
                             rewards=reward, batch_size=action.shape[0])
+        else:
+            time.sleep(5)
 
     def initialize_training(self, load_model=False, load_exp=False):
         raise NotImplementedError()
