@@ -31,7 +31,7 @@ class SpatialInput(nn.Module):
         self.location = nn.Linear(2, size, bias=True)
         self.velocity = nn.Linear(2, size, bias=True)
         self.angular_velocity = nn.Linear(2, size, bias=True)
-        self.normal = nn.Linear(3, size, bias=False)
+        self.normal = nn.Linear(3, size, bias=True)
 
     def forward(self, spatial):
         processed_location = self.location(spatial[:, 0:2])
@@ -42,15 +42,31 @@ class SpatialInput(nn.Module):
         return processed_location * processed_velocity * processed_angular_velocity * processed_normal
 
 
+class SimpleSpatialInput(nn.Module):
+    def __init__(self, size):
+        nn.Module.__init__(self)
+
+        self.multiplier = nn.Linear(6, size, bias=True)
+        self.normal = nn.Linear(3, size, bias=True)
+
+    def forward(self, spatial):
+        processed_multiplier = self.multiplier(spatial[:, 0:6])
+        processed_normal = self.normal(spatial[:, 6:9])
+
+        return processed_multiplier * processed_normal
+
+
 class ActorModel(nn.Module):
     def __init__(self):
         nn.Module.__init__(self)
 
-        self.input_x = SpatialInput(10)
-        self.input_y = SpatialInput(10)
-        self.input_z = SpatialInput(10)
+        self.input_x = SimpleSpatialInput(10)
+        self.input_y = SimpleSpatialInput(10)
+        self.input_z = SimpleSpatialInput(5)
 
-        self.linear = nn.Linear(30, 9)
+        self.linear = nn.Linear(25, 25, bias=True)
+        self.soft_sign = nn.Softsign()
+        self.output = nn.Linear(25, 9, bias=True)
 
     def forward(self, spatial, car_stats):
         processed_x = self.input_x(spatial[:, 0])
@@ -58,8 +74,36 @@ class ActorModel(nn.Module):
         processed_z = self.input_z(spatial[:, 2])
 
         processed_spatial = torch.cat([processed_x, processed_y, processed_z], dim=1)
+        result = self.linear(processed_spatial)
+        result = self.soft_sign(result)
 
-        return self.linear(processed_spatial)
+        return self.output(result)
+
+
+# not used
+class CombinedActorModel(nn.Module):
+    def __init__(self):
+        nn.Module.__init__(self)
+
+        self.softmax = nn.Softmax(dim=1)
+        self.actor_list = []
+        for i in range(3):
+            m = ActorModel()
+            self.actor_list.append(m)
+            self.add_module('actor' + str(i), m)
+
+    def forward(self, spatial, car_stats):
+        result = torch.stack([self.actor_list[i](spatial, car_stats) for i in range(len(self.actor_list))], dim=2)
+
+        multiplier = self.softmax(result[:, 9, :])
+
+        result2 = torch.stack([result[:, i] * multiplier for i in range(9)], dim=1)
+
+        result3 = torch.cumsum(result2, dim=2)
+
+        result3 = result3[:, :, len(self.actor_list) - 1]
+
+        return result3
 
 
 class SymmetricModel(nn.Module):
@@ -67,7 +111,7 @@ class SymmetricModel(nn.Module):
         nn.Module.__init__(self)
 
         self.actor = ActorModel()
-        self.tanh = nn.Tanh()
+        self.soft_sign = nn.Softsign()
 
     def forward(self, spatial, car_stats):
         spatial_inv = torch.tensor(spatial)
@@ -81,6 +125,6 @@ class SymmetricModel(nn.Module):
         output[:, 0:6] += output_inv[:, 0:6]  # combine unflippable outputs
         output[:, 6:9] += -1 * output_inv[:, 6:9]  # combine flippable outputs
 
-        output = self.tanh(output)
+        output = self.soft_sign(output)
 
         return output

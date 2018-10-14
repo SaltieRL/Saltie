@@ -21,51 +21,67 @@
 # SOFTWARE.
 
 from random import random
-from framework.output_formatter.base_output_formatter import BaseOutputFormatter
+from rlbot.agents.base_agent import SimpleControllerState
+from rlbot.utils.structures.game_data_struct import GameTickPacket
 import numpy as np
+from numpy import ndarray
 
 
-class LeviOutputFormatter(BaseOutputFormatter):
-    jumped = False
+class LeviOutputFormatter:
+    controller_state = SimpleControllerState()
 
     def __init__(self, index):
         super().__init__()
         self.index = index
+        self.controller_state = SimpleControllerState()
 
-    def format_model_output(self, arr, batch_size=1):
+    def format_model_output(self, arr: ndarray, packet: GameTickPacket, batch_size=1) -> ndarray:
         if batch_size != 1:
             raise NotImplementedError
-
         action = arr[0]
-        packet = arr[1]  # hacky solution until we have packet support
 
-        player_input = np.zeros(9)
-
-        player_input[0] = action[0]  # throttle
-        player_input[2] = action[1]  # pitch
-        player_input[6] = action[2] > semi_random(3)  # boost
-        player_input[7] = action[3] > semi_random(3)  # handbrake
+        self.controller_state.throttle = action[0]
+        self.controller_state.pitch = action[1]
+        self.controller_state.boost = action[2] > semi_random(3)
+        self.controller_state.handbrake = action[3] > semi_random(3)
 
         in_the_air = packet.game_cars[self.index].jumped
         jump_1 = action[4] > semi_random(5)
         jump_2 = action[5] > semi_random(5)
 
-        jump_on_ground = not self.jumped and not in_the_air and jump_1
-        flip_in_air = not self.jumped and jump_2
+        jump_on_ground = not self.controller_state.jump and not in_the_air and jump_1
+        flip_in_air = not self.controller_state.jump and jump_2
         jump_in_air = in_the_air and (flip_in_air or not jump_2) and (jump_1 or jump_2)
 
-        player_input[5] = jump_on_ground or jump_in_air  # jump
-        self.jumped = player_input[5]
+        self.controller_state.jump = jump_on_ground or jump_in_air
 
-        player_input[1] = action[6]  # steer
-        player_input[3] = action[7]  # yaw
-        player_input[4] = action[8]  # roll
+        self.controller_state.steer = action[6]
+        self.controller_state.yaw = action[7]
+        self.controller_state.roll = action[8]
 
-        return [player_input]
+        return np.array([self.controller_state])
 
-    def get_model_output_dimension(self):
+    @staticmethod
+    def get_model_output_dimension():
         return [(9,)]
+
+    def format_numpy_output(self, new_controller_state: SimpleControllerState, packet: GameTickPacket) -> ndarray:
+        result = np.array([[
+            new_controller_state.throttle,
+            new_controller_state.pitch,
+            1 if new_controller_state.boost else -1,
+            1 if new_controller_state.handbrake else -1,
+            1 if new_controller_state.jump else -1,
+            1 if (new_controller_state.jump and not self.controller_state.jump
+                  and packet.game_cars[self.index].jumped) or packet.game_cars[self.index].double_jumped else -1,
+            new_controller_state.steer,
+            new_controller_state.yaw,
+            new_controller_state.roll,
+        ]])
+        self.controller_state = new_controller_state
+        return result
 
 
 def semi_random(power):
-    return pow(random() - random(), power)
+    # return pow(random() - random(), power)
+    return 0

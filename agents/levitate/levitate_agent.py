@@ -28,7 +28,8 @@ sys.path.insert(0, path)  # this is for first process imports
 from agents.swarm.swarm_agent import SwarmAgent
 from examples.levi.output_formatter import LeviOutputFormatter
 from examples.levi.input_formatter import LeviInputFormatter
-from rlbot.agents.base_agent import SimpleControllerState
+from rlbot.agents.base_agent import SimpleControllerState, BaseAgent
+from rlbot.utils.class_importer import ExternalClassWrapper
 
 
 class LeviAgent(SwarmAgent):
@@ -36,10 +37,16 @@ class LeviAgent(SwarmAgent):
         super().__init__(name, team, index)
         import torch
         self.torch = torch
-        from examples.levi.cool_atba import Atba
-        self.atba = Atba()
+        self.teacher = ExternalClassWrapper(
+            path + "//teachers//skybot//Skybot//Tournament editions//SkyBot_Tournament_2_edition.py",
+            BaseAgent).get_loaded_class()(name, team, index)
 
         self.empty_controller = SimpleControllerState()
+
+    def initialize_agent(self):
+        super().initialize_agent()
+        self.teacher._set_renderer(self.renderer)
+        self.teacher.initialize_agent()
 
     def get_manager_path(self):
         return path + "//examples//levi//torch_manager"
@@ -63,17 +70,14 @@ class LeviAgent(SwarmAgent):
 
         arr = self.input_formatter.create_input_array([packet], batch_size=1)
 
-        try:
-            atba_output = self.atba.get_action(arr)
-        except FloatingPointError:
-            self.logger.debug("something was wrong with the packet")
-            return self.empty_controller
+        teacher_output = self.teacher.get_output(packet)
+        teacher_output = self.output_formatter.format_numpy_output(teacher_output, packet)
 
         assert (arr[0].shape == (1, 3, 9))
         assert (arr[1].shape == (1, 5))
-        assert (atba_output.shape == (1, 9))
+        assert (teacher_output.shape == (1, 9))
 
-        self.game_memory.append(arr, atba_output)
+        self.game_memory.append(arr, teacher_output)
 
         arr = [self.torch.from_numpy(x).float() for x in arr]
 
