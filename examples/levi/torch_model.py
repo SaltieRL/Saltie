@@ -42,27 +42,13 @@ class SpatialInput(nn.Module):
         return processed_location * processed_velocity * processed_angular_velocity * processed_normal
 
 
-class SimpleSpatialInput(nn.Module):
-    def __init__(self, size):
-        nn.Module.__init__(self)
-
-        self.multiplier = nn.Linear(6, size, bias=True)
-        self.normal = nn.Linear(3, size, bias=True)
-
-    def forward(self, spatial):
-        processed_multiplier = self.multiplier(spatial[:, 0:6])
-        processed_normal = self.normal(spatial[:, 6:9])
-
-        return processed_multiplier * processed_normal
-
-
 class ActorModel(nn.Module):
     def __init__(self):
         nn.Module.__init__(self)
 
-        self.input_x = SimpleSpatialInput(10)
-        self.input_y = SimpleSpatialInput(10)
-        self.input_z = SimpleSpatialInput(5)
+        self.input_x = SpatialInput(10)
+        self.input_y = SpatialInput(10)
+        self.input_z = SpatialInput(5)
 
         self.linear = nn.Linear(25, 25, bias=True)
         self.soft_sign = nn.Softsign()
@@ -111,7 +97,7 @@ class SymmetricModel(nn.Module):
         nn.Module.__init__(self)
 
         self.actor = ActorModel()
-        self.soft_sign = nn.Softsign()
+        self.tanh = nn.Tanh()
 
     def forward(self, spatial, car_stats):
         spatial_inv = torch.tensor(spatial)
@@ -125,6 +111,6 @@ class SymmetricModel(nn.Module):
         output[:, 0:6] += output_inv[:, 0:6]  # combine unflippable outputs
         output[:, 6:9] += -1 * output_inv[:, 6:9]  # combine flippable outputs
 
-        output = self.soft_sign(output)
+        output = self.tanh(output)
 
         return output
