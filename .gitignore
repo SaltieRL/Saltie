@@ -114,3 +114,4 @@ hits_all.pkl
 
 # weight files
 *.mdl
+teacher
