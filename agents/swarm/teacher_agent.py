@@ -48,6 +48,7 @@ class TeacherAgent(SwarmAgent):
     def load_config(self, config_object_header: ConfigHeader):
         super().load_config(config_object_header)
         teacher_path = config_object_header.get_string('teacher_path')
+        print(os.path.join(path, teacher_path))
         self.teacher = ExternalClassWrapper(os.path.join(path, teacher_path),
                                             BaseAgent).get_loaded_class()(self.name, self.team, self.index)
 
@@ -85,5 +86,5 @@ class TeacherAgent(SwarmAgent):
     def create_agent_configurations(config: ConfigObject):
         super(TeacherAgent, TeacherAgent).create_agent_configurations(config)
         params = config.get_header(BOT_CONFIG_AGENT_HEADER)
-        params.add_value('teacher_path', str, default=os.path.join('examples', 'levi', 'cool_atba.py'),
+        params.add_value('teacher_path', str, default=os.path.join('agents', 'cool_atba', 'cool_atba_agent.py'),
                          description='Path to the teacher bot')

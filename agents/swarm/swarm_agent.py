@@ -58,5 +58,5 @@ class SwarmAgent(BaseAgent):
     def create_agent_configurations(config: ConfigObject):
         super(SwarmAgent, SwarmAgent).create_agent_configurations(config)
         params = config.get_header(BOT_CONFIG_AGENT_HEADER)
-        params.add_value('manager_path', str, default=os.path.join('examples', 'levi', 'torch_manager'),
+        params.add_value('manager_path', str, default=os.path.join('examples', 'levi', 'torch_manager.py'),
                          description='Path to the manager bot')
