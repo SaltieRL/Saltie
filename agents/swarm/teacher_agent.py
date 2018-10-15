@@ -21,16 +21,12 @@
 # SOFTWARE.
 
 import os
-import sys
 
 from rlbot.parsing.custom_config import ConfigHeader, ConfigObject
-
-path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-sys.path.insert(0, path)  # this is for first process imports
-
 from agents.swarm.swarm_agent import SwarmAgent
 from rlbot.agents.base_agent import SimpleControllerState, BaseAgent, BOT_CONFIG_AGENT_HEADER
 from rlbot.utils.class_importer import ExternalClassWrapper
+from framework.utils import get_repo_directory
 
 
 class TeacherAgent(SwarmAgent):
@@ -48,7 +44,7 @@ class TeacherAgent(SwarmAgent):
     def load_config(self, config_object_header: ConfigHeader):
         super().load_config(config_object_header)
         teacher_path = config_object_header.get('teacher_path')
-        self.teacher = ExternalClassWrapper(os.path.join(path, teacher_path),
+        self.teacher = ExternalClassWrapper(os.path.join(get_repo_directory(), teacher_path),
                                             BaseAgent).get_loaded_class()(self.name, self.team, self.index)
 
     def get_output(self, packet):
@@ -77,12 +73,21 @@ class TeacherAgent(SwarmAgent):
 
         return self.output_formatter.format_model_output(output, packet, batch_size=1)[0]
 
-    def advanced_step(self, arr, teacher_output):
-        raise NotImplementedError()
-
     @staticmethod
     def create_agent_configurations(config: ConfigObject):
         super(TeacherAgent, TeacherAgent).create_agent_configurations(config)
         params = config.get_header(BOT_CONFIG_AGENT_HEADER)
         params.add_value('teacher_path', str, default=os.path.join('agents', 'cool_atba', 'cool_atba_agent.py'),
                          description='Path to the teacher bot')
+
+    def advanced_step(self, arr, teacher_output):
+        raise NotImplementedError()
+
+    def create_output_formatter(self):
+        raise NotImplementedError
+
+    def create_input_formatter(self):
+        raise NotImplementedError
+
+    def get_manager_path(self):
+        raise NotImplementedError

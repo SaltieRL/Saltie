@@ -1,3 +1,4 @@
+import os
 import sys
 import psutil
 from rlbot.botmanager.bot_helper_process import BotHelperProcess
@@ -13,13 +14,15 @@ class BaseHiveManager(BotHelperProcess):
 
     def __init__(self, agent_metadata_queue, quit_event):
         super().__init__(agent_metadata_queue, quit_event)
-        self.logger = get_logger('base_hive_mgr')
         sys.path.insert(0, get_repo_directory())  # this is for separate process imports
+        self.logger = get_logger('base_hive_mgr')
 
         self.manager = self.setup_manager()
         self.game_memory = self.manager.Memory()
         self.actor_model = self.get_model()
         self.shared_model_handle = self.get_shared_model_handle()
+        self.model_path = None
+        self.load_model = None
 
         self.setup_trainer()
 
@@ -47,6 +50,8 @@ class BaseHiveManager(BotHelperProcess):
         while not self.metadata_queue.empty():
             metadata = self.metadata_queue.get()
             pipe = metadata.helper_process_request.pipe
+            self.model_path = metadata.helper_process_request.model_path
+            self.load_model = metadata.helper_process_request.load_model
 
             pipe.send(self.shared_model_handle)
             pipe.send(self.game_memory)
@@ -64,7 +69,7 @@ class BaseHiveManager(BotHelperProcess):
         Loops through the game providing training as data is collected.
         :return:
         """
-        self.initialize_training()
+        self.initialize_training(load_model=self.load_model)
 
         while not self.quit_event.is_set():
             self.learn_memory()
@@ -101,4 +106,4 @@ class BaseHiveManager(BotHelperProcess):
         return str(type(self.actor_model).__name__)
 
     def get_file_path(self):
-        return get_repo_directory() + '/trainer/weights/' + self.get_model_name() + '.mdl'
+        return os.path.join(get_repo_directory(), self.model_path)

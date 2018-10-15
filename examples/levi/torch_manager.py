@@ -51,11 +51,11 @@ class TorchManager(BaseHiveManager):
 
     def initialize_training(self, load_model=False, load_exp=False):
         if load_model:
-            file_path = path + '\examples\levi\weights\cool_atba.w'
+            file_path = self.get_file_path()
             self.actor_model.load_state_dict(self.torch.load(file_path))
-        if load_exp:
-            file_path = self.get_file_path()  # should be different actually
-            self.game_memory.load(file_path)
+        # if load_exp:
+        #     file_path = self.get_file_path()  # should be different actually
+        #     self.game_memory.load(file_path)
 
     def train_step(self, formatted_input, formatted_output, rewards=None, batch_size=1):
         self.optimizer.zero_grad()
@@ -75,8 +75,8 @@ class TorchManager(BaseHiveManager):
 
     def finish_training(self, save_model=True, save_exp=False):
         if save_model:
-            file_path = path + '\examples\levi\weights\cool_atba.w'
+            file_path = self.get_file_path()
             print('saving model at:', file_path)
             self.torch.save(self.actor_model.state_dict(), file_path)
-        if save_exp:
-            self.game_memory.save(self.actor_model.get_model_name() + '.exp')
+        # if save_exp:
+        #     self.game_memory.save(self.actor_model.get_model_name() + '.exp')

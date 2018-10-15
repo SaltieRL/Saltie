@@ -38,6 +38,9 @@ class LeviAgent(TeacherAgent):
         import torch
         self.torch = torch
 
+    def get_manager_path(self):
+        return os.path.join(path, 'examples', 'levi', 'torch_manager.py')
+
     def create_input_formatter(self):
         return LeviInputFormatter(self.team, self.index)
 
