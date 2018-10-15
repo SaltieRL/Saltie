@@ -47,8 +47,7 @@ class TeacherAgent(SwarmAgent):
 
     def load_config(self, config_object_header: ConfigHeader):
         super().load_config(config_object_header)
-        teacher_path = config_object_header.get_string('teacher_path')
-        print(os.path.join(path, teacher_path))
+        teacher_path = config_object_header.get('teacher_path')
         self.teacher = ExternalClassWrapper(os.path.join(path, teacher_path),
                                             BaseAgent).get_loaded_class()(self.name, self.team, self.index)
 
@@ -80,7 +79,6 @@ class TeacherAgent(SwarmAgent):
 
     def advanced_step(self, arr, teacher_output):
         raise NotImplementedError()
-
 
     @staticmethod
     def create_agent_configurations(config: ConfigObject):

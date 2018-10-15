@@ -37,7 +37,7 @@ class SwarmAgent(BaseAgent):
         return request
 
     def load_config(self, config_object_header: ConfigHeader):
-        self.manager_path = config_object_header.get_string('manager_path')
+        self.manager_path = config_object_header.get('manager_path')
 
     def get_manager_path(self):
         return os.path.join(path, self.manager_path)
