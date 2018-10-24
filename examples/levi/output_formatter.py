@@ -63,7 +63,7 @@ class LeviOutputFormatter:
 
     @staticmethod
     def get_model_output_dimension():
-        return [(9,)]
+        return (9,)
 
     def format_numpy_output(self, new_controller_state: SimpleControllerState, packet: GameTickPacket) -> ndarray:
         result = np.array([[

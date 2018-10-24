@@ -13,21 +13,36 @@ def non_parallel(func):
 
 
 class BaseRewardMemory:
-    def __init__(self):
-        self.input_data = [np.array([])]
-        self.action = np.zeros((0, 9))
+    filled = False
+
+    def __init__(self, limit, input_shape, output_shape):
+        self.limit = limit
+        self.input_data = [np.empty((0,) + shape) for shape in input_shape]
+        self.action = np.empty((0,) + output_shape)
         # self.reward = np.array((0,))
         self.lock = Lock()
         np.seterr(all='raise')
 
     @non_parallel
     def append(self, input_data, action, reward=None):
-        if self.input_data[0].size == 0:  # we don't know the amount of numpy arrays yet
-            self.input_data = input_data
-        else:
-            self.input_data = [np.concatenate((n, input_data[i]), axis=0) for i, n in enumerate(self.input_data)]
+        space = self.limit - self.action.shape[0]
 
-        self.action = np.concatenate((self.action, action), axis=0)
+        if action.shape[0] <= space:  # all of the new data fits
+            self.input_data = [np.concatenate((n, input_data[i]), axis=0) for i, n in enumerate(self.input_data)]
+            self.action = np.concatenate((self.action, action), axis=0)
+        elif space == 0:  # none of the new data fits
+            indexes = np.random.randint(self.action.shape[0], size=action.shape[0])
+            for i, n in enumerate(self.input_data):
+                n[indexes, :] = input_data[i]
+            self.action[indexes, :] = action
+        else:  # only part of the new data fits
+            self.input_data = [np.concatenate((n, input_data[:space]), axis=0) for i, n in enumerate(self.input_data)]
+            self.action = np.concatenate((self.action, action[:space]), axis=0)
+
+            indexes = np.random.randint(self.action.shape[0], size=action.shape[0] - space)
+            for i, n in enumerate(self.input_data):
+                n[indexes, :] = input_data[i][space:]
+            self.action[indexes, :] = action[space:]
 
         # if reward is not None:
         #     self.reward = np.concatenate((self.reward, reward), axis=0)

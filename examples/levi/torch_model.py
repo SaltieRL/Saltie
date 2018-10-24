@@ -128,3 +128,11 @@ class SymmetricModel(nn.Module):
         output = self.soft_sign(output)
 
         return output
+
+    @staticmethod
+    def get_input_state_dimension():
+        return [(3, 9), (5,)]
+
+    @staticmethod
+    def get_model_output_dimension():
+        return (9,)
