@@ -20,36 +20,36 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from framework.input_formatter.base_input_formatter import BaseInputFormatter
-from framework.output_formatter.base_output_formatter import BaseOutputFormatter
+import os
+import sys
+
+from agents.swarm.teacher_agent import TeacherAgent
+
+path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, path)  # this is for first process imports
+
+from examples.levi.output_formatter import LeviOutputFormatter
+from examples.levi.input_formatter import LeviInputFormatter
 
 
-class OnlineModelHolder:
-    def __init__(self, model, input_formatter: BaseInputFormatter, output_formatter: BaseOutputFormatter):
-        """
-        :param model:
-        :param input_formatter:
-        :param output_formatter:
-        """
+class LeviAgent(TeacherAgent):
+    def __init__(self, name, team, index):
+        super().__init__(name, team, index)
         import torch
         self.torch = torch
-        self.model = model
-        self.input_formatter = input_formatter
-        self.output_formatter = output_formatter
 
-    def predict(self, packet):
-        """
-        Predicts an output given the input
-        :param packet: The game_tick_packet
-        :return:
-        """
-        arr = self.input_formatter.create_input_array([packet], batch_size=1)
+    def get_manager_path(self):
+        return os.path.join(path, 'examples', 'levi', 'torch_manager.py')
 
+    def create_input_formatter(self):
+        return LeviInputFormatter(self.team, self.index)
+
+    def create_output_formatter(self):
+        return LeviOutputFormatter(self.index)
+
+    def advanced_step(self, arr, teacher_output):
         arr = [self.torch.from_numpy(x).float() for x in arr]
 
         with self.torch.no_grad():
             output = self.model.forward(*arr)
-
-        output = [output[0], packet]
-
-        return self.output_formatter.format_model_output(output, batch_size=1)[0]
+        return output

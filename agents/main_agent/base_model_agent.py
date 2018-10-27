@@ -8,7 +8,7 @@ from examples.lstm.lstm_input_formatter import LSTMInputFormatter
 from examples.legacy.legacy_output_formatter import LegacyOutputFormatter
 from examples.lstm.lstm_output_formatter import LSTMOutputFormatter
 
-import os
+from framework.utils import get_repo_directory
 import sys
 
 
@@ -19,8 +19,7 @@ class BaseModelAgent(BaseAgent):
     def __init__(self, name, team, index):
         super().__init__(name, team, index)
         self.logger = get_logger(name)
-        path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        sys.path.append(path)
+        sys.path.insert(0, get_repo_directory())  # this is for separate process imports
 
     def initialize_agent(self):
         # This runs once before the bot starts up

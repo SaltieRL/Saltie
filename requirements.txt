@@ -6,7 +6,6 @@ pandas
 requests
 fs
 numpy
-tensorflow
 xlrd
 matplotlib
 carball
