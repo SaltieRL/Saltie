@@ -11,7 +11,7 @@ from framework.utils import get_repo_directory
 class BaseHiveManager(BotHelperProcess):
 
     batch_size = 2000
-    memory_size = 10000
+    memory_size = 100000
 
     def __init__(self, agent_metadata_queue, quit_event):
         super().__init__(agent_metadata_queue, quit_event)
