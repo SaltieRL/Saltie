@@ -61,7 +61,7 @@ class BaseHiveManager(BotHelperProcess):
         self.logger.info('set up all agents')
 
         my_process = psutil.Process()
-        my_process.cpu_affinity([1, 2, 3])
+        my_process.cpu_affinity([0])
         my_process.nice(psutil.HIGH_PRIORITY_CLASS)
 
         self.game_loop()
