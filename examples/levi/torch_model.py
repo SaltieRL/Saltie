@@ -66,7 +66,7 @@ class ActorModel(nn.Module):
 
         self.linear = nn.Linear(25, 25, bias=True)
         self.soft_sign = nn.Softsign()
-        self.output = nn.Linear(25, 9, bias=True)
+        self.output = nn.Linear(25, 13, bias=True)
 
     def forward(self, spatial, car_stats):
         processed_x = self.input_x(spatial[:, 0])
@@ -122,8 +122,8 @@ class SymmetricModel(nn.Module):
         output = self.actor(spatial, car_stats)
         output_inv = self.actor(spatial_inv, car_stats)
 
-        output[:, 0:6] += output_inv[:, 0:6]  # combine unflippable outputs
-        output[:, 6:9] += -1 * output_inv[:, 6:9]  # combine flippable outputs
+        output[:, 0:9] += output_inv[:, 0:9]  # combine unflippable outputs
+        output[:, 9:13] += -1 * output_inv[:, 9:13]  # combine flippable outputs
 
         output = self.soft_sign(output)
 
@@ -135,4 +135,4 @@ class SymmetricModel(nn.Module):
 
     @staticmethod
     def get_model_output_dimension():
-        return (9,)
+        return (13,)

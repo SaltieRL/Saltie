@@ -34,6 +34,7 @@ class TeacherAgent(SwarmAgent):
         super().__init__(name, team, index)
         self.empty_controller = SimpleControllerState()
         self.teacher = None
+        self.teacher_formatter = self.create_output_formatter()
         self.manager_path = None
 
     def initialize_agent(self):
@@ -61,17 +62,20 @@ class TeacherAgent(SwarmAgent):
         arr = self.input_formatter.create_input_array([packet], batch_size=1)
 
         teacher_output = self.teacher.get_output(packet)
-        teacher_output = self.output_formatter.format_numpy_output(teacher_output, packet)
+        teacher_output, mask = self.teacher_formatter.format_numpy_output(teacher_output, packet)
 
         assert (arr[0].shape == (1, 3, 9))
         assert (arr[1].shape == (1, 5))
-        assert (teacher_output.shape == (1, 9))
+        assert (teacher_output.shape == (1, 13))
+        assert (mask.shape == (1, 13))
 
-        self.game_memory.append(arr, teacher_output)
+        self.game_memory.append(arr, teacher_output, mask)
 
         output = self.advanced_step(arr, teacher_output)
 
-        return self.output_formatter.format_model_output(output, packet, batch_size=1)[0]
+        # print(teacher_output[0, 5], output[0, 5], mask[0, 5])
+
+        return self.output_formatter.format_model_output(output, [packet], batch_size=1)[0]
 
     @staticmethod
     def create_agent_configurations(config: ConfigObject):

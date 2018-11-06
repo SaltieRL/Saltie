@@ -57,15 +57,16 @@ class TorchManager(BaseHiveManager):
         #     file_path = self.get_file_path()  # should be different actually
         #     self.game_memory.load(file_path)
 
-    def train_step(self, formatted_input, formatted_output, rewards=None, batch_size=1):
+    def train_step(self, formatted_input, formatted_output, mask, rewards=None, batch_size=1):
         self.optimizer.zero_grad()
 
         formatted_input = [self.torch.from_numpy(x).float() for x in formatted_input]
         formatted_output = self.torch.from_numpy(formatted_output).float()
+        mask = self.torch.from_numpy(mask).float()
 
         network_output = self.actor_model.forward(*formatted_input)
 
-        loss = self.loss_function(network_output, formatted_output)
+        loss = self.loss_function(network_output * mask, formatted_output * mask)
         loss.backward()
         # for i in range(9):
         #     trace(self.loss_function(network_output[:, i], formatted_output[:, i]).item(), key=i)
