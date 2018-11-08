@@ -74,7 +74,7 @@ class TorchModelAgent(BaseAgent):
 
         output = self.advanced_step(arr)
 
-        return self.output_formatter.format_model_output(output, packet, batch_size=1)[0]
+        return self.output_formatter.format_model_output(output, [packet], batch_size=1)[0]
 
     def create_input_formatter(self):
         return LeviInputFormatter(self.team, self.index)
