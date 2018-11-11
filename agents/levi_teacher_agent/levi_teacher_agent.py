@@ -32,7 +32,7 @@ from examples.levi.output_formatter import LeviOutputFormatter
 from examples.levi.input_formatter import LeviInputFormatter
 
 
-class LeviAgent(TeacherAgent):
+class LeviTeacherAgent(TeacherAgent):
     def __init__(self, name, team, index):
         super().__init__(name, team, index)
         import torch

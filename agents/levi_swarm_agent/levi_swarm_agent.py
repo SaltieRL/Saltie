@@ -22,27 +22,25 @@
 
 import os
 import sys
+from rlbot.agents.base_agent import SimpleControllerState
+
 path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, path)  # this is for first process imports
 
-from agents.swarm.swarm_agent import SwarmAgent
 from examples.levi.output_formatter import LeviOutputFormatter
 from examples.levi.input_formatter import LeviInputFormatter
-from rlbot.agents.base_agent import SimpleControllerState
+from agents.swarm.teacher_agent import SwarmAgent
 
 
-class LeviAgent(SwarmAgent):
+class LeviSwarmAgent(SwarmAgent):
     def __init__(self, name, team, index):
         super().__init__(name, team, index)
         import torch
         self.torch = torch
-        from examples.levi.cool_atba import Atba
-        self.atba = Atba()
-
         self.empty_controller = SimpleControllerState()
 
     def get_manager_path(self):
-        return path + "//examples//levi//torch_manager"
+        return os.path.join(path, 'examples', 'levi', 'torch_manager.py')
 
     def create_input_formatter(self):
         return LeviInputFormatter(self.team, self.index)
@@ -63,21 +61,18 @@ class LeviAgent(SwarmAgent):
 
         arr = self.input_formatter.create_input_array([packet], batch_size=1)
 
-        try:
-            atba_output = self.atba.get_action(arr)
-        except FloatingPointError:
-            self.logger.debug("something was wrong with the packet")
-            return self.empty_controller
-
         assert (arr[0].shape == (1, 3, 9))
         assert (arr[1].shape == (1, 5))
-        assert (atba_output.shape == (1, 9))
 
-        self.game_memory.append(arr, atba_output)
+        output = self.advanced_step(arr)
 
+        # print(teacher_output[0, 5], output[0, 5], mask[0, 5])
+
+        return self.output_formatter.format_model_output(output, [packet], batch_size=1)[0]
+
+    def advanced_step(self, arr):
         arr = [self.torch.from_numpy(x).float() for x in arr]
 
         with self.torch.no_grad():
             output = self.model.forward(*arr)
-
-        return self.output_formatter.format_model_output(output, packet, batch_size=1)[0]
+        return output

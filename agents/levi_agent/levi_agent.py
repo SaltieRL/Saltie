@@ -32,7 +32,7 @@ from examples.levi.output_formatter import LeviOutputFormatter
 from examples.levi.input_formatter import LeviInputFormatter
 
 
-class TorchModelAgent(BaseAgent):
+class LeviAgent(BaseAgent):
     def __init__(self, name, team, index):
         super().__init__(name, team, index)
         sys.path.insert(0, path)  # this is for separate process imports
