@@ -9,3 +9,5 @@ numpy
 xlrd
 matplotlib
 carball
+pynput
+quicktracer
