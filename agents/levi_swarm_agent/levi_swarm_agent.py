@@ -22,11 +22,10 @@
 
 import os
 import sys
-from rlbot.agents.base_agent import SimpleControllerState
-
 path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, path)  # this is for first process imports
 
+from rlbot.agents.base_agent import SimpleControllerState
 from examples.levi.output_formatter import LeviOutputFormatter
 from examples.levi.input_formatter import LeviInputFormatter
 from agents.swarm.teacher_agent import SwarmAgent
@@ -65,8 +64,6 @@ class LeviSwarmAgent(SwarmAgent):
         assert (arr[1].shape == (1, 5))
 
         output = self.advanced_step(arr)
-
-        # print(teacher_output[0, 5], output[0, 5], mask[0, 5])
 
         return self.output_formatter.format_model_output(output, [packet], batch_size=1)[0]
 

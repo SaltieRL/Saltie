@@ -95,7 +95,7 @@ class LeviAgent(BaseAgent):
 
     @staticmethod
     def create_agent_configurations(config: ConfigObject):
-        super(TorchModelAgent, TorchModelAgent).create_agent_configurations(config)
+        super(LeviAgent, LeviAgent).create_agent_configurations(config)
         params = config.get_header(BOT_CONFIG_AGENT_HEADER)
         params.add_value('model_path', str, default=os.path.join('models', 'cool_atba.mdl'),
                          description='Path to the model file')
