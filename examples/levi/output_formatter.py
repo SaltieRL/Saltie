@@ -45,8 +45,6 @@ from numpy import ndarray
 # roll - scalar
 
 class LeviOutputFormatter:
-    controller_state = SimpleControllerState()
-
     def __init__(self, index):
         super().__init__()
         self.index = index
@@ -148,7 +146,9 @@ class LeviOutputFormatter:
             1 if not can_jump and not second_jump else 0,  # roll
         ]])
 
-        self.controller_state = new_controller_state
+        # we should not reference the new_controller_state, because it can change
+        # we only need jump, so we can just copy the value
+        self.controller_state.jump = new_controller_state.jump
         return result, mask
 
 
