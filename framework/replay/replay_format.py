@@ -1,4 +1,5 @@
 import zlib
+from io import BytesIO
 
 from carball.analysis.utils.pandas_manager import PandasManager
 from carball.generated.api import game_pb2
@@ -37,7 +38,8 @@ class GeneratedReplay:
         """
         if self.decoded_pandas is not None:
             return self.decoded_pandas
-        self.decoded_pandas = PandasManager.safe_read_pandas_to_memory(zlib.decompress(self.pandas))
+        stream = BytesIO(zlib.decompress(self.pandas, zlib.MAX_WBITS | 16))
+        self.decoded_pandas = PandasManager.safe_read_pandas_to_memory(stream)
         self.pandas = None
         return self.decoded_pandas
 
