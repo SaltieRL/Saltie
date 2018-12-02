@@ -135,4 +135,4 @@ class SymmetricModel(nn.Module):
 
     @staticmethod
     def get_model_output_dimension():
-        return (13,)
+        return [(13,)]

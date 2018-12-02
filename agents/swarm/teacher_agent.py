@@ -69,7 +69,10 @@ class TeacherAgent(SwarmAgent):
         assert (teacher_output.shape == (1, 13))
         assert (mask.shape == (1, 13))
 
-        self.game_memory.append(arr, teacher_output, mask)
+        data_list = arr.copy()
+        data_list.extend([teacher_output, mask])
+
+        self.game_memory.append(data_list)
 
         output = self.advanced_step(arr, teacher_output)
 

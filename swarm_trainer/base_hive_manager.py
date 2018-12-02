@@ -21,8 +21,12 @@ class BaseHiveManager(BotHelperProcess):
         self.actor_model = self.get_model()
         self.shared_model_handle = self.get_shared_model_handle()
         self.manager = self.setup_manager()
-        self.game_memory = self.manager.Memory(self.memory_size, self.actor_model.get_input_state_dimension(),
-                                               self.actor_model.get_model_output_dimension())
+
+        shape_list = self.actor_model.get_input_state_dimension()
+        shape_list.extend(self.actor_model.get_model_output_dimension())
+        shape_list.extend(self.actor_model.get_model_output_dimension())
+
+        self.game_memory = self.manager.Memory(self.memory_size, shape_list)
         self.model_path = None
         self.load_model = None
 
@@ -37,9 +41,9 @@ class BaseHiveManager(BotHelperProcess):
     @staticmethod
     def setup_manager():
         from multiprocessing.managers import BaseManager
-        from swarm_trainer.reward_memory import BaseRewardMemory
+        from swarm_trainer.memory import BaseMemory
 
-        BaseManager.register('Memory', BaseRewardMemory)
+        BaseManager.register('Memory', BaseMemory)
         manager = BaseManager()
         manager.start()
 
@@ -61,8 +65,8 @@ class BaseHiveManager(BotHelperProcess):
         self.logger.info('set up all agents')
 
         my_process = psutil.Process()
-        my_process.cpu_affinity([0])
-        my_process.nice(psutil.HIGH_PRIORITY_CLASS)
+        my_process.cpu_affinity([0, 2])
+        my_process.nice(psutil.NORMAL_PRIORITY_CLASS)
 
         self.game_loop()
 
@@ -79,25 +83,20 @@ class BaseHiveManager(BotHelperProcess):
         self.finish_training()
 
     def learn_memory(self):
-        input_data, action, mask = self.game_memory.get_random_sample(self.batch_size)
-        if action.shape[0] >= 1000:
-            self.train_step(formatted_input=input_data, formatted_output=action,
-                            mask=mask, batch_size=action.shape[0])
+        if self.game_memory.get_size() >= 1000:
+            data_list = self.game_memory.get_sample(self.batch_size)
+            self.train_step(data_list)
         else:
             time.sleep(5)
 
     def initialize_training(self, load_model=False, load_exp=False):
         raise NotImplementedError()
 
-    def train_step(self, formatted_input, formatted_output, mask, rewards=None, batch_size=1):
+    def train_step(self, data_list):
         """
         Performs a single train step on the data given.
         All data (input, output, rewards) should end up producing arrays of the same length
-        :param formatted_input: Fed as input to the model this is the data that is expected to produce results.
-        :param formatted_output: The expected result that the model should produce.
-        :param mask: The mask for the expected output
-        :param rewards: Optional, rewards are weighted values to say how strongly a certain action should be copied.
-        :param batch_size: How many are in the array
+        :param data_list contains the data that was saved by the agents
         :return:
         """
         raise NotImplementedError()

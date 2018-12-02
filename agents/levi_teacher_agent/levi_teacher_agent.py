@@ -52,4 +52,5 @@ class LeviTeacherAgent(TeacherAgent):
 
         with self.torch.no_grad():
             output = self.model.forward(*arr)
+
         return output
