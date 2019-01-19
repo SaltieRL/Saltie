@@ -67,7 +67,7 @@ class SelfEvolvingCar(BaseAgent):
             print("------FITNESS = " + str(self.fittest.fitness))
             for i in range(len(self.botList)):
                 print("FITNESS OF BOT " + str(i) + " = " + str(self.botList[i].fitness))
-                print(self.botList[i].model.parameters)
+                print(self.botList[i].model.parameters())
 
             # NE Functions
             self.selection()
@@ -95,7 +95,7 @@ class SelfEvolvingCar(BaseAgent):
 
         # RENDER RESULTS
         self.renderer.begin_rendering()
-        message =  "GEN: " + str(self.gen + 1) + " | BOT: " + str(self.brain)
+        message = "GEN: " + str(self.gen + 1) + " | BOT: " + str(self.brain)
         self.renderer.draw_string_2d(10, 10, 3, 3, message, self.renderer.white())
         self.renderer.end_rendering()
 
@@ -162,17 +162,20 @@ class SelfEvolvingCar(BaseAgent):
 
     def selection(self):
         # COPY FITTEST WEIGHTS TO ALL GENOMES
-        path = "./dict.pt"
-        fittest_dict = torch.save(self.botList[self.fittest.index].model.state_dict(),path)
-        self.botList[0].model.load_state_dict(fittest_dict)
+        for i in self.botList:
+            for param_cur, param_best in zip(i.model.parameters(), self.botList[self.fittest.index].model.parameters()):
+                param_cur.data = param_best.data
 
     def mutate(self):
         # MUTATE FIRST 5 GENOMES
-        for i in self.botList:
-           for p in range(0, 4):
-                mutweight = random.randint(0, 1)
-                for param in i.model.parameters():
-                    param.data = torch.rand(param.data.size())
+        for i in range(int(len(self.botList)/2)):
+            for param in self.botList[i].model.parameters():
+                if random.uniform(-1, 1) > 0:
+                    scale = 1
+                else:
+                    scale = -1
+                param.data = torch.rand(param.data.size())
+                param.data = (param.data/1000) * scale
 
 
 class Fittest:
