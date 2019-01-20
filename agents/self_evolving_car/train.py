@@ -3,8 +3,8 @@ import random
 from rlbot.utils.game_state_util import GameState, BallState, CarState, Physics, Vector3, Rotator, GameInfoState
 from rlbot.agents.base_agent import BaseAgent, SimpleControllerState
 from rlbot.utils.structures.game_data_struct import GameTickPacket
-from input_formatter import LeviInputFormatter
-from output_formatter import LeviOutputFormatter
+from examples.levi.input_formatter import LeviInputFormatter
+from examples.levi.output_formatter import LeviOutputFormatter
 import sys, os
 
 
@@ -14,7 +14,7 @@ class PythonExample(BaseAgent):
 
         import torch
         sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # this is for separate process imports
-        from model import SymmetricModel
+        from examples.levi.torch_model import SymmetricModel
         self.Model = SymmetricModel
         self.torch = torch
         self.controller_state = SimpleControllerState()
