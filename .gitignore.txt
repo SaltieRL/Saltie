@@ -1,2 +1,2 @@
-__pycache__
-.idea
+./*/.idea
+./*/__pycache__
