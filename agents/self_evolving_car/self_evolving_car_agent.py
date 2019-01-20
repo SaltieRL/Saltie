@@ -30,7 +30,7 @@ class SelfEvolvingCar(BaseAgent):
         self.pos = 0
         self.botList = []  # list of Individual() objects
         self.fittest = Fittest()  # fittest object
-        self.mutRate = 0.1  # mutation rate
+        self.mutRate = 0.5 # mutation rate
         self.distance_to_ball = [10000] * 10000  # set high for easy minumum
         self.input_formatter = self.create_input_formatter()
         self.output_formatter = self.create_output_formatter()
@@ -60,7 +60,7 @@ class SelfEvolvingCar(BaseAgent):
             self.brain = 0
 
             # PRINT GENERATION INFO
-            self.avg_best_fitness()
+           # self.avg_best_fitness()
             self.calc_fittest()
             print("")
             print("     GEN = " + str(self.gen))
@@ -69,14 +69,15 @@ class SelfEvolvingCar(BaseAgent):
             print("------FITNESS = " + str(self.fittest.fitness))
             for i in range(len(self.botList)):
                 print("FITNESS OF BOT " + str(i) + " = " + str(self.botList[i].fitness))
-                #print(list(self.botList[i].model.parameters()))
+                self.weights = list(self.botList[i].model.parameters())
+                print(self.weights[0][0])
             # NE Functions
             self.selection()
             self.mutate()
             self.brain = 0  # reset bots after all have gone
 
         self.frame = self.frame + 1
-        if self.frame > 5000:
+        if self.frame > 500:
             self.frame = 0
 
         # NEURAL NET INPUTS
@@ -105,14 +106,14 @@ class SelfEvolvingCar(BaseAgent):
             self.mutRate = 0
 
         # GAME STATE
-        car_state = CarState(boost_amount=100)
+        #car_state = CarState(boost_amount=100)
         ball_state = BallState(
-            Physics(velocity=Vector3(0, 0, 0), location=Vector3(0, -1000, 1200), angular_velocity=Vector3(0, 0, 0)))
-        game_state = GameState(ball=ball_state, cars={self.index: car_state})
+            Physics(velocity=Vector3(0, 0, 0), location=Vector3(0, -3000, 1200), angular_velocity=Vector3(0, 0, 0)))
+        game_state = GameState(ball=ball_state)
         self.set_game_state(game_state)
 
         # KILL
-        if (my_car.physics.location.z < 100 or my_car.physics.location.z > 1950 or my_car.physics.location.x < -4000
+        if (my_car.physics.location.z > 1950 or my_car.physics.location.x < -4000
             or my_car.physics.location.x > 4000 or my_car.physics.location.y > 5000 or my_car.physics.location.y < -5000) and self.frame > 50:
             self.frame = 5000
 
@@ -134,10 +135,10 @@ class SelfEvolvingCar(BaseAgent):
         # CALCULATE AVG FITNESS OF 5 FITTEST (IDENTICAL) GENOMES
         if self.gen > 1:
             avg = 0
-            for i in range(5, len(self.botList)):
+            for i in range(int(len(self.botList)/2), len(self.botList)):
                 avg += self.botList[i].fitness
             avg /= 5
-            for i in range(5, len(self.botList)):
+            for i in range(int(len(self.botList)/2), len(self.botList)):
                 self.botList[i].fitness = avg
 
     def calc_fittest(self):
@@ -153,9 +154,9 @@ class SelfEvolvingCar(BaseAgent):
         # RESET TRAINING ATTRIBUTES AFTER EACH GENOME
         ball_state = BallState(Physics(velocity=Vector3(0, 0, 0), location=Vector3(self.pos, 5000, 3000),
                                        angular_velocity=Vector3(0, 0, 0)))
-        car_state = CarState(jumped=False, double_jumped=False, boost_amount=33,
-                             physics=Physics(velocity=Vector3(0, 0, 0), rotation=Rotator(45, 90, 0),
-                                             location=Vector3(0.0, -4608, 500), angular_velocity=Vector3(0, 0, 0)))
+        car_state = CarState(jumped=False, double_jumped=False, boost_amount=100,
+                             physics=Physics(velocity=Vector3(0, 0, 0), rotation=Rotator(0, -90, 0),
+                                             location=Vector3(0.0, 0.0, 16.5), angular_velocity=Vector3(0, 0, 0)))
         game_info_state = GameInfoState(game_speed=1)
         game_state = GameState(ball=ball_state, cars={self.index: car_state}, game_info=game_info_state)
         self.set_game_state(game_state)
@@ -167,15 +168,17 @@ class SelfEvolvingCar(BaseAgent):
                 param_cur.data = torch.tensor(param_best.data, requires_grad=False)
 
     def mutate(self):
+        temp = 1/self.gen
+        self.mutRate *= temp
         # MUTATE FIRST 5 GENOMES
-        for i in range(int(len(self.botList)/2)):
+        for i in range(5):
             for param in self.botList[i].model.parameters():
-                if random.uniform(-1, 1) > 0:
-                    scale = 0.05
-                else:
-                    scale = -0.05
-                param.data += scale * torch.rand(param.data.size(), requires_grad=False)
-
+                if random.uniform(-5, 1) > 0:
+                    if random.uniform(-1, 1) > 0:
+                        scale = self.mutRate
+                    else:
+                        scale = -self.mutRate
+                    param.data += scale * torch.rand(param.data.size(), requires_grad=False)
 
 class Fittest:
     def __init__(self):
@@ -190,6 +193,8 @@ class Individual:
         self.jump_finished = False
         self.torch = torch
         self.model = SymmetricModel()
+
+    def rem_grad(self):
         for param in self.model.parameters():
             torch.tensor(param,requires_grad=False)
 
