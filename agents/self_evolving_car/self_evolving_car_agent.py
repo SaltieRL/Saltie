@@ -5,6 +5,7 @@ sys.path.insert(0, path)  # this is for first process imports
 
 from examples.self_evolving_car.input_formatter import SelfEvolvingCarInputFormatter
 from examples.self_evolving_car.output_formatter import SelfEvolvingCarOutputFormatter
+from agents.torch_model.torch_model import TorchModelAgent
 from examples.levi.torch_model import SymmetricModel
 from rlbot.utils.game_state_util import GameState, BallState, CarState, Physics, Vector3, Rotator, GameInfoState
 from rlbot.agents.base_agent import BaseAgent, SimpleControllerState
@@ -13,7 +14,6 @@ import math
 import random
 import numpy
 import torch
-
 
 class SelfEvolvingCar(BaseAgent):
 
@@ -34,6 +34,7 @@ class SelfEvolvingCar(BaseAgent):
         self.distance_to_ball = [10000] * 10000  # set high for easy minumum
         self.input_formatter = self.create_input_formatter()
         self.output_formatter = self.create_output_formatter()
+        self.fittestWeights = []
 
     def initialize_agent(self):
         # CREATE BOTS AND NETS
@@ -60,15 +61,15 @@ class SelfEvolvingCar(BaseAgent):
 
             # PRINT GENERATION INFO
             self.avg_best_fitness()
+            self.calc_fittest()
             print("")
             print("     GEN = " + str(self.gen))
             print("-------------------------")
-            print("FITTEST = " + str(self.botList[self.calc_fittest()].name))
+            print("FITTEST = " + str(self.botList[self.fittest.index].name))
             print("------FITNESS = " + str(self.fittest.fitness))
             for i in range(len(self.botList)):
                 print("FITNESS OF BOT " + str(i) + " = " + str(self.botList[i].fitness))
-                print(self.botList[i].model.parameters())
-
+                #print(list(self.botList[i].model.parameters()))
             # NE Functions
             self.selection()
             self.mutate()
@@ -80,7 +81,7 @@ class SelfEvolvingCar(BaseAgent):
 
         # NEURAL NET INPUTS
         arr = self.input_formatter.create_input_array([packet], batch_size=1)  # formats packet and returns numpy array
-        arr = [self.torch.from_numpy(x).float() for x in arr]  # cast numpy input array to tensor
+        arr = [self.botList[self.brain].torch.from_numpy(x).float() for x in arr]  # cast numpy input array to tensor
 
         # NEURAL NET OUTPUTS
         out = self.botList[self.brain].run_model(arr)  # runs indexed model
@@ -112,7 +113,7 @@ class SelfEvolvingCar(BaseAgent):
 
         # KILL
         if (my_car.physics.location.z < 100 or my_car.physics.location.z > 1950 or my_car.physics.location.x < -4000
-            or my_car.physics.location.x > 4000 or my_car.physics.location.y > 5000) and self.frame > 50:
+            or my_car.physics.location.x > 4000 or my_car.physics.location.y > 5000 or my_car.physics.location.y < -5000) and self.frame > 50:
             self.frame = 5000
 
         return self.controller_state
@@ -131,21 +132,20 @@ class SelfEvolvingCar(BaseAgent):
 
     def avg_best_fitness(self):
         # CALCULATE AVG FITNESS OF 5 FITTEST (IDENTICAL) GENOMES
-        avg = 0
-        for i in range(5, len(self.botList)):
-            avg += self.botList[i].fitness
-        avg /= 5
-        for i in range(5, len(self.botList)):
-            self.botList[i].fitness = avg
+        if self.gen > 1:
+            avg = 0
+            for i in range(5, len(self.botList)):
+                avg += self.botList[i].fitness
+            avg /= 5
+            for i in range(5, len(self.botList)):
+                self.botList[i].fitness = avg
 
     def calc_fittest(self):
         temp = 1000000
-        count = -1
-        for i in self.botList:
-            count += 1
-            if i.fitness < temp:
-                temp = i.fitness
-                self.fittest.index = count
+        for i in range(len(self.botList)):
+            if self.botList[i].fitness < temp:
+                temp = self.botList[i].fitness
+                self.fittest.index = i
         self.fittest.fitness = temp
         return self.fittest.index
 
@@ -164,18 +164,17 @@ class SelfEvolvingCar(BaseAgent):
         # COPY FITTEST WEIGHTS TO ALL GENOMES
         for i in self.botList:
             for param_cur, param_best in zip(i.model.parameters(), self.botList[self.fittest.index].model.parameters()):
-                param_cur.data = param_best.data
+                param_cur.data = torch.tensor(param_best.data, requires_grad=False)
 
     def mutate(self):
         # MUTATE FIRST 5 GENOMES
         for i in range(int(len(self.botList)/2)):
             for param in self.botList[i].model.parameters():
                 if random.uniform(-1, 1) > 0:
-                    scale = 1
+                    scale = 0.05
                 else:
-                    scale = -1
-                param.data = torch.rand(param.data.size())
-                param.data = (param.data/1000) * scale
+                    scale = -0.05
+                param.data += scale * torch.rand(param.data.size(), requires_grad=False)
 
 
 class Fittest:
@@ -189,7 +188,10 @@ class Individual:
         self.fitness = 0
         self.name = ""
         self.jump_finished = False
+        self.torch = torch
         self.model = SymmetricModel()
+        for param in self.model.parameters():
+            torch.tensor(param,requires_grad=False)
 
     def run_model(self, inp):
         network_output = self.model.forward(*inp)

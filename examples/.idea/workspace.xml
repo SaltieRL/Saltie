@@ -2,7 +2,8 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="aff54607-63a2-4020-ab37-0418c720b9a2" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/self_evolving_car/cool_atba.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../agents/self_evolving_car/self_evolving_car_agent.py" beforeDir="false" afterPath="$PROJECT_DIR$/../agents/self_evolving_car/self_evolving_car_agent.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -27,8 +28,17 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/levi/torch_model.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="1870">
-              <caret line="111" column="38" selection-start-line="111" selection-start-column="38" selection-end-line="111" selection-end-column="38" />
+            <state relative-caret-position="1258">
+              <caret line="93" column="19" selection-start-line="93" selection-start-column="19" selection-end-line="93" selection-end-column="19" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/../agents/torch_model/torch_model.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="561">
+              <caret line="93" column="21" lean-forward="true" selection-start-line="91" selection-start-column="8" selection-end-line="93" selection-end-column="21" />
             </state>
           </provider>
         </entry>
@@ -80,8 +90,8 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/../agents/self_evolving_car/self_evolving_car_agent.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="119">
-              <caret line="7" column="18" selection-start-line="7" selection-start-column="18" selection-end-line="7" selection-end-column="18" />
+            <state relative-caret-position="34">
+              <caret line="152" column="43" selection-start-line="152" selection-start-column="43" selection-end-line="152" selection-end-column="43" />
               <folding>
                 <element signature="e#0#9#0" expanded="true" />
               </folding>
@@ -120,6 +130,7 @@
     <findStrings>
       <find>actor_model</find>
       <find>calc_fitness</find>
+      <find>calc_fittest</find>
     </findStrings>
   </component>
   <component name="Git.Settings">
@@ -139,7 +150,7 @@
   </component>
   <component name="ProjectFrameBounds" extendedState="6">
     <option name="x" value="-10" />
-    <option name="width" value="1550" />
+    <option name="width" value="1302" />
     <option name="height" value="1532" />
   </component>
   <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
@@ -263,7 +274,7 @@
     <servers />
   </component>
   <component name="ToolWindowManager">
-    <frame x="-6" y="-6" width="1293" height="773" extended-state="6" />
+    <frame x="-6" y="-6" width="1293" height="773" extended-state="7" />
     <editor active="true" />
     <layout>
       <window_info id="Favorites" order="0" side_tool="true" />
@@ -347,26 +358,12 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/levi/torch_model.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1870">
-          <caret line="111" column="38" selection-start-line="111" selection-start-column="38" selection-end-line="111" selection-end-column="38" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/../swarm_trainer/base_hive_manager.py">
       <provider selected="true" editor-type-id="text-editor">
         <state>
           <folding>
             <element signature="e#0#9#0" expanded="true" />
           </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/example_model_holder.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="85">
-          <caret line="5" column="75" selection-start-line="5" selection-start-column="75" selection-end-line="5" selection-end-column="75" />
         </state>
       </provider>
     </entry>
@@ -404,10 +401,31 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/levi/torch_model.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1258">
+          <caret line="93" column="19" selection-start-line="93" selection-start-column="19" selection-end-line="93" selection-end-column="19" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/example_model_holder.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="85">
+          <caret line="5" column="75" selection-start-line="5" selection-start-column="75" selection-end-line="5" selection-end-column="75" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../agents/torch_model/torch_model.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="561">
+          <caret line="93" column="21" lean-forward="true" selection-start-line="91" selection-start-column="8" selection-end-line="93" selection-end-column="21" />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/../agents/self_evolving_car/self_evolving_car_agent.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="119">
-          <caret line="7" column="18" selection-start-line="7" selection-start-column="18" selection-end-line="7" selection-end-column="18" />
+        <state relative-caret-position="34">
+          <caret line="152" column="43" selection-start-line="152" selection-start-column="43" selection-end-line="152" selection-end-column="43" />
           <folding>
             <element signature="e#0#9#0" expanded="true" />
           </folding>
