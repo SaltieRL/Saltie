@@ -1,20 +1,29 @@
 import math
-import random
+import sys
+import os
+import matplotlib.pyplot as plt
 from rlbot.utils.game_state_util import GameState, BallState, CarState, Physics, Vector3, Rotator, GameInfoState
 from rlbot.agents.base_agent import BaseAgent, SimpleControllerState
 from rlbot.utils.structures.game_data_struct import GameTickPacket
 from examples.levi.input_formatter import LeviInputFormatter
 from examples.levi.output_formatter import LeviOutputFormatter
-import sys, os
+from framework.self_evolving_car.genetic_algorithm import GeneticAlgorithm
 
 
-class PythonExample(BaseAgent):
+class SelfEvolvingCar(BaseAgent):
+    """This agent uses neuro-evolution to train the Levi torch model to perform aerials in Rocket League.
+        first, the algorithm runs each model with randomly generated parameters. It then calculates each bots' fitness
+        by determining it's minimum distance to the ball. Next, it clones the bot with the best fitness to the rest of
+        the network, and uses a mutation function to guarantee diversity in the population. Make sure to change match
+        length and points to unlimited and disable goal reset and enable instant start"""
+
     def __init__(self, name, team, index):
         super().__init__(name, team, index)
 
         import torch
         sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # this is for separate process imports
         from examples.levi.torch_model import SymmetricModel
+        self.ga = GeneticAlgorithm()
         self.Model = SymmetricModel
         self.torch = torch
         self.controller_state = SimpleControllerState()
@@ -38,47 +47,52 @@ class PythonExample(BaseAgent):
         self.reset()  # reset at start
 
     def get_output(self, packet: GameTickPacket) -> SimpleControllerState:
-        # NEURAL NET INPUTS
+        # neural net inputs
         inputs = self.input_formatter.create_input_array([packet])
         inputs = [self.torch.from_numpy(x).float() for x in inputs]
 
+        # fitness function
         my_car = packet.game_cars[self.index]
         distance_to_ball_x = packet.game_ball.physics.location.x - my_car.physics.location.x
         distance_to_ball_y = packet.game_ball.physics.location.y - my_car.physics.location.y
         distance_to_ball_z = packet.game_ball.physics.location.z - my_car.physics.location.z
-        self.distance_to_ball[self.frame] = math.sqrt(distance_to_ball_x**2 + distance_to_ball_y**2 + distance_to_ball_z**2)
+        self.distance_to_ball[self.frame] = math.sqrt(
+            distance_to_ball_x ** 2 + distance_to_ball_y ** 2 + distance_to_ball_z ** 2)
 
-        # RENDER RESULTS
-        action_display = "GEN: "+str(self.gen+1)+" | BOT: "+str(self.brain)#+" \nTURN: "+str(self.botList[self.brain].Nodes[1].node(self.distance_to_ball_x,self.distance_to_ball_y,self.distance_to_ball_z,4,5,6,7))+" \nBOOST: "+str(self.botList[self.brain].Nodes[2].node(self.distance_to_ball_x,self.distance_to_ball_y,self.distance_to_ball_z,8,9,10,11))+" \nTHROTTLE: "+str(self.botList[self.brain].Nodes(self.distance_to_ball_x,self.distance_to_ball_y,self.distance_to_ball_z,0,1,2,3))
+        # render results
+        action_display = "GEN: " + str(self.gen + 1) + " | BOT: " + str(self.brain)
+        draw_debug(self.renderer, action_display)
 
-        draw_debug(self.renderer, my_car, packet.game_ball, action_display)
+        # stop evolving when ball is touched
+        if packet.game_ball.latest_touch.player_name == "Self-Evolving-Car":
+            self.mut_rate = 0
 
-        # # STOP EVOLVING WHEN THE BALL IS TOUCHED
-        # if packet.game_ball.latest_touch.player_name == "Self-Evolving-Car":
-        #     self.mut_rate = 0
-
-        # GAME STATE
+        # game state
         car_state = CarState(boost_amount=100)
-        ball_state = BallState(Physics(velocity=Vector3(0, 0, 0), location=Vector3(0, -1000, 1200), angular_velocity=Vector3(0, 0, 0)))
+        ball_state = BallState(Physics(velocity=Vector3(0, 0, 0), location=Vector3(0, -1000, 1200),
+                                       angular_velocity=Vector3(0, 0, 0)))
         game_state = GameState(ball=ball_state, cars={self.index: car_state})
         self.set_game_state(game_state)
 
-        # NEURAL NET OUTPUTS
+        # neural net outputs
         with self.torch.no_grad():
             outputs = self.bot_list[self.brain].forward(*inputs)
         self.controller_state = self.output_formatter.format_model_output(outputs, [packet])[0]
 
-        # KILL
-        if (my_car.physics.location.z < 100 or my_car.physics.location.z > 1950 or my_car.physics.location.x < -4000 or my_car.physics.location.x > 4000 or my_car.physics.location.y > 5000) and self.frame > 50:
-            #self.botList[self.brain].fitness = (1/self.frame+1)*100000
+        # kill
+        if (my_car.physics.location.z < 100 or my_car.physics.location.z > 1950
+            or my_car.physics.location.x < -4000 or my_car.physics.location.x > 4000
+            or my_car.physics.location.y > 5000 or my_car.physics.location.y < -5000) \
+                and self.frame > 50:
             self.frame = self.max_frames
 
-        # LOOPS
+        # loops
         self.frame = self.frame + 1
 
         if self.frame >= self.max_frames:
             self.frame = 0
-            self.calc_fitness()
+            self.bot_fitness[self.brain] = self.ga.calc_fitness(self.distance_to_ball)
+            self.distance_to_ball = [math.inf] * self.max_frames
             self.brain += 1  # change bot every reset
             self.controller_state = SimpleControllerState()  # reset controller
             self.reset()  # reset at start
@@ -87,77 +101,40 @@ class PythonExample(BaseAgent):
             self.gen += 1
             self.brain = 0  # reset bots after all have gone
 
-            self.avg_best_fitness()
-            self.calc_fittest()
+            self.bot_fitness[self.num_best:] = [self.ga.avg_best_fitness(self.bot_fitness[self.num_best:])
+                                                for _ in self.bot_fitness[self.num_best:]]
+            self.fittest = self.ga.calc_fittest(self.bot_fitness)
 
-            # PRINT GENERATION INFO
-            print("")
-            print("     GEN = "+str(self.gen))
-            print("-------------------------")
-            print("FITTEST = BOT " + str(self.fittest))
-            print("------FITNESS = " + str(self.bot_fitness[self.fittest]))
-            # print("------WEIGHTS = " + str(self.bot_list[self.fittest]))
+            # print generation info
+            self.logger.info("")
+            self.logger.info("     GEN = {}".format(self.gen))
+            self.logger.info("-------------------------")
+            self.logger.info("FITTEST = BOT {}".format(self.fittest))
+            self.logger.info("------FITNESS = {}".format(self.bot_fitness[self.fittest]))
+
             for i in range(len(self.bot_list)):
-                print("FITNESS OF BOT " + str(i) + " = " + str(self.bot_fitness[i]))
+                self.logger.info("FITNESS OF BOT {} = {}".format(i, self.bot_fitness[i]))
 
-            # NE Functions
-
-            self.selection()
-            self.mutate()
+            # NE functions
+            self.ga.crossover(self.bot_list[self.fittest], self.bot_list)
+            self.ga.mutate(self.bot_list[:self.num_best], self.mut_rate)
             self.reset()  # reset because of delay
 
         return self.controller_state
 
-    def calc_fitness(self):
-        # CALCULATE MINIMUM DISTANCE TO BALL FOR EACH GENOME
-        min_distance_to_ball = min(self.distance_to_ball)
-        self.bot_fitness[self.brain] = min_distance_to_ball
-
-        self.distance_to_ball = [math.inf] * self.max_frames
-
-        return min_distance_to_ball
-
-    def avg_best_fitness(self):
-        # CALCULATE AVG FITNESS OF 5 FITTEST (IDENTICAL) GENOMES
-        self.bot_fitness[-self.num_best:] = [sum(self.bot_fitness[-self.num_best:]) / self.num_best] * self.num_best
-
-    def calc_fittest(self):
-        temp = math.inf
-        for i in range(len(self.bot_list)):
-            if self.bot_fitness[i] < temp:
-                temp = self.bot_fitness[i]
-                self.fittest = i
-        return self.fittest
-
     def reset(self):
-        # RESET TRAINING ATTRIBUTES AFTER EACH GENOME
+        """Resets game data after each genome"""
         ball_state = BallState(Physics(velocity=Vector3(0, 0, 0), location=Vector3(self.pos, 5000, 3000),
                                        angular_velocity=Vector3(0, 0, 0)))
         car_state = CarState(jumped=False, double_jumped=False, boost_amount=33,
-                             physics=Physics(velocity=Vector3(0,0,0),rotation=Rotator(45, 90, 0),location=Vector3(0.0, -4608,500),angular_velocity=Vector3(0, 0, 0)))
+                             physics=Physics(velocity=Vector3(0, 0, 0), rotation=Rotator(45, 90, 0),
+                                             location=Vector3(0.0, -4608, 500), angular_velocity=Vector3(0, 0, 0)))
         game_info_state = GameInfoState(game_speed=1)
         game_state = GameState(ball=ball_state, cars={self.index: car_state}, game_info=game_info_state)
         self.set_game_state(game_state)
 
-    def selection(self):
-        # COPY FITTEST WEIGHTS TO ALL GENOMES
-        state_dict = self.bot_list[self.fittest].state_dict()
-        for bot in self.bot_list:
-            bot.load_state_dict(state_dict)
 
-    def mutate(self):
-        # MUTATE FIRST GENOMES
-        for i, bot in enumerate(self.bot_list[:-self.num_best]):
-            new_genes = self.Model()
-            for param, param_new in zip(bot.parameters(), new_genes.parameters()):
-                mask = self.torch.rand(param.data.size()) < self.mut_rate / (i + 1)
-                param.data[mask] = param_new.data[mask]
-
-
-def draw_debug(renderer, car, ball, action_display):
+def draw_debug(renderer, action_display):
     renderer.begin_rendering()
-    # draw a line from the car to the ball
-    renderer.draw_line_3d(car.physics.location, ball.physics.location, renderer.white())
-    # print the action that the bot is taking
-    renderer.draw_string_3d(car.physics.location, 2, 2, action_display, renderer.white())
+    renderer.draw_string_2d(10, 10, 4, 4, action_display, color=renderer.white())
     renderer.end_rendering()
