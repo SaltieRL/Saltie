@@ -64,8 +64,8 @@ class SelfEvolvingCar(BaseAgent):
         draw_debug(self.renderer, action_display)
 
         # stop evolving when ball is touched
-        if packet.game_ball.latest_touch.player_name == "Self-Evolving-Car":
-            self.mut_rate = 0
+        # if packet.game_ball.latest_touch.player_name == "Self-Evolving-Car":
+        #  self.mut_rate = 0
 
         # game state
         car_state = CarState(boost_amount=100)
