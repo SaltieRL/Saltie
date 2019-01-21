@@ -37,7 +37,7 @@ class LeviAgent(SwarmAgent):
         import torch
         self.torch = torch
         from examples.levi.cool_atba import Atba
-         self.atba = Atba()
+        self.atba = Atba()
 
         self.empty_controller = SimpleControllerState()
 
