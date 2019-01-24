@@ -24,6 +24,7 @@ import torch
 import torch.nn as nn
 
 
+# not used
 class SpatialInput(nn.Module):
     def __init__(self, size):
         nn.Module.__init__(self)
@@ -66,7 +67,7 @@ class ActorModel(nn.Module):
 
         self.linear = nn.Linear(25, 25, bias=True)
         self.soft_sign = nn.Softsign()
-        self.output = nn.Linear(25, 13, bias=True)
+        self.output = nn.Linear(25, 15, bias=True)
 
     def forward(self, spatial, car_stats):
         processed_x = self.input_x(spatial[:, 0])
@@ -112,9 +113,12 @@ class SymmetricModel(nn.Module):
 
         self.actor = ActorModel()
         self.soft_sign = nn.Softsign()
+        self.soft_plus = nn.Softplus(beta=1, threshold=20)
+
+        self.scale = nn.Parameter(torch.ones(1))
 
     def forward(self, spatial, car_stats):
-        spatial_inv = torch.tensor(spatial)
+        spatial_inv = spatial.clone().detach()
         spatial_inv[:, 0] *= -1  # invert x coordinates
         spatial_inv[:, :, 7] *= -1  # invert own car left normal
         spatial_inv[:, :, 4:6] *= -1  # invert angular velocity
@@ -125,9 +129,15 @@ class SymmetricModel(nn.Module):
         output[:, 0:9] += output_inv[:, 0:9]  # combine unflippable outputs
         output[:, 9:13] += -1 * output_inv[:, 9:13]  # combine flippable outputs
 
-        output = self.soft_sign(output)
+        output[:, 13:15] += output_inv[:, 13:15]  # combine the values for the time estimate
 
-        return output
+        controls = self.soft_sign(output[:, 0:13])
+
+        time_estimate = self.soft_plus(output[:, 13]) / self.soft_plus(output[:, 14])
+        # print(time_estimate, self.soft_plus(self.scale * time_estimate))
+        time_distribution = torch.distributions.Normal(time_estimate, self.soft_plus(self.scale) * time_estimate, True)
+
+        return controls, time_distribution
 
     @staticmethod
     def get_input_state_dimension():
@@ -135,4 +145,4 @@ class SymmetricModel(nn.Module):
 
     @staticmethod
     def get_model_output_dimension():
-        return [(13,)]
+        return [(13,), (1,)]

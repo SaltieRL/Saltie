@@ -51,6 +51,6 @@ class LeviTeacherAgent(TeacherAgent):
         arr = [self.torch.from_numpy(x).float() for x in arr]
 
         with self.torch.no_grad():
-            output = self.model.forward(*arr)
+            output, time = self.model.forward(*arr)
 
         return output

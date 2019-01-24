@@ -90,7 +90,8 @@ class LeviAgent(BaseAgent):
         arr = [self.torch.from_numpy(x).float() for x in arr]
 
         with self.torch.no_grad():
-            output = self.model.forward(*arr)
+            output, t = self.model.forward(*arr)
+            # self.visualize_net(arr[0][:, :, 0].squeeze(), arr[0][:, :, 6:9])
         return output
 
     @staticmethod
@@ -99,3 +100,29 @@ class LeviAgent(BaseAgent):
         params = config.get_header(BOT_CONFIG_AGENT_HEADER)
         params.add_value('model_path', str, default=os.path.join('models', 'cool_atba.mdl'),
                          description='Path to the model file')
+
+    def visualize_net(self, pos, car_normals):
+        actor = self.model.actor
+        result_x = actor.input_x.normal(car_normals[:, 0, :])
+        result_y = actor.input_y.normal(car_normals[:, 1, :])
+        result_z = actor.input_z.normal(car_normals[:, 2, :])
+
+        weight_x = actor.linear.weight[0:10]
+        weight_y = actor.linear.weight[10:20]
+        weight_z = actor.linear.weight[20:25]
+
+        vector_x = result_x.mm(weight_x)
+        vector_y = result_y.mm(weight_y)
+        vector_z = result_z.mm(weight_z)
+
+        vectors = self.torch.cat((vector_x, vector_y, vector_z))
+
+        if self.team == 1:
+            vectors[0:2] *= -1
+            pos[0:2] *= -1
+
+        self.renderer.begin_rendering()
+        for i in range(vectors.shape[1]):
+            self.renderer.draw_line_3d((pos * 1000).tolist(), (pos * 1000 + vectors[:, i].squeeze() * 10).tolist(), self.renderer.black())
+
+        self.renderer.end_rendering()

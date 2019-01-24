@@ -13,8 +13,8 @@ class BaseHiveManager(BotHelperProcess):
     batch_size = 2000
     memory_size = 100000
 
-    def __init__(self, agent_metadata_queue, quit_event):
-        super().__init__(agent_metadata_queue, quit_event)
+    def __init__(self, agent_metadata_queue, quit_event, options):
+        super().__init__(agent_metadata_queue, quit_event, options)
         sys.path.insert(0, get_repo_directory())  # this is for separate process imports
         self.logger = get_logger('base_hive_mgr')
 

@@ -65,7 +65,7 @@ class TorchManager(BaseHiveManager):
         teacher_output = self.torch.from_numpy(data_list[2]).float()
         mask = self.torch.from_numpy(data_list[3]).float()
 
-        network_output = self.actor_model.forward(spatial, extra)
+        network_output, t = self.actor_model.forward(spatial, extra)
 
         loss = self.loss_function(network_output * mask, teacher_output * mask)
         loss.backward()

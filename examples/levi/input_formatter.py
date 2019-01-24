@@ -45,7 +45,7 @@ class LeviInputFormatter(BaseInputFormatter):
         spatial = np.stack([spatial_x, spatial_y, spatial_z])
         spatial = np.concatenate([spatial, own_theta], axis=1)
 
-        spatial[:, 0:6] /= 1000
+        spatial[:, 0:4] /= 1000
 
         own_car_stats = np.array([own_car.boost / 100,
                                   1 if own_car.jumped else 0,

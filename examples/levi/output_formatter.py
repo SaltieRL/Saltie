@@ -57,8 +57,8 @@ class LeviOutputFormatter:
         packet = packet[0]
 
         self.controller_state.throttle = action[0]
-        self.controller_state.boost = action[2] > 0  # > semi_random(3)
-        self.controller_state.handbrake = action[3] > 0  # > semi_random(3)
+        self.controller_state.boost = action[2] > semi_random(3)
+        self.controller_state.handbrake = action[3] > semi_random(3)
 
         pitch = action[1]
         yaw = action[11]
@@ -69,19 +69,19 @@ class LeviOutputFormatter:
         jumping = self.controller_state.jump and can_double_jump
 
         jump = jumping
-        if not jumping and can_jump and action[4] > 0:  # start_jump
+        if not jumping and can_jump and action[4] > semi_random(3):  # start_jump
             jump = True
             # print("jump")
-        if jumping and not can_jump and action[5] > 0:  # end_jump
+        if jumping and not can_jump and action[5] > semi_random(3):  # end_jump
             jump = False
         if not jumping and can_double_jump:
-            if action[6] > 0:  # double_jump
+            if action[6] > semi_random(3):  # double_jump
                 jump = True
                 pitch = 0
                 yaw = 0
                 roll = 0
                 # print("double")
-            elif action[7] > 0:  # flip
+            elif action[7] > semi_random(3):  # flip
                 jump = True
                 pitch = action[8]  # flip_forward
                 yaw = action[9]  # flip_sideways
