@@ -10,7 +10,7 @@ from framework.utils import get_repo_directory
 
 class BaseHiveManager(BotHelperProcess):
 
-    batch_size = 2000
+    batch_size = 500
     memory_size = 100000
 
     def __init__(self, agent_metadata_queue, quit_event, options):
@@ -22,11 +22,20 @@ class BaseHiveManager(BotHelperProcess):
         self.shared_model_handle = self.get_shared_model_handle()
         self.manager = self.setup_manager()
 
-        shape_list = self.actor_model.get_input_state_dimension()
-        shape_list.extend(self.actor_model.get_model_output_dimension())
-        shape_list.extend(self.actor_model.get_model_output_dimension())
+        action_shape = self.actor_model.get_model_output_dimension()[0]
+        state_shape_list = self.actor_model.get_input_state_dimension()
 
-        self.game_memory = self.manager.Memory(self.memory_size, shape_list)
+        shape_dict = {
+            'spatial': state_shape_list[0],
+            'extra': state_shape_list[1],
+            'action': action_shape,
+            'mask': action_shape,
+            'teacher_action': action_shape,
+            'time': (),
+        }
+        print(shape_dict)
+
+        self.game_memory = self.manager.Memory(self.memory_size, shape_dict)
         self.model_path = None
         self.load_model = None
 
@@ -83,11 +92,12 @@ class BaseHiveManager(BotHelperProcess):
         self.finish_training()
 
     def learn_memory(self):
-        if self.game_memory.get_size() >= 1000:
-            data_list = self.game_memory.get_sample(self.batch_size)
-            self.train_step(data_list)
+        if self.game_memory.get_size() >= 20000:
+            data_dict = self.game_memory.get_sample(self.batch_size)
+            self.train_step(data_dict)
         else:
             time.sleep(5)
+            print(self.game_memory.get_size())
 
     def initialize_training(self, load_model=False, load_exp=False):
         raise NotImplementedError()

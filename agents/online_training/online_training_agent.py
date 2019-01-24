@@ -1,7 +1,6 @@
 from rlbot.messages.flat import GameTickPacket
 
 from agents.main_agent.base_model_agent import BaseModelAgent
-from swarm_trainer.reward_memory import BaseRewardMemory
 
 
 class OnlineTrainingAgent(BaseModelAgent):
