@@ -23,7 +23,6 @@
 import os
 import sys
 import math
-from pynput.keyboard import Listener, Key
 from agents.swarm.swarm_agent import SwarmAgent
 
 path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -47,17 +46,11 @@ class LeviReinforcementTeacherAgent(SwarmAgent):
         from agents.human_teacher.controller import HytakControllerInput
         self.controller_input = HytakControllerInput()
 
-        # self.offset = torch.zeros(1, 13)
-        # self.theta = 0.97
-        # self.sigma = 0.03
-
         self.oops = False
         self.data_dict = {
                 'spatial': np.zeros((1, 3, 9), float),
                 'extra': np.zeros((1, 5), float),
                 'action': np.zeros((1, 13), float),
-                # 'rigid_action': SimpleControllerState(),
-                # 'controller': SimpleControllerState(),
                 'mask': np.zeros((1, 13), bool),
                 'next_spatial': np.zeros((1, 3, 9), float),
                 'next_extra': np.zeros((1, 5), float),
@@ -85,16 +78,11 @@ class LeviReinforcementTeacherAgent(SwarmAgent):
         loss = (spatial_x[0] - spatial_x[1]) ** 2 + \
                (spatial_y[0] - spatial_y[1]) ** 2 + \
                (spatial_z[0] - spatial_z[1]) ** 2
-        # spatial_y[0] - - math.sqrt(loss)
 
-        # drive = self.data_dict['action'][0, 0] - self.data_dict['action'][0, 4]
-        # self.data_dict['reward'][0] = - math.sqrt(loss) - self.old_value_2 - self.old_value + drive / 50
-        self.data_dict['reward'][0] = spatial_y[0]
+        self.data_dict['reward'][0] = -math.sqrt(loss)
 
         self.data_dict['next_spatial'][:] = arr[0][:]
         self.data_dict['next_extra'][:] = arr[1][:]
-
-        # self.data_dict['rigid_action'] = rigid.players[self.index].input
 
         if not packet.game_info.is_round_active:
             blue, orange = total_goals(packet)
@@ -125,13 +113,7 @@ class LeviReinforcementTeacherAgent(SwarmAgent):
             out_tensors = self.model.forward(*tensors)
             new_output, _, _, _ = (x.numpy() for x in out_tensors)
 
-        # self.offset *= self.theta
-        # new_output = self.torch.distributions.Normal(output + self.offset, self.sigma).sample().clamp(-1, 1)
-        # new_output = self.torch.distributions.Normal(new_output, 0.1).sample().clamp(-1, 1)
-        # assert (new_output.size() == (1, 13))
         new_output = np.random.normal(new_output, 1).clip(-1, 1)
-        #
-        # self.offset = (new_output - output)
 
         self.render()
 
@@ -144,7 +126,6 @@ class LeviReinforcementTeacherAgent(SwarmAgent):
         mask[0, 3] = 0  # no handbrake
         mask[0, 0] = 0  # not throttle
         assert (mask.shape == (1, 13))
-        # print(mask)
 
         controls = self.output_formatter.format_controller_output(new_output[0] * mask[0], packet)
         controls.jump = False
@@ -154,7 +135,6 @@ class LeviReinforcementTeacherAgent(SwarmAgent):
         self.data_dict['spatial'][:] = arr[0].copy()[:]
         self.data_dict['extra'][:] = arr[1].copy()[:]
         self.data_dict['action'][:] = self.output_formatter.format_numpy_output(rigid.players[self.index].input)[:]
-        # self.data_dict['action'][:] = new_output[:]
         self.data_dict['mask'][:] = mask[:]
 
         self.data_ready = True
@@ -174,16 +154,6 @@ class LeviReinforcementTeacherAgent(SwarmAgent):
         try:
             if self.data_ready:
                 self.data_ready = False
-                # if not self.oops:
-                #     #     new = rigid.players[self.index].input
-                #     #     old = self.old_action
-                #     #     comp = {key: (value, new[key]) for key, value in vars(old).items()}
-                #     #     print(comp)
-                #     # print(self.data_dict['controller'].throttle, self.data_dict['rigid_action'].throttle)
-                #     print(self.data_dict['action'][0, 0])
-                #     print(self.data_dict['next_spatial'] - self.data_dict['spatial'])
-                #     # self.oops = True
-
                 self.game_memory.record(self.data_dict)
         except:
             if not self.oops:
@@ -198,8 +168,6 @@ class LeviReinforcementTeacherAgent(SwarmAgent):
         #                              f"value = {round(value[0, 0].item(), 2)} -> ", red)
         self.renderer.draw_string_2d(0, y + 40, 2, 2,
                                      f"reward = {round(self.data_dict['reward'][0].item(), 2)}", red)
-        # self.renderer.draw_string_2d(0, y + 60, 2, 2,
-        #                              f"offset = {round(-self.offset[0, 4].item(), 2)}", red)
         self.renderer.end_rendering()
 
 

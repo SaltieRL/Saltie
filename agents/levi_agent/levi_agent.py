@@ -24,12 +24,14 @@ import os
 import sys
 from rlbot.agents.base_agent import SimpleControllerState, BaseAgent, BOT_CONFIG_AGENT_HEADER
 from rlbot.parsing.custom_config import ConfigHeader, ConfigObject
+from rlbot.utils.game_state_util import GameState, GameInfoState
 
 path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, path)  # this is for first process imports
 
 from examples.levi.output_formatter import LeviOutputFormatter
 from examples.levi.input_formatter import LeviInputFormatter
+from quicktracer import trace
 
 
 class LeviAgent(BaseAgent):
@@ -67,14 +69,32 @@ class LeviAgent(BaseAgent):
         if packet.game_cars[self.index].is_demolished:
             return self.empty_controller
 
-        arr = self.input_formatter.create_input_array([packet], batch_size=1)
+        rigid = self.get_rigid_body_tick()
+        arr = self.input_formatter.get_input_from_rigid(rigid)
 
-        assert (arr[0].shape == (1, 3, 9))
-        assert (arr[1].shape == (1, 5))
+        with self.torch.no_grad():
+            tensors = [self.torch.from_numpy(x).float() for x in arr]
+            assert (tensors[0].size() == (1, 3, 9))
+            assert (tensors[1].size() == (1, 5))
+            out_tensors = self.model.forward(*tensors)
+            new_output, _, _, _ = (x.numpy() for x in out_tensors)
 
-        output = self.advanced_step(arr)
+        mask = self.output_formatter.get_mask(packet)
+        mask[0, 4] = 0  # no jumping
+        mask[0, 3] = 0  # no handbrake
+        mask[0, 0] = 0  # not throttle
+        assert (mask.shape == (1, 13))
 
-        return self.output_formatter.format_model_output(output, [packet], batch_size=1)[0]
+        controls = self.output_formatter.format_controller_output(new_output[0] * mask[0], packet)
+        controls.jump = False
+        controls.throttle = 1
+        controls.handbrake = False
+
+        # game_info_state = GameInfoState(game_speed=3.0)
+        # game_state = GameState(game_info=game_info_state)
+        # self.set_game_state(game_state)
+
+        return controls
 
     def create_input_formatter(self):
         return LeviInputFormatter(self.team, self.index)
@@ -82,17 +102,10 @@ class LeviAgent(BaseAgent):
     def create_output_formatter(self):
         return LeviOutputFormatter(self.index)
 
-    def get_model(self):
+    @staticmethod
+    def get_model():
         from examples.levi.torch_model import SymmetricModel
         return SymmetricModel()
-
-    def advanced_step(self, arr):
-        arr = [self.torch.from_numpy(x).float() for x in arr]
-
-        with self.torch.no_grad():
-            output, t = self.model.forward(*arr)
-            # self.visualize_net(arr[0][:, :, 0].squeeze(), arr[0][:, :, 6:9])
-        return output
 
     @staticmethod
     def create_agent_configurations(config: ConfigObject):
@@ -101,28 +114,28 @@ class LeviAgent(BaseAgent):
         params.add_value('model_path', str, default=os.path.join('models', 'cool_atba.mdl'),
                          description='Path to the model file')
 
-    def visualize_net(self, pos, car_normals):
-        actor = self.model.actor
-        result_x = actor.input_x.normal(car_normals[:, 0, :])
-        result_y = actor.input_y.normal(car_normals[:, 1, :])
-        result_z = actor.input_z.normal(car_normals[:, 2, :])
-
-        weight_x = actor.linear.weight[0:10]
-        weight_y = actor.linear.weight[10:20]
-        weight_z = actor.linear.weight[20:25]
-
-        vector_x = result_x.mm(weight_x)
-        vector_y = result_y.mm(weight_y)
-        vector_z = result_z.mm(weight_z)
-
-        vectors = self.torch.cat((vector_x, vector_y, vector_z))
-
-        if self.team == 1:
-            vectors[0:2] *= -1
-            pos[0:2] *= -1
-
-        self.renderer.begin_rendering()
-        for i in range(vectors.shape[1]):
-            self.renderer.draw_line_3d((pos * 1000).tolist(), (pos * 1000 + vectors[:, i].squeeze() * 10).tolist(), self.renderer.black())
-
-        self.renderer.end_rendering()
+    # def visualize_net(self, spatial, extra):
+    #     actor = self.model.actor
+    #     spatial = spatial[0, :, :].squeeze()
+    #
+    #     weight_x = actor.input_x.multiplier.weight
+    #
+    #     # result_x = spatial[:, 0, :2].cross(weight_x.t()[0, :2])
+    #     result_x = weight_x[:, :2].clone()
+    #     result_x[:, 0], result_x[:, 1] = weight_x[:, 1], weight_x[:, 0].neg()
+    #     result_x = (result_x * 100).renorm(2, 1, 1)
+    #
+    #     if self.team == 1:
+    #         result_x *= -1
+    #         # vectors[0:2] *= -1
+    #         # pos[0:2] *= -1
+    #
+    #     self.renderer.begin_rendering()
+    #     # for l in range(-1000, 1000, 100):
+    #     self.renderer.draw_line_3d([spatial[0, 0], spatial[1, 0], spatial[2, 0]],
+    #                                [spatial[0, 1], spatial[1, 1], spatial[2, 1]],
+    #                                self.renderer.black())
+    #     # + l * result_x[0, 0]
+    #     # + l * result_x[0, 1]
+    #
+    #     self.renderer.end_rendering()
