@@ -11,28 +11,18 @@ from framework.utils import get_repo_directory
 class BaseHiveManager(BotHelperProcess):
 
     batch_size = 500
-    memory_size = 100000
+    memory_size = 10000
 
     def __init__(self, agent_metadata_queue, quit_event, options):
         super().__init__(agent_metadata_queue, quit_event, options)
         sys.path.insert(0, get_repo_directory())  # this is for separate process imports
         self.logger = get_logger('base_hive_mgr')
 
-        self.actor_model = self.get_model()
+        self.model = self.get_model()
         self.shared_model_handle = self.get_shared_model_handle()
         self.manager = self.setup_manager()
 
-        action_shape = self.actor_model.get_model_output_dimension()[0]
-        state_shape_list = self.actor_model.get_input_state_dimension()
-
-        shape_dict = {
-            'spatial': state_shape_list[0],
-            'extra': state_shape_list[1],
-            'action': action_shape,
-            'mask': action_shape,
-            'teacher_action': action_shape,
-            'time': (),
-        }
+        shape_dict = self.get_shape_dict()
         print(shape_dict)
 
         self.game_memory = self.manager.Memory(self.memory_size, shape_dict)
@@ -40,6 +30,19 @@ class BaseHiveManager(BotHelperProcess):
         self.load_model = None
 
         self.setup_trainer()
+
+    def get_shape_dict(self):
+        action_shape = self.model.get_model_output_dimension()[0]
+        state_shape_list = self.model.get_input_state_dimension()
+
+        return {
+            'spatial': state_shape_list[0],
+            'extra': state_shape_list[1],
+            'action': action_shape,
+            'mask': action_shape,
+            'teacher_action': action_shape,
+            'time': (),
+        }
 
     def get_model(self):
         raise NotImplementedError()
@@ -84,7 +87,7 @@ class BaseHiveManager(BotHelperProcess):
         Loops through the game providing training as data is collected.
         :return:
         """
-        self.initialize_training(load_model=self.load_model)
+        self.initialize_training(load_model=self.load_model, load_exp=self.load_model)
 
         while not self.quit_event.is_set():
             self.learn_memory()
@@ -92,7 +95,7 @@ class BaseHiveManager(BotHelperProcess):
         self.finish_training()
 
     def learn_memory(self):
-        if self.game_memory.get_size() >= 20000:
+        if self.game_memory.get_size() >= 100:
             data_dict = self.game_memory.get_sample(self.batch_size)
             self.train_step(data_dict)
         else:
@@ -115,7 +118,7 @@ class BaseHiveManager(BotHelperProcess):
         raise NotImplementedError()
 
     def get_model_name(self):
-        return str(type(self.actor_model).__name__)
+        return str(type(self.model).__name__)
 
     def get_file_path(self):
         return os.path.join(get_repo_directory(), self.model_path)

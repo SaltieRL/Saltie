@@ -100,40 +100,40 @@ class LeviOutputFormatter:
     def format_controller_output(self, action, packet: GameTickPacket) -> SimpleControllerState:
         controller_state = SimpleControllerState()
 
-        controller_state.throttle = action[0]
-        controller_state.boost = action[2] > semi_random(3)
-        controller_state.handbrake = action[3] > semi_random(3)
+        controller_state.throttle = action[0].item()
+        controller_state.boost = action[2].item() > semi_random(3)
+        controller_state.handbrake = action[3].item() > semi_random(3)
 
-        pitch = action[1]
-        yaw = action[11]
-        roll = action[12]
+        pitch = action[1].item()
+        yaw = action[11].item()
+        roll = action[12].item()
 
         can_jump = packet.game_cars[self.index].has_wheel_contact
         can_double_jump = not packet.game_cars[self.index].double_jumped and not can_jump
         jumping = self.jump and can_double_jump
 
         jump = jumping
-        if not jumping and can_jump and action[4] > semi_random(3):  # start_jump
+        if not jumping and can_jump and action[4].item() > semi_random(5):  # start_jump
             jump = True
-        if jumping and not can_jump and action[5] > semi_random(3):  # end_jump
+        if jumping and not can_jump and action[5].item() > semi_random(3):  # end_jump
             jump = False
         if not jumping and can_double_jump:
-            if action[6] > semi_random(3):  # double_jump
+            if action[6].item() > semi_random(3):  # double_jump
                 jump = True
                 pitch = 0
                 yaw = 0
                 roll = 0
                 # print("double")
-            elif action[7] > semi_random(3):  # flip
+            elif action[7].item() > semi_random(3):  # flip
                 jump = True
-                pitch = action[8]  # flip_forward
-                yaw = action[9]  # flip_sideways
+                pitch = action[8].item()  # flip_forward
+                yaw = action[9].item()  # flip_sideways
                 roll = 0
                 # print("flip")
 
         controller_state.pitch = pitch
         controller_state.jump = jump
-        controller_state.steer = action[10]
+        controller_state.steer = action[10].item()
         controller_state.yaw = yaw
         controller_state.roll = roll
 
@@ -149,5 +149,5 @@ class LeviOutputFormatter:
 
 
 def semi_random(power):
-    return pow(random() - random(), power)
-    # return 0
+    # return pow(random() - random(), power)
+    return 0

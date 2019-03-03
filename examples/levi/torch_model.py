@@ -113,9 +113,10 @@ class SymmetricModel(nn.Module):
 
         self.actor = ActorModel()
         self.soft_sign = nn.Softsign()
-        self.soft_plus = nn.Softplus(beta=1, threshold=20)
+        # self.soft_plus = nn.Softplus(beta=1, threshold=20)
 
-        self.scale = nn.Parameter(torch.ones(1))
+        self.const1 = nn.Parameter(torch.ones(()))
+        self.const2 = nn.Parameter(torch.ones(()))
 
     def forward(self, spatial, car_stats):
         spatial_inv = spatial.clone().detach()
@@ -133,11 +134,9 @@ class SymmetricModel(nn.Module):
 
         controls = self.soft_sign(output[:, 0:13])
 
-        time_estimate = self.soft_plus(output[:, 13]) / self.soft_plus(output[:, 14])
-        # print(time_estimate, self.soft_plus(self.scale * time_estimate))
-        time_distribution = torch.distributions.Normal(time_estimate, self.soft_plus(self.scale) * time_estimate, True)
+        value_estimate = output[:, 13]
 
-        return controls, time_distribution
+        return controls, value_estimate, self.const1.exp(), self.const2.exp()
 
     @staticmethod
     def get_input_state_dimension():
@@ -145,4 +144,4 @@ class SymmetricModel(nn.Module):
 
     @staticmethod
     def get_model_output_dimension():
-        return [(13,), (1,)]
+        return [(13,)]
