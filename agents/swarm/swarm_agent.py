@@ -33,10 +33,9 @@ class SwarmAgent(BaseAgent):
 
         file = self.get_manager_path()
         key = 'swarm_manager'
-        request = HelperProcessRequest(file, key)
+        options = {'model_path': self.model_path, 'load_model': self.load_model}
+        request = HelperProcessRequest(file, key, options=options)
         self.pipe, request.pipe = Pipe(False)
-        request.model_path = self.model_path
-        request.load_model = self.load_model
         return request
 
     def load_config(self, config_object_header: ConfigHeader):

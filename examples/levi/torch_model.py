@@ -22,6 +22,7 @@
 
 import torch
 import torch.nn as nn
+from torch import Tensor
 
 
 # not used
@@ -115,11 +116,12 @@ class SymmetricModel(nn.Module):
         self.soft_sign = nn.Softsign()
         # self.soft_plus = nn.Softplus(beta=1, threshold=20)
 
-        self.const1 = nn.Parameter(torch.ones(()))
-        self.const2 = nn.Parameter(torch.ones(()))
+        # self.const1 = nn.Parameter(torch.ones(()))
+        # self.const2 = nn.Parameter(torch.ones(()))
+        # self.scale = nn.Parameter(torch.ones(()))
 
-    def forward(self, spatial, car_stats):
-        spatial_inv = spatial.clone().detach()
+    def forward(self, spatial: Tensor, car_stats: Tensor):
+        spatial_inv = spatial.clone()
         spatial_inv[:, 0] *= -1  # invert x coordinates
         spatial_inv[:, :, 7] *= -1  # invert own car left normal
         spatial_inv[:, :, 4:6] *= -1  # invert angular velocity
@@ -136,7 +138,8 @@ class SymmetricModel(nn.Module):
 
         value_estimate = output[:, 13]
 
-        return controls, value_estimate, self.const1.exp(), self.const2.exp()
+        return controls, value_estimate
+        # return controls, value_estimate, self.const1.exp(), self.const2.exp()
 
     @staticmethod
     def get_input_state_dimension():

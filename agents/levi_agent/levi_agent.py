@@ -31,7 +31,6 @@ sys.path.insert(0, path)  # this is for first process imports
 
 from examples.levi.output_formatter import LeviOutputFormatter
 from examples.levi.input_formatter import LeviInputFormatter
-from quicktracer import trace
 
 
 class LeviAgent(BaseAgent):
@@ -53,7 +52,7 @@ class LeviAgent(BaseAgent):
         self.model = self.get_model()
         self.input_formatter = self.create_input_formatter()
         self.output_formatter = self.create_output_formatter()
-        self.model.load_state_dict(self.torch.load(self.get_file_path()))
+        self.model.load_state_dict(self.torch.load(self.get_file_path()), strict=False)
 
     def get_file_path(self):
         return os.path.join(path, self.model_path)
@@ -69,26 +68,20 @@ class LeviAgent(BaseAgent):
         if packet.game_cars[self.index].is_demolished:
             return self.empty_controller
 
-        rigid = self.get_rigid_body_tick()
-        arr = self.input_formatter.get_input_from_rigid(rigid)
+        arr = self.input_formatter.create_input_array([packet])
 
         with self.torch.no_grad():
             tensors = [self.torch.from_numpy(x).float() for x in arr]
             assert (tensors[0].size() == (1, 3, 9))
             assert (tensors[1].size() == (1, 5))
             out_tensors = self.model.forward(*tensors)
-            new_output, _, _, _ = (x.numpy() for x in out_tensors)
+            new_output, _ = (x.numpy() for x in out_tensors)
+            # new_output, _, _, _ = (x.numpy() for x in out_tensors)
 
         mask = self.output_formatter.get_mask(packet)
-        mask[0, 4] = 0  # no jumping
-        mask[0, 3] = 0  # no handbrake
-        mask[0, 0] = 0  # not throttle
         assert (mask.shape == (1, 13))
 
         controls = self.output_formatter.format_controller_output(new_output[0] * mask[0], packet)
-        controls.jump = False
-        controls.throttle = 1
-        controls.handbrake = False
 
         # game_info_state = GameInfoState(game_speed=3.0)
         # game_state = GameState(game_info=game_info_state)

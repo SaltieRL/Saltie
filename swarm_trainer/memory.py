@@ -1,6 +1,5 @@
 import numpy as np
 from multiprocessing import Lock
-import math
 
 
 def non_parallel(func: callable) -> callable:
@@ -17,14 +16,8 @@ class BaseMemory:
         self.limit = limit
         self.size = 0
         self.data_dict = {key: np.zeros((limit,) + shape) for key, shape in shape_dict.items()}
-        # self.data_dict['goal_time'] = np.zeros(limit)
-        # self.data_dict['importance'] = np.zeros(limit)
-        # self.data_dict['model_step'] = np.zeros(limit, np.uint32)
         self.lock = Lock()
-        # self.time = 0
-        # self.model_step = 0
 
-        # self.previous_indices = None
         self.sample = {key: np.empty(()) for key in self.data_dict.keys()}
         np.seterr(all='raise')
 
@@ -42,13 +35,7 @@ class BaseMemory:
         for key in data_dict.keys():
             self.data_dict[key][indices] = data_dict[key]
 
-        # self.data_dict['goal_time'][indices] = 0
-        # self.data_dict['importance'][indices] = 1
-        # self.data_dict['model_step'][indices] = self.model_step
-
         self.size = final_size
-
-        # self.time = abs(data_dict['time']).max()
 
     @non_parallel
     def get_sample(self, size: int) -> dict:
@@ -59,30 +46,7 @@ class BaseMemory:
             self.sample[key].resize((indices.size,) + self.data_dict[key].shape[1:], refcheck=False)
             self.sample[key][:] = self.data_dict[key][indices].copy()
 
-        # self.sample['model_step'] = self.model_step - self.sample['model_step']
-        # no_goal_mask = self.data_dict['goal_time'][indices] == 0
-        # self.sample['goal_time'][no_goal_mask] = abs(self.sample['time'][no_goal_mask]) - self.time
-        #
-        # self.model_step += 1
-
-        # self.previous_indices = indices
         return self.sample
-
-    # @non_parallel
-    # def goal(self, time: float) -> None:
-    #     # negative time means orange goal/ car
-    #
-    #     all_goal_mask = self.data_dict['goal_time'] == 0  # zero because new goals
-    #     goal_mask = (np.sign(self.data_dict['time']) == math.copysign(1, time)) & all_goal_mask
-    #     own_goal_mask = (~goal_mask) & all_goal_mask
-    #
-    #     self.data_dict['goal_time'][goal_mask] = abs(self.data_dict['time'][goal_mask] - time)
-    #     self.data_dict['goal_time'][own_goal_mask] = -abs(self.data_dict['time'][own_goal_mask] + time)
-
-    # @non_parallel
-    # def importance(self, importance) -> None:
-    #     all_goal_mask = self.data_dict['goal_time'][self.previous_indices] != 0
-    #     self.data_dict['importance'][self.previous_indices[all_goal_mask]] = abs(importance.numpy()[all_goal_mask])
 
     def get_size(self) -> int:
         return self.size
@@ -90,15 +54,11 @@ class BaseMemory:
     @non_parallel
     def save(self, file: str) -> None:
         import torch
-        # no_goal_mask = self.data_dict['goal_time'] == 0
-        # self.data_dict['importance'][no_goal_mask] = 0
         print('trying')
-        # torch.save((self.data_dict, self.size, self.limit, self.model_step), file)
         torch.save((self.data_dict, self.size, self.limit), file)
         print('done')
 
     @non_parallel
     def load(self, file: str) -> None:
         import torch
-        # self.data_dict, self.size, self.limit, self.model_step = torch.load(file)
         self.data_dict, self.size, self.limit = torch.load(file)

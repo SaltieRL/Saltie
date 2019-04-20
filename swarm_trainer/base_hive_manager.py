@@ -26,22 +26,18 @@ class BaseHiveManager(BotHelperProcess):
         print(shape_dict)
 
         self.game_memory = self.manager.Memory(self.memory_size, shape_dict)
-        self.model_path = None
-        self.load_model = None
 
         self.setup_trainer()
 
     def get_shape_dict(self):
-        action_shape = self.model.get_model_output_dimension()[0]
+        action_shape = self.model.get_model_output_dimension()
         state_shape_list = self.model.get_input_state_dimension()
 
         return {
             'spatial': state_shape_list[0],
             'extra': state_shape_list[1],
-            'action': action_shape,
-            'mask': action_shape,
-            'teacher_action': action_shape,
-            'time': (),
+            'action': action_shape[0],
+            'mask': action_shape[0],
         }
 
     def get_model(self):
@@ -68,9 +64,6 @@ class BaseHiveManager(BotHelperProcess):
         while not self.metadata_queue.empty():
             metadata = self.metadata_queue.get()
             pipe = metadata.helper_process_request.pipe
-            self.model_path = metadata.helper_process_request.model_path
-            self.load_model = metadata.helper_process_request.load_model
-
             pipe.send(self.shared_model_handle)
             pipe.send(self.game_memory)
 
@@ -87,7 +80,7 @@ class BaseHiveManager(BotHelperProcess):
         Loops through the game providing training as data is collected.
         :return:
         """
-        self.initialize_training(load_model=self.load_model, load_exp=self.load_model)
+        self.initialize_training(load_model=self.options['load_model'], load_exp=self.options['load_model'])
 
         while not self.quit_event.is_set():
             self.learn_memory()
@@ -121,4 +114,4 @@ class BaseHiveManager(BotHelperProcess):
         return str(type(self.model).__name__)
 
     def get_file_path(self):
-        return os.path.join(get_repo_directory(), self.model_path)
+        return os.path.join(get_repo_directory(), self.options['model_path'])

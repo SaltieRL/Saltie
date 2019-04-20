@@ -74,25 +74,50 @@ class LeviOutputFormatter:
         return result
 
     def get_mask(self, packet: GameTickPacket) -> ndarray:
-        can_jump = packet.game_cars[self.index].has_wheel_contact
-        can_double_jump = not packet.game_cars[self.index].double_jumped and not can_jump
+        on_ground = packet.game_cars[self.index].has_wheel_contact
+        can_double_jump = not packet.game_cars[self.index].double_jumped and not on_ground
         boost_available = not packet.game_cars[self.index].boost == 0
 
         mask = np.array([[
-            1 if can_jump else 0,  # throttle
-            1 if not can_jump else 0,  # pitch
+            1,  # throttle
+            1 if not on_ground else 0,  # pitch
             1 if boost_available else 0,  # boost
-            1 if can_jump else 0,  # handbrake
-            1 if not self.jump and can_jump else 0,  # start_jump
+            1 if on_ground else 0,  # handbrake
+            1 if not self.jump and on_ground else 0,  # start_jump
             1 if self.jump and can_double_jump else 0,  # end_jump
             1 if not self.jump and can_double_jump else 0,  # double_jump
             1 if not self.jump and can_double_jump else 0,  # flip
             1 if not self.jump and can_double_jump else 0,  # flip_forward
 
             1 if not self.jump and can_double_jump else 0,  # flip_sideways
-            1 if can_jump else 0,  # steer
-            1 if not can_jump else 0,  # yaw
-            1 if not can_jump else 0,  # roll
+            1 if on_ground else 0,  # steer
+            1 if not on_ground else 0,  # yaw
+            1 if not on_ground else 0,  # roll
+        ]])
+
+        return mask
+
+    def get_mask_supervised(self, packet: GameTickPacket, controller) -> ndarray:
+        on_ground = packet.game_cars[self.index].has_wheel_contact
+        can_double_jump = not packet.game_cars[self.index].double_jumped and not on_ground
+        boost_available = not packet.game_cars[self.index].boost == 0
+        flipping = (controller.yaw != 0.0 or controller.pitch != 0.0) and can_double_jump and controller.jump
+
+        mask = np.array([[
+            1 if not controller.boost else 0,  # throttle
+            1 if not on_ground else 0,  # pitch
+            1 if boost_available else 0,  # boost
+            1 if on_ground else 0,  # handbrake
+            1 if not self.jump and on_ground else 0,  # start_jump
+            1 if self.jump and can_double_jump else 0,  # end_jump
+            1 if not self.jump and can_double_jump else 0,  # double_jump
+            1 if not self.jump and can_double_jump else 0,  # flip
+            1 if flipping else 0,  # flip_forward
+
+            1 if flipping else 0,  # flip_sideways
+            1 if on_ground else 0,  # steer
+            1 if not on_ground and not flipping else 0,  # yaw
+            1 if not on_ground and not flipping else 0,  # roll
         ]])
 
         return mask
