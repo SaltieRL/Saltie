@@ -45,66 +45,13 @@ from numpy import ndarray
 # roll - scalar
 
 class LeviOutputFormatter:
-    controller_state = SimpleControllerState()
-
     def __init__(self, index):
         super().__init__()
         self.index = index
-        self.controller_state = SimpleControllerState()
-
-    def format_model_output(self, arr: ndarray, packet, batch_size=1) -> ndarray:
-        if batch_size != 1:
-            raise NotImplementedError
-        action = arr[0]
-        packet = packet[0]
-
-        self.controller_state.throttle = action[0]
-        self.controller_state.boost = action[2] > 0  # > semi_random(3)
-        self.controller_state.handbrake = action[3] > 0  # > semi_random(3)
-
-        pitch = action[1]
-        yaw = action[11]
-        roll = action[12]
-
-        can_jump = packet.game_cars[self.index].has_wheel_contact
-        can_double_jump = not packet.game_cars[self.index].double_jumped and not can_jump
-        jumping = self.controller_state.jump and can_double_jump
-
-        jump = jumping
-        if not jumping and can_jump and action[4] > 0:  # start_jump
-            jump = True
-            # print("jump")
-        if jumping and not can_jump and action[5] > 0:  # end_jump
-            jump = False
-        if not jumping and can_double_jump:
-            if action[6] > 0:  # double_jump
-                jump = True
-                pitch = 0
-                yaw = 0
-                roll = 0
-                # print("double")
-            elif action[7] > 0:  # flip
-                jump = True
-                pitch = action[8]  # flip_forward
-                yaw = action[9]  # flip_sideways
-                roll = 0
-                # print("flip")
-
-        self.controller_state.pitch = pitch
-        self.controller_state.jump = jump
-        self.controller_state.steer = action[10]
-        self.controller_state.yaw = yaw
-        self.controller_state.roll = roll
-
-        return np.array([self.controller_state])
+        self.jump = False
 
     @staticmethod
-    def get_model_output_dimension():
-        return (13,)
-
-    def format_numpy_output(self, new_controller_state: SimpleControllerState, packet: GameTickPacket) -> \
-            (ndarray, ndarray):
-
+    def format_numpy_output(new_controller_state: SimpleControllerState) -> ndarray:
         double = new_controller_state.yaw == 0.0 and new_controller_state.pitch == 0.0
 
         result = np.array([[
@@ -124,32 +71,106 @@ class LeviOutputFormatter:
             new_controller_state.roll,
         ]])
 
-        can_jump = packet.game_cars[self.index].has_wheel_contact
-        can_double_jump = not packet.game_cars[self.index].double_jumped and not can_jump
-        jumping = self.controller_state.jump and can_double_jump
+        return result
+
+    def get_mask(self, packet: GameTickPacket) -> ndarray:
+        on_ground = packet.game_cars[self.index].has_wheel_contact
+        can_double_jump = not packet.game_cars[self.index].double_jumped and not on_ground
         boost_available = not packet.game_cars[self.index].boost == 0
 
-        second_jump = not jumping and can_double_jump and new_controller_state.jump
-
         mask = np.array([[
-            1 if can_jump else 0,  # throttle
-            1 if not can_jump and not second_jump else 0,  # pitch
+            1,  # throttle
+            1 if not on_ground else 0,  # pitch
             1 if boost_available else 0,  # boost
-            1 if can_jump else 0,  # handbrake
-            1 if not jumping and can_jump else 0,  # start_jump
-            1 if jumping and not can_jump else 0,  # end_jump
-            1 if not jumping and can_double_jump else 0,  # double_jump
-            1 if not jumping and can_double_jump else 0,  # flip
-            1 if second_jump and not double else 0,  # flip_forward
+            1 if on_ground else 0,  # handbrake
+            1 if not self.jump and on_ground else 0,  # start_jump
+            1 if self.jump and can_double_jump else 0,  # end_jump
+            1 if not self.jump and can_double_jump else 0,  # double_jump
+            1 if not self.jump and can_double_jump else 0,  # flip
+            1 if not self.jump and can_double_jump else 0,  # flip_forward
 
-            1 if second_jump and not double else 0,  # flip_sideways
-            1 if can_jump else 0,  # steer
-            1 if not can_jump and not second_jump else 0,  # yaw
-            1 if not can_jump and not second_jump else 0,  # roll
+            1 if not self.jump and can_double_jump else 0,  # flip_sideways
+            1 if on_ground else 0,  # steer
+            1 if not on_ground else 0,  # yaw
+            1 if not on_ground else 0,  # roll
         ]])
 
-        self.controller_state = new_controller_state
-        return result, mask
+        return mask
+
+    def get_mask_supervised(self, packet: GameTickPacket, controller) -> ndarray:
+        on_ground = packet.game_cars[self.index].has_wheel_contact
+        can_double_jump = not packet.game_cars[self.index].double_jumped and not on_ground
+        boost_available = not packet.game_cars[self.index].boost == 0
+        flipping = (controller.yaw != 0.0 or controller.pitch != 0.0) and can_double_jump and controller.jump
+
+        mask = np.array([[
+            1 if not controller.boost else 0,  # throttle
+            1 if not on_ground else 0,  # pitch
+            1 if boost_available else 0,  # boost
+            1 if on_ground else 0,  # handbrake
+            1 if not self.jump and on_ground else 0,  # start_jump
+            1 if self.jump and can_double_jump else 0,  # end_jump
+            1 if not self.jump and can_double_jump else 0,  # double_jump
+            1 if not self.jump and can_double_jump else 0,  # flip
+            1 if flipping else 0,  # flip_forward
+
+            1 if flipping else 0,  # flip_sideways
+            1 if on_ground else 0,  # steer
+            1 if not on_ground and not flipping else 0,  # yaw
+            1 if not on_ground and not flipping else 0,  # roll
+        ]])
+
+        return mask
+
+    def format_controller_output(self, action, packet: GameTickPacket) -> SimpleControllerState:
+        controller_state = SimpleControllerState()
+
+        controller_state.throttle = action[0].item()
+        controller_state.boost = action[2].item() > semi_random(3)
+        controller_state.handbrake = action[3].item() > semi_random(3)
+
+        pitch = action[1].item()
+        yaw = action[11].item()
+        roll = action[12].item()
+
+        can_jump = packet.game_cars[self.index].has_wheel_contact
+        can_double_jump = not packet.game_cars[self.index].double_jumped and not can_jump
+        jumping = self.jump and can_double_jump
+
+        jump = jumping
+        if not jumping and can_jump and action[4].item() > semi_random(5):  # start_jump
+            jump = True
+        if jumping and not can_jump and action[5].item() > semi_random(3):  # end_jump
+            jump = False
+        if not jumping and can_double_jump:
+            if action[6].item() > semi_random(3):  # double_jump
+                jump = True
+                pitch = 0
+                yaw = 0
+                roll = 0
+                # print("double")
+            elif action[7].item() > semi_random(3):  # flip
+                jump = True
+                pitch = action[8].item()  # flip_forward
+                yaw = action[9].item()  # flip_sideways
+                roll = 0
+                # print("flip")
+
+        controller_state.pitch = pitch
+        controller_state.jump = jump
+        controller_state.steer = action[10].item()
+        controller_state.yaw = yaw
+        controller_state.roll = roll
+
+        # we should not reference the new_controller_state, because it can change
+        # we only need jump, so we can just copy the value
+        self.jump = jump
+
+        return controller_state
+
+    @staticmethod
+    def get_model_output_dimension():
+        return 13,
 
 
 def semi_random(power):

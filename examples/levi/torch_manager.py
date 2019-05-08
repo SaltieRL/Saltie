@@ -33,13 +33,13 @@ class TorchManager(BaseHiveManager):
     optimizer = None
     loss_function = None
 
-    def __init__(self, agent_metadata_queue, quit_event):
+    def __init__(self, agent_metadata_queue, quit_event, options):
         import torch
         self.torch = torch  # before initialization as this is needed for `setup_trainer`
-        super().__init__(agent_metadata_queue, quit_event)
+        super().__init__(agent_metadata_queue, quit_event, options)
 
     def setup_trainer(self):
-        self.optimizer = self.torch.optim.Adamax(self.actor_model.parameters())
+        self.optimizer = self.torch.optim.Adadelta(self.model.parameters())
         self.loss_function = self.torch.nn.MSELoss()
 
     def get_model(self):
@@ -47,29 +47,28 @@ class TorchManager(BaseHiveManager):
         return SymmetricModel()
 
     def get_shared_model_handle(self):
-        return self.actor_model.share_memory()
+        return self.model.share_memory()
 
     def initialize_training(self, load_model=False, load_exp=False):
         if load_model:
             file_path = self.get_file_path()
-            self.actor_model.load_state_dict(self.torch.load(file_path))
+            self.model.load_state_dict(self.torch.load(file_path))
         # if load_exp:
         #     file_path = self.get_file_path()  # should be different actually
         #     self.game_memory.load(file_path)
 
-    def train_step(self, formatted_input, formatted_output, mask, rewards=None, batch_size=1):
+    def train_step(self, data_dict):
         self.optimizer.zero_grad()
 
-        formatted_input = [self.torch.from_numpy(x).float() for x in formatted_input]
-        formatted_output = self.torch.from_numpy(formatted_output).float()
-        mask = self.torch.from_numpy(mask).float()
+        spatial = self.torch.from_numpy(data_dict['spatial']).float()
+        extra = self.torch.from_numpy(data_dict['extra']).float()
+        teacher_output = self.torch.from_numpy(data_dict['action']).float()
+        mask = self.torch.from_numpy(data_dict['mask']).float()
 
-        network_output = self.actor_model.forward(*formatted_input)
+        network_output, t = self.model.forward(spatial, extra)
 
-        loss = self.loss_function(network_output * mask, formatted_output * mask)
+        loss = self.loss_function(network_output * mask, teacher_output * mask)
         loss.backward()
-        # for i in range(9):
-        #     trace(self.loss_function(network_output[:, i], formatted_output[:, i]).item(), key=i)
         trace(loss.item(), key='loss')
 
         self.optimizer.step()
@@ -78,6 +77,6 @@ class TorchManager(BaseHiveManager):
         if save_model:
             file_path = self.get_file_path()
             print('saving model at:', file_path)
-            self.torch.save(self.actor_model.state_dict(), file_path)
+            self.torch.save(self.model.state_dict(), file_path)
         # if save_exp:
         #     self.game_memory.save(self.actor_model.get_model_name() + '.exp')

@@ -1,7 +1,7 @@
 import os
 
 from rlbot.botmanager.helper_process_request import HelperProcessRequest
-from rlbot.agents.base_agent import BaseAgent, BOT_CONFIG_AGENT_HEADER
+from rlbot.agents.base_agent import SimpleControllerState, BaseAgent, BOT_CONFIG_AGENT_HEADER
 from rlbot.parsing.custom_config import ConfigHeader, ConfigObject
 from rlbot.utils.logging_utils import get_logger
 from framework.utils import get_repo_directory
@@ -26,16 +26,16 @@ class SwarmAgent(BaseAgent):
         self.manager_path = None
         self.model_path = None
         self.load_model = None
+        self.empty_controller = SimpleControllerState()
 
     def get_helper_process_request(self) -> HelperProcessRequest:
         from multiprocessing import Pipe
 
         file = self.get_manager_path()
         key = 'swarm_manager'
-        request = HelperProcessRequest(file, key)
+        options = {'model_path': self.model_path, 'load_model': self.load_model}
+        request = HelperProcessRequest(file, key, options=options)
         self.pipe, request.pipe = Pipe(False)
-        request.model_path = self.model_path
-        request.load_model = self.load_model
         return request
 
     def load_config(self, config_object_header: ConfigHeader):

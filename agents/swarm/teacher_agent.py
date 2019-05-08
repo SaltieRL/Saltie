@@ -27,6 +27,7 @@ from agents.swarm.swarm_agent import SwarmAgent
 from rlbot.agents.base_agent import SimpleControllerState, BaseAgent, BOT_CONFIG_AGENT_HEADER
 from rlbot.utils.class_importer import ExternalClassWrapper
 from framework.utils import get_repo_directory
+import numpy as np
 
 
 class TeacherAgent(SwarmAgent):
@@ -36,6 +37,13 @@ class TeacherAgent(SwarmAgent):
         self.teacher = None
         self.teacher_formatter = self.create_output_formatter()
         self.manager_path = None
+
+        self.data_dict = {
+                'spatial': np.zeros((1, 3, 9), float),
+                'extra': np.zeros((1, 5), float),
+                'action': np.zeros((1, 13), float),
+                'mask': np.zeros((1, 13), bool),
+            }
 
     def initialize_agent(self):
         super().initialize_agent()
@@ -62,20 +70,24 @@ class TeacherAgent(SwarmAgent):
         arr = self.input_formatter.create_input_array([packet], batch_size=1)
 
         teacher_output = self.teacher.get_output(packet)
-        teacher_output, mask = self.teacher_formatter.format_numpy_output(teacher_output, packet)
+        mask = self.teacher_formatter.get_mask_supervised(packet, teacher_output)
+        teacher_output = self.teacher_formatter.format_numpy_output(teacher_output)
 
         assert (arr[0].shape == (1, 3, 9))
         assert (arr[1].shape == (1, 5))
         assert (teacher_output.shape == (1, 13))
         assert (mask.shape == (1, 13))
 
-        self.game_memory.append(arr, teacher_output, mask)
+        self.data_dict['spatial'][:] = arr[0].copy()[:]
+        self.data_dict['extra'][:] = arr[1].copy()[:]
+        self.data_dict['action'][:] = teacher_output[:]
+        self.data_dict['mask'][:] = mask[:]
+
+        self.game_memory.record(self.data_dict)
 
         output = self.advanced_step(arr, teacher_output)
 
-        # print(teacher_output[0, 5], output[0, 5], mask[0, 5])
-
-        return self.output_formatter.format_model_output(output, [packet], batch_size=1)[0]
+        return self.output_formatter.format_controller_output(output[0], packet)
 
     @staticmethod
     def create_agent_configurations(config: ConfigObject):

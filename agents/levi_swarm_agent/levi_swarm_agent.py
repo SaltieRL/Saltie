@@ -22,21 +22,21 @@
 
 import os
 import sys
-
-from agents.swarm.teacher_agent import TeacherAgent
-
 path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, path)  # this is for first process imports
 
+from rlbot.agents.base_agent import SimpleControllerState
 from examples.levi.output_formatter import LeviOutputFormatter
 from examples.levi.input_formatter import LeviInputFormatter
+from agents.swarm.teacher_agent import SwarmAgent
 
 
-class LeviAgent(TeacherAgent):
+class LeviSwarmAgent(SwarmAgent):
     def __init__(self, name, team, index):
         super().__init__(name, team, index)
         import torch
         self.torch = torch
+        self.empty_controller = SimpleControllerState()
 
     def get_manager_path(self):
         return os.path.join(path, 'examples', 'levi', 'torch_manager.py')
@@ -47,7 +47,27 @@ class LeviAgent(TeacherAgent):
     def create_output_formatter(self):
         return LeviOutputFormatter(self.index)
 
-    def advanced_step(self, arr, teacher_output):
+    def get_output(self, packet):
+        """
+        Predicts an output given the input
+        :param packet: The game_tick_packet
+        :return:
+        """
+        if not packet.game_info.is_round_active:
+            return self.empty_controller
+        if packet.game_cars[self.index].is_demolished:
+            return self.empty_controller
+
+        arr = self.input_formatter.create_input_array([packet], batch_size=1)
+
+        assert (arr[0].shape == (1, 3, 9))
+        assert (arr[1].shape == (1, 5))
+
+        output = self.advanced_step(arr)
+
+        return self.output_formatter.format_model_output(output, [packet], batch_size=1)[0]
+
+    def advanced_step(self, arr):
         arr = [self.torch.from_numpy(x).float() for x in arr]
 
         with self.torch.no_grad():
