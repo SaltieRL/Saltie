@@ -5,9 +5,8 @@ from rlbot.matchconfig.match_config import MatchConfig, PlayerConfig, Team
 
 
 def make_default_playlist(on_briefing):
-    exercises = (
-        rl_importer.make_default_playlist()[10:20]
-    )
+    exercises = rl_importer.make_default_playlist()
+
     for exercise in exercises:
         exercise.match_config.player_configs = [
             PlayerConfig.bot_config(
