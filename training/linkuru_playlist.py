@@ -14,6 +14,7 @@ def make_default_playlist(on_briefing):
                 Team.BLUE
             ),
         ]
+        exercise.match_config.mutators.boost_amount = "Unlimited"
         exercise.on_briefing = MethodType(on_briefing, exercise)
 
     return exercises

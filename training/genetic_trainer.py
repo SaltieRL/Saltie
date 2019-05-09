@@ -1,8 +1,6 @@
 from rlbottraining.exercise_runner import run_playlist
 from rlbottraining.training_exercise import TrainingExercise
 
-from training.linkuru_playlist import make_default_playlist
-
 from rlbot.matchcomms.common_uses.set_attributes_message import make_set_attributes_message
 from rlbot.matchcomms.common_uses.reply import send_and_wait_for_replies
 from rlbot.training.training import Grade, Pass
@@ -11,13 +9,20 @@ from rlbot.setup_manager import setup_manager_context
 
 from typing import Optional, Callable
 
-from examples.levi.torch_model import SymmetricModel
 from torch.nn import Module
 
 import io
 from multiprocessing.reduction import ForkingPickler
 import pickle
 import torch
+import os
+import sys
+
+path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, path)  # this is for first process imports
+
+from training.linkuru_playlist import make_default_playlist
+from examples.levi.torch_model import SymmetricModel
 
 
 def create_on_briefing(send_model: Module) -> Callable:
@@ -35,6 +40,7 @@ if __name__ == '__main__':
     logger = get_logger('genetic algorithm')
 
     model = SymmetricModel()
+    model.load_state_dict(torch.load(f'exercise_0.mdl'))
     model.share_memory()
     playlist = make_default_playlist(create_on_briefing(model))[0:1]
 
