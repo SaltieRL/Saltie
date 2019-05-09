@@ -1,6 +1,6 @@
 # Include everything the framework requires
 # You will automatically get updates for all versions starting with "1.".
-rlbot==1.15.0a1
+rlbot
 rlbottraining
 h5py
 pandas
