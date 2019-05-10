@@ -2,6 +2,7 @@ from pathlib import Path
 from types import MethodType
 import rlbottraining.common_exercises.rl_custom_training_import.rl_importer as rl_importer
 from rlbot.matchconfig.match_config import MatchConfig, PlayerConfig, Team
+from training.car_ball_goal_distance_grader import CarBallGoalGrader
 
 
 def make_default_playlist(on_briefing):
@@ -14,6 +15,7 @@ def make_default_playlist(on_briefing):
                 Team.BLUE
             ),
         ]
+        exercise.grader = CarBallGoalGrader(exercise.grader.graders[1].max_duration_seconds)
         exercise.match_config.mutators.boost_amount = "Unlimited"
         exercise.on_briefing = MethodType(on_briefing, exercise)
 

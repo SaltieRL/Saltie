@@ -40,16 +40,18 @@ if __name__ == '__main__':
     logger = get_logger('genetic algorithm')
 
     model = SymmetricModel()
-    model.load_state_dict(torch.load(f'exercise_0.mdl'))
+    # model.load_state_dict(torch.load(f'exercise_0.mdl'))
     model.share_memory()
-    playlist = make_default_playlist(create_on_briefing(model))[0:1]
 
     with setup_manager_context() as setup_manager:
         while True:
+            playlist = make_default_playlist(create_on_briefing(model))[0:1]
+
             model.load_state_dict(SymmetricModel().state_dict())
 
             result = next(run_playlist(playlist, setup_manager=setup_manager))
-            logger.info(result)
+
+            logger.info(result.grade.loss)
 
             if isinstance(result.grade, Pass):
                 torch.save(model.state_dict(), f'exercise_{result.reproduction_info.playlist_index}.mdl')
